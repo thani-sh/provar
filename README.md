@@ -1,10 +1,10 @@
 # Provar
 
-Provar is an AI-agentic tool designed to create and manage end-to-end tests through a visual, graph-based interface.
+AI agentic tool to create end-to-end tests visually.
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (latest version)
+- [Bun](https://bun.sh/)
 
 ## Getting Started
 
@@ -14,8 +14,7 @@ Provar is an AI-agentic tool designed to create and manage end-to-end tests thro
    bun install
    ```
 
-2. **Start development servers:**
+2. **Start development environment:**
    ```bash
    bun run dev
    ```
-   This will start both the editor and the server concurrently.
