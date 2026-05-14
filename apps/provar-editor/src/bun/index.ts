@@ -1,4 +1,4 @@
-import { BrowserWindow, BrowserView, Updater } from "electrobun/bun";
+import Electrobun, { BrowserWindow, BrowserView, Updater, ApplicationMenu, Utils } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
 import { getConfig } from "./commands/getConfig";
 import { saveConfig } from "./commands/saveConfig";
@@ -8,6 +8,7 @@ import { writeFileCommand } from "./commands/writeFile";
 import { createFile } from "./commands/createFile";
 import { createDirectory } from "./commands/createDirectory";
 import { deletePath } from "./commands/deletePath";
+import { setWorkspaceDir } from "./utils";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -32,6 +33,7 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
 	handlers: {
 		requests: {
 			getConfig,
+			getWorkspace: async () => ({ path: WORKSPACE_DIR }),
 			saveConfig,
 			listFiles,
 			readFile: readFileCommand,
@@ -57,6 +59,37 @@ const mainWindow = new BrowserWindow({
 	},
 	rpc: provarRPC,
 	titleBarStyle: "hiddenInset"
+});
+
+ApplicationMenu.setApplicationMenu([
+	{
+		label: "File",
+		submenu: [
+			{
+				label: "Open Workspace...",
+				action: "open-workspace",
+				accelerator: "o",
+			},
+			{ type: "separator" },
+			{ role: "quit" },
+		],
+	}
+]);
+
+Electrobun.events.on("application-menu-clicked", async (e) => {
+	if (e.data.action === "open-workspace") {
+		const chosenPaths = await Utils.openFileDialog({
+			canChooseFiles: false,
+			canChooseDirectory: true,
+			allowsMultipleSelection: false,
+		});
+
+		if (chosenPaths && chosenPaths.length > 0) {
+			const newWorkspace = chosenPaths[0];
+			setWorkspaceDir(newWorkspace);
+			mainWindow.webview.rpc.send.workspaceSelected({ path: newWorkspace });
+		}
+	}
 });
 
 console.log("Provar Editor started!");

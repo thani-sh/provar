@@ -13,13 +13,20 @@
 
   const rpcSchema = Electroview.defineRPC<ProvarRPCSchema>({
     handlers: {
-      messages: {}
+      messages: {
+        workspaceSelected: (params) => {
+          console.log('App: Workspace selected via menu:', params.path);
+          workspacePath = params.path;
+          handleWorkspaceChange();
+        }
+      }
     }
   });
 
   const electroview = new Electroview({ rpc: rpcSchema });
 
   // Global State (Runes)
+  let workspacePath = $state<string | null>(null);
   let suites = $state<string[]>([]);
   let currentFileContent = $state<TestFile | null>(null);
   let selectedFile = $state<string | null>(null);
@@ -42,19 +49,31 @@
 
   onMount(async () => {
     console.log('App: Mounted, checking config...');
+    await handleWorkspaceChange();
+  });
+
+  async function handleWorkspaceChange() {
     try {
+      const workspaceRes = await electroview.rpc.request.getWorkspace({});
       const configRes = await electroview.rpc.request.getConfig({});
+      
+      workspacePath = workspaceRes.path || null;
+
       if (configRes.config) {
         config = configRes.config;
         await refreshFiles();
       } else {
-        configModalShow = true;
+        if (workspacePath) {
+          configModalShow = true;
+        }
       }
     } catch (e) {
-      console.error('App: Initial check failed:', e);
-      configModalShow = true;
+      console.error('App: Workspace check failed:', e);
+      if (workspacePath) {
+        configModalShow = true;
+      }
     }
-  });
+  }
 
   async function handleConfigConfirm(newConfig: ProvarConfig) {
     console.log('App: handleConfigConfirm called with:', newConfig);
@@ -172,7 +191,16 @@
 
 <div class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300">
   <main class="absolute inset-0 touch-none overscroll-none">
-    {#if currentFileContent}
+    {#if !workspacePath}
+      <div class="flex flex-col items-center justify-center h-full text-zinc-500 space-y-4">
+        <h1 class="text-4xl font-bold text-zinc-200">Welcome to Provar</h1>
+        <p class="text-xl">Open a workspace to get started</p>
+        <div class="flex items-center space-x-2 text-sm text-zinc-600">
+            <kbd class="px-2 py-1 bg-zinc-800 rounded border border-zinc-700 font-mono">Cmd/Ctrl + O</kbd>
+            <span>to open a folder</span>
+        </div>
+      </div>
+    {:else if currentFileContent}
       <Canvas
         testFile={currentFileContent}
         bind:selectedNodeId
@@ -184,14 +212,16 @@
     {/if}
   </main>
 
-  <TestExplorer
-    files={suites}
-    {selectedFile}
-    onSelect={loadFile}
-    onCreateFile={handleCreateFile}
-    onCreateFolder={handleCreateFolder}
-    onDelete={handleDelete}
-  />
+  {#if workspacePath}
+    <TestExplorer
+      files={suites}
+      {selectedFile}
+      onSelect={loadFile}
+      onCreateFile={handleCreateFile}
+      onCreateFolder={handleCreateFolder}
+      onDelete={handleDelete}
+    />
+  {/if}
 
   {#if selectedNodeId === GRAPH_START_ID}
     <StartSidePanel

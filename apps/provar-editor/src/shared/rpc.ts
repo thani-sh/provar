@@ -8,6 +8,10 @@ export type ProvarRPCSchema = {
         params: {};
         response: { config: ProvarConfig | null };
       };
+      getWorkspace: {
+        params: {};
+        response: { path: string };
+      };
       saveConfig: {
         params: { config: ProvarConfig };
         response: { success: boolean };
@@ -40,7 +44,9 @@ export type ProvarRPCSchema = {
   }>;
   webview: RPCSchema<{
     messages: {
-      // In the future, we might send progress updates here
+      workspaceSelected: {
+        params: { path: string };
+      };
     };
   }>;
 };
