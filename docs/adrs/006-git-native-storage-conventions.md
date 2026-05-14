@@ -11,6 +11,7 @@ We will use a **Git-native storage** approach:
 - **YAML** for readable graph definitions and configuration.
 - **TypeScript** for generated AI code.
 - Organized folder structure (e.g., `.provar/nodes`, `.provar/suites`).
+- Test suites on `.provar/suites` can use multiple levels of sub folders.
 
 ## Consequences
 
@@ -31,12 +32,8 @@ We will use a **Git-native storage** approach:
 The project configuration and test assets are stored in the `.provar/` directory at the root of the repository:
 
 - **`.provar/config.yml`**: Central configuration for AI providers, models, and secret mappings.
-- **`.provar/nodes/`**: Contains reusable graph components. Each node is a subdirectory containing:
-  - `graph.yml`: The visual flow and metadata.
-  - `node.ts`: The AI-generated executable logic.
-- **`.provar/suites/`**: Contains end-to-end test suites. Each suite is a subdirectory containing:
-  - `graph.yml`: The high-level test flow and branches.
-  - `test.spec.ts`: The compiled, executable Playwright tests.
+- **`.provar/nodes/`**: Contains reusable graph components. Each node is a `<name>.node.yml` definition compiled to `<name>.node.ts`.
+- **`.provar/suites/`**: Contains end-to-end test suites. Each suite is a `<name>.spec.yml` definition compiled to `<name>.spec.ts`. Sub folders under `suites` can be used to organize the test suites.
 
 ### Examples
 
@@ -53,11 +50,11 @@ variables:
   TEST_USER_PASSWORD: ${ENV.PROVAR_TEST_PASSWORD}
 ```
 
-#### 2. Reusable Nodes (.provar/nodes/login_flow/)
+#### 2. Reusable Nodes
 
 Nodes use a graph structure to allow internal branching and flow control.
 
-**graph.yml**
+**.provar/nodes/login_flow.node.yml**
 
 ```yaml
 name: "Login Flow"
@@ -76,7 +73,7 @@ graph:
       title: "Fill in email and password, then click submit"
 ```
 
-**node.ts (Generated AI Code)**
+**.provar/nodes/login_flow.node.ts (Generated AI Code)**
 
 ```typescript
 // date: 2026-05-14T10:11:00Z
@@ -117,11 +114,11 @@ export const execute = async (api: TestAPI) => {
 };
 ```
 
-#### 3. Test Suites (.provar/suites/checkout_flow/)
+#### 3. Test Suites
 
 Test suites can define complex paths using next arrays to create branches, and nested graph definitions to group sub-steps.
 
-**graph.yml**
+**.provar/suites/checkout_flow.spec.yml**
 
 ```yaml
 name: "Checkout Process"
@@ -166,7 +163,7 @@ graph:
             info: "Click the 'Pay Now' button."
 ```
 
-**test.spec.ts (Generated AI Code)**
+**.provar/suites/checkout_flow.spec.ts (Generated AI Code)**
 
 When the generator encounters branches, it resolves all possible paths from the start node to the end nodes and produces isolated Playwright tests built from the individual action functions. The YAML file is not parsed during execution.
 

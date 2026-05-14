@@ -6,7 +6,7 @@ Standard test automation scripts are often linear and difficult to visualize or 
 
 ## Decision
 
-We will define tests using a visual **graph structure** stored in `graph.yml` files. This allows for clear visualization of paths, reusable nodes, and complex branching.
+We will define tests using a visual **graph structure** stored in `<name>.spec.yml` files. This allows for clear visualization of paths, reusable nodes, and complex branching.
 
 ## Consequences
 

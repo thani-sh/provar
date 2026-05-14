@@ -6,7 +6,7 @@ Running tests by parsing YAML graphs at runtime can be complex and may introduce
 
 ## Decision
 
-We will **compile** successfully generated logic and graph metadata into clean, standalone `test.spec.ts` files. The original YAML files are only required for editing and are not used during execution.
+We will **compile** successfully generated logic and graph metadata into clean, standalone `<name>.spec.ts` files on the same directory as the `<name>.spec.yml` file. The original YAML files are only required for editing and are not used during execution.
 
 ## Consequences
 
