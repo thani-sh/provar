@@ -2,6 +2,8 @@
 
 AI agentic tool to create end-to-end tests visually.
 
+![Provar Screenshot](docs/imgs/screenshot.png)
+
 ## Prerequisites
 
 - [Bun](https://bun.sh/)
