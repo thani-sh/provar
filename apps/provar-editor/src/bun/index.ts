@@ -1,4 +1,13 @@
-import { BrowserWindow, Updater } from "electrobun/bun";
+import { BrowserWindow, BrowserView, Updater } from "electrobun/bun";
+import { type ProvarRPCSchema } from "../shared/rpc";
+import { getConfig } from "./commands/getConfig";
+import { saveConfig } from "./commands/saveConfig";
+import { listFiles } from "./commands/listFiles";
+import { readFileCommand } from "./commands/readFile";
+import { writeFileCommand } from "./commands/writeFile";
+import { createFile } from "./commands/createFile";
+import { createDirectory } from "./commands/createDirectory";
+import { deletePath } from "./commands/deletePath";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -19,17 +28,35 @@ async function getMainViewUrl(): Promise<string> {
 	return "views://mainview/index.html";
 }
 
-const url = await getMainViewUrl();
-
-const mainWindow = new BrowserWindow({
-	title: "Vanilla + Vite",
-	url,
-	frame: {
-		width: 900,
-		height: 700,
-		x: 200,
-		y: 200,
+const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
+	handlers: {
+		requests: {
+			getConfig,
+			saveConfig,
+			listFiles,
+			readFile: readFileCommand,
+			writeFile: writeFileCommand,
+			createFile,
+			createDirectory,
+			deletePath,
+		},
 	},
 });
 
-console.log("Vanilla Vite app started!");
+const url = await getMainViewUrl();
+
+const mainWindow = new BrowserWindow({
+	title: "Provar Editor",
+	url,
+	renderer: "cef",
+	frame: {
+		width: 1200,
+		height: 800,
+		x: 200,
+		y: 200,
+	},
+	rpc: provarRPC,
+	titleBarStyle: "hiddenInset"
+});
+
+console.log("Provar Editor started!");

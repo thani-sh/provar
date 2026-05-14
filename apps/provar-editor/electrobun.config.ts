@@ -2,8 +2,8 @@ import type { ElectrobunConfig } from "electrobun";
 
 export default {
 	app: {
-		name: "vanilla-vite",
-		identifier: "vanillavite.electrobun.dev",
+		name: "Provar Editor",
+		identifier: "editor.provar.se",
 		version: "0.0.1",
 	},
 	build: {
@@ -13,13 +13,13 @@ export default {
 		},
 		watchIgnore: ["dist/**"],
 		mac: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 		linux: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 		win: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 	},
 } satisfies ElectrobunConfig;
