@@ -1,0 +1,34 @@
+name: user_flow_variants
+graph:
+  info: Purchase flow with login/registration variants
+  start: action_init1
+  nodes:
+    action_init1:
+      title: Open Store
+      info: Navigate to Fresh Harvest
+      next:
+        - action_regis
+        - action_login
+    action_regis:
+      title: Register
+      info: Click Register in sidebar and create a new account
+      next: action_addit
+    action_login:
+      title: Login
+      info: Click Login in sidebar and enter existing credentials
+      next: action_addit
+    action_addit:
+      title: Add Banana
+      info: Add "Fair Trade Bananas" to cart
+      next: action_gochk
+    action_gochk:
+      title: Go to Checkout
+      info: Click "Checkout"
+      asserts:
+        assert_disc1:
+          title: Discount Applied
+          info: Verify that the 10% Fresh Discount is shown in the order summary
+      next: action_purch
+    action_purch:
+      title: Complete Purchase
+      info: Complete the checkout form and purchase

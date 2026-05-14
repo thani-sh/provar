@@ -1,0 +1,48 @@
+name: multi_list
+graph:
+  info: Managing tasks across multiple lists
+  start: action_init1
+  nodes:
+    action_init1:
+      title: Open App
+      info: Navigate to todo app
+      next: action_logi1
+    action_logi1:
+      title: Login
+      info: Login as "manager"
+      next: action_clsa1
+    action_clsa1:
+      title: Create List A
+      info: Create list "Home"
+      next: action_atkh1
+    action_atkh1:
+      title: Add Home Task
+      info: Add "Clean room" to Home list
+      next: action_clsb1
+    action_clsb1:
+      title: Create List B
+      info: Create list "Office"
+      next: action_swth1
+    action_swth1:
+      title: Switch to Home
+      info: Click on "Home" in the sidebar
+      asserts:
+        assert_hmet1:
+          title: Home Task Visible
+          info: Verify "Clean room" is visible
+      next: action_swto1
+    action_swto1:
+      title: Switch to Office
+      info: Click on "Office" in the sidebar
+      next: action_atko1
+    action_atko1:
+      title: Add Office Task
+      info: Add "Call boss" to Office list
+      next: action_delo1
+    action_delo1:
+      title: Delete Office Task
+      info: Click delete on "Call boss"
+      asserts:
+        assert_empt1:
+          title: Office Empty
+          info: Verify "No tasks in this list yet" is shown

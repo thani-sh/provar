@@ -1,0 +1,28 @@
+name: basic_workflow
+graph:
+  info: Simple login and task creation workflow
+  start: action_init1
+  nodes:
+    action_init1:
+      title: Open App
+      info: Navigate to the todo list application
+      next: action_logi1
+    action_logi1:
+      title: Login
+      info: Enter username "testuser" and click Login
+      next: action_clis1
+    action_clis1:
+      title: Create List
+      info: Enter "Shopping" in the new list input and click Add List
+      next: action_atask
+    action_atask:
+      title: Add Task
+      info: Enter "Buy Milk" in the task input and click Add Task
+      next: action_compt
+    action_compt:
+      title: Complete Task
+      info: Click the checkbox next to "Buy Milk"
+      asserts:
+        assert_done1:
+          title: Task Completed
+          info: Verify that the task text has the "completed" class or style
