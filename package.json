@@ -1,0 +1,23 @@
+{
+  "name": "provar",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI agentic tool to create end-to-end tests",
+  "workspaces": ["apps/*", "libs/*", "demo/*"],
+  "scripts": {
+    "dev": "bun --filter '*' dev",
+    "lint": "bun --filter '*' lint",
+    "lint:fix": "bun --filter '*' lint:fix"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:aivara-se/provar.se.git"
+  }
+}
