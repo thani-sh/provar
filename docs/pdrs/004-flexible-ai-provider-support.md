@@ -6,7 +6,7 @@ Different teams have different requirements for AI cost, performance, and privac
 
 ## Decision
 
-Provar will support **flexible AI providers**, allowing users to choose between local privacy-first models or powerful cloud providers (OpenAI, Anthropic).
+Provar will support **flexible AI providers**, allowing users to choose between local privacy-first models or powerful cloud providers (Codex, Claude Code, Copilot, Gemini, ...).
 
 ## Consequences
 
