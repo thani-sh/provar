@@ -8,8 +8,8 @@
 
   let { show, onConfirm } = $props<Props>();
 
-  let providerType = $state('openai');
-  let model = $state('gpt-4o');
+  let providerType = $state('copilot-cli');
+  let model = $state('gpt-5.4-mini');
 
   function handleConfirm() {
     onConfirm({
@@ -37,8 +37,7 @@
             bind:value={providerType}
             class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
+            <option value="copilot-cli">Copilot CLI</option>
           </select>
         </div>
 
@@ -50,7 +49,7 @@
             id="model"
             type="text"
             bind:value={model}
-            placeholder="e.g. gpt-4o"
+            placeholder="e.g. gpt-5.4-mini"
             class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-3 text-sm text-zinc-200 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
