@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Settings, Save } from 'lucide-svelte';
+  import { Settings } from 'lucide-svelte';
   import type { ProvarConfig } from '../../../shared/domain';
 
   let {
@@ -13,14 +13,21 @@
   let providerType = $state<'local' | 'remote'>(config?.provider.type || 'local');
   let providerName = $state(config?.provider.name || 'gemini-cli');
 
-  function handleSave() {
+  $effect(() => {
+    if (config && 
+        providerType === config.provider.type && 
+        providerName === config.provider.name) {
+      return;
+    }
+
     onSave({
+      ...config,
       provider: {
         type: providerType,
         name: providerName
       }
-    });
-  }
+    } as ProvarConfig);
+  });
 </script>
 
 <aside
@@ -88,14 +95,4 @@
       </p>
     </div>
 	</div>
-
-  <div class="p-4 border-t border-zinc-800/50">
-    <button
-      onclick={handleSave}
-      class="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-500 py-2.5 text-sm font-medium text-white transition-all hover:bg-indigo-600 active:scale-[0.98]"
-    >
-      <Save size={16} />
-      Save Configuration
-    </button>
-  </div>
 </aside>

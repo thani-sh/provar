@@ -8,6 +8,7 @@ import { writeFileCommand } from "./commands/writeFile";
 import { createFile } from "./commands/createFile";
 import { createDirectory } from "./commands/createDirectory";
 import { deletePath } from "./commands/deletePath";
+import { assistEditor } from "./commands/assistEditor";
 import { setWorkspaceDir, WORKSPACE_DIR } from "./utils";
 
 const DEV_SERVER_PORT = 5173;
@@ -30,6 +31,7 @@ async function getMainViewUrl(): Promise<string> {
 }
 
 const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
+	maxRequestTime: 120000,
 	handlers: {
 		requests: {
 			getConfig,
@@ -41,6 +43,7 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
 			createFile,
 			createDirectory,
 			deletePath,
+			assistEditor,
 		},
 	},
 });

@@ -6,7 +6,7 @@
   import Canvas from './lib/components/Canvas.svelte';
   import NodeSidePanel from './lib/components/NodeSidePanel.svelte';
   import StartSidePanel from './lib/components/StartSidePanel.svelte';
-  import AssistantPanel from './lib/components/AssistantPanel.svelte';
+  import AssistantPanel, { type AssistantMessage } from './lib/components/AssistantPanel.svelte';
   import ConfigPanel from './lib/components/ConfigPanel.svelte';
   import InputModal from './lib/components/InputModal.svelte';
   import ConfigModal from './lib/components/ConfigModal.svelte';
@@ -15,6 +15,7 @@
   import { generateNodeId } from '../shared/utils';
 
   const rpcSchema = Electroview.defineRPC<ProvarRPCSchema>({
+    maxRequestTime: 120000,
     handlers: {
       messages: {
         workspaceSelected: (params) => {
@@ -46,6 +47,8 @@
   let configModalShow = $state(false);
   let assistantPanelShow = $state(false);
   let configPanelShow = $state(false);
+  let assistantMessages = $state<AssistantMessage[]>([]);
+  let assistantBusy = $state(false);
 
   let selectedNode = $derived.by(() => {
     if (!currentFileContent || !selectedNodeId) return null;
@@ -87,7 +90,6 @@
       if (res.success) {
         config = newConfig;
         configModalShow = false;
-        configPanelShow = false;
         await refreshFiles();
       } else {
         alert('Failed to save configuration. Please check your workspace permissions.');
@@ -295,6 +297,57 @@
     selectedNodeId = null;
     await electroview.rpc.request.writeFile({ path: selectedFile, content: newContent });
   }
+
+  async function handleAssist(prompt: string) {
+    if (assistantBusy) return;
+
+    const userMsgId = Math.random().toString(36).substring(7);
+    const assistantMsgId = Math.random().toString(36).substring(7);
+    
+    assistantMessages = [
+      ...assistantMessages, 
+      { id: userMsgId, role: 'user', content: prompt, status: 'completed' },
+      { id: assistantMsgId, role: 'assistant', content: '', status: 'pending' }
+    ];
+    
+    assistantBusy = true;
+
+    // 1 minute timeout to re-enable input
+    const timeoutId = setTimeout(() => {
+      if (assistantBusy) {
+        assistantBusy = false;
+      }
+    }, 60000);
+
+    try {
+      const res = await electroview.rpc.request.assistEditor({ 
+        prompt, 
+        path: selectedFile || undefined 
+      });
+
+      clearTimeout(timeoutId);
+      
+      assistantMessages = assistantMessages.map(msg => 
+        msg.id === assistantMsgId 
+          ? { ...msg, content: res.message, status: 'completed' } 
+          : msg
+      );
+
+      if (res.action?.type === 'selectFile') {
+        await loadFile(res.action.path);
+      }
+    } catch (e) {
+      console.error('App: AI Assist failed:', e);
+      clearTimeout(timeoutId);
+      assistantMessages = assistantMessages.map(msg => 
+        msg.id === assistantMsgId 
+          ? { ...msg, content: 'Sorry, I encountered an error. Please try again.', status: 'error' } 
+          : msg
+      );
+    } finally {
+      assistantBusy = false;
+    }
+  }
 </script>
 
 <div class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300">
@@ -346,7 +399,12 @@
   {/if}
 
   {#if assistantPanelShow}
-    <AssistantPanel />
+    <AssistantPanel 
+      onSend={handleAssist} 
+      {selectedFile} 
+      messages={assistantMessages} 
+      isBusy={assistantBusy}
+    />
   {:else if configPanelShow}
     <ConfigPanel 
       {config} 

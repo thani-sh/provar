@@ -4,27 +4,27 @@ graph:
   start: action_init1
   nodes:
     action_init1:
-      title: Open App
+      title: open app
       info: Navigate to todo app
       next: action_logi1
     action_logi1:
-      title: Login
+      title: login
       info: Login as "manager"
       next: action_clsa1
     action_clsa1:
-      title: Create List A
+      title: create list a
       info: Create list "Home"
       next: action_atkh1
     action_atkh1:
-      title: Add Home Task
+      title: add home task
       info: Add "Clean room" to Home list
       next: action_clsb1
     action_clsb1:
-      title: Create List B
+      title: create list b
       info: Create list "Office"
       next: action_swth1
     action_swth1:
-      title: Switch to Home
+      title: switch to home
       info: Click on "Home" in the sidebar
       asserts:
         assert_hmet1:
@@ -32,15 +32,15 @@ graph:
           info: Verify "Clean room" is visible
       next: action_swto1
     action_swto1:
-      title: Switch to Office
+      title: switch to office
       info: Click on "Office" in the sidebar
       next: action_atko1
     action_atko1:
-      title: Add Office Task
+      title: add office task
       info: Add "Call boss" to Office list
       next: action_delo1
     action_delo1:
-      title: Delete Office Task
+      title: delete office task
       info: Click delete on "Call boss"
       asserts:
         assert_empt1:

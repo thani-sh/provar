@@ -40,6 +40,16 @@ export type ProvarRPCSchema = {
         params: { path: string };
         response: { success: boolean };
       };
+      assistEditor: {
+        params: { prompt: string; path?: string };
+        response: { 
+          message: string;
+          action?: {
+            type: 'selectFile';
+            path: string;
+          };
+        };
+      };
     };
   }>;
   webview: RPCSchema<{

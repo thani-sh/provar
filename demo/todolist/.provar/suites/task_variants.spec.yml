@@ -4,26 +4,26 @@ graph:
   start: action_init1
   nodes:
     action_init1:
-      title: Open App
+      title: open app
       info: Navigate to the todo list application
       next: action_logi1
     action_logi1:
-      title: Login
+      title: login
       info: Login as "multitasker"
       next:
         - action_crep1
         - action_crew1
     action_crep1:
-      title: Create Personal List
+      title: create personal list
       info: Create a list named "Personal"
       next: action_amkl1
     action_amkl1:
-      title: Add Personal Task
+      title: add personal task
       info: Add task "Buy groceries" to Personal list
     action_crew1:
-      title: Create Work List
+      title: create work list
       info: Create a list named "Work"
       next: action_arpt1
     action_arpt1:
-      title: Add Work Task
+      title: add work task
       info: Add task "Submit report" to Work list
