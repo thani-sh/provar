@@ -43,12 +43,13 @@ Stores project-level settings and maps environment variables to secure secrets.
 
 ```yaml
 provider:
-  type: openai
-  model: gpt-4o
+  type: local
+  name: gemini-cli
 variables:
   BASE_URL: https://stg1.app.provar.se
-  USER_EMAIL: ${ENV.USER_EMAIL}
-  USER_PASSWORD: ${ENV.USER_PASSWORD}
+  TEST_USER:
+    EMAIL: ${ENV.USER_EMAIL}
+    PASSWORD: ${ENV.USER_PASSWORD}
 ```
 
 #### 2. Reusable Nodes

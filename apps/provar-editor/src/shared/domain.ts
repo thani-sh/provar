@@ -93,7 +93,7 @@ export const configSchema = z.object({
     type: z.enum(["local", "remote"]),
     name: z.string(),
   }),
-  variables: z.record(z.string()).optional(),
+  variables: z.record(z.any()).optional(),
 });
 
 export type ProvarConfig = z.infer<typeof configSchema>;
