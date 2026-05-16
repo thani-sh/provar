@@ -12,11 +12,25 @@
 
   let providerType = $state<'local' | 'remote'>(config?.provider.type || 'local');
   let providerName = $state(config?.provider.name || 'gemini-cli');
+  let variablesJson = $state(JSON.stringify(config?.variables || {}, null, 2));
+  let jsonError = $state<string | null>(null);
 
   $effect(() => {
-    if (config && 
-        providerType === config.provider.type && 
-        providerName === config.provider.name) {
+    let variablesObj = {};
+    try {
+      variablesObj = JSON.parse(variablesJson);
+      jsonError = null;
+    } catch (e) {
+      jsonError = (e as Error).message;
+      return;
+    }
+
+    const hasVariablesChanged = JSON.stringify(variablesObj) !== JSON.stringify(config?.variables || {});
+
+    if (config &&
+        providerType === config.provider.type &&
+        providerName === config.provider.name &&
+        !hasVariablesChanged) {
       return;
     }
 
@@ -25,7 +39,8 @@
       provider: {
         type: providerType,
         name: providerName
-      }
+      },
+      variables: variablesObj
     } as ProvarConfig);
   });
 </script>
@@ -89,10 +104,29 @@
       </div>
     </section>
 
-    <div class="rounded-xl border border-indigo-500/10 bg-indigo-500/5 p-4">
-      <p class="text-xs leading-relaxed text-zinc-400">
-        Settings are saved to <code class="text-indigo-300">.provar/config.yml</code>.
-      </p>
-    </div>
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xs font-medium uppercase tracking-wider text-zinc-500">
+          Variables
+        </h3>
+      </div>
+
+      <div class="space-y-3">
+        <div class="relative">
+          <textarea
+            bind:value={variablesJson}
+            placeholder={'{ "key": "value" }'}
+            spellcheck="false"
+            class="w-full h-48 rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 font-mono text-xs text-zinc-200 placeholder:text-zinc-600 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 {jsonError ? 'border-red-500/50 ring-1 ring-red-500/20' : ''}"
+          ></textarea>
+
+          {#if jsonError}
+            <div class="mt-2 text-[10px] text-red-400/80 font-mono leading-tight">
+              {jsonError}
+            </div>
+          {/if}
+        </div>
+      </div>
+    </section>
 	</div>
 </aside>
