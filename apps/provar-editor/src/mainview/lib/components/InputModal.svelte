@@ -26,6 +26,10 @@
     if (e.key === 'Enter') handleConfirm();
     if (e.key === 'Escape') handleCancel();
   }
+
+  function focus(node: HTMLInputElement) {
+    node.focus();
+  }
 </script>
 
 {#if show}
@@ -38,7 +42,7 @@
         bind:value
         {placeholder}
         class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-2.5 text-sm text-zinc-200 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        autofocus
+        use:focus
         onkeydown={handleKeyDown}
       />
 

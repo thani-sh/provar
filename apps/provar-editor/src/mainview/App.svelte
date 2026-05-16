@@ -10,6 +10,7 @@
   import ConfigModal from './lib/components/ConfigModal.svelte';
   import { GRAPH_START_ID } from './lib/canvas/constants';
   import type { TestNode, TestFile, ProvarConfig } from '../shared/domain';
+  import { generateNodeId } from '../shared/utils';
 
   const rpcSchema = Electroview.defineRPC<ProvarRPCSchema>({
     handlers: {
@@ -187,6 +188,104 @@
       console.error('App: Failed to create item:', e);
     }
   }
+
+  async function handleAddNode(fromId: string | null, toId: string | null) {
+    if (!currentFileContent || !selectedFile) return;
+
+    console.log('App: Adding node between', fromId, 'and', toId);
+
+    const newNodeId = generateNodeId();
+    const newNode: TestNode = {
+      title: 'New Action',
+      info: 'Describe what this action does...',
+      next: toId || undefined,
+    };
+
+    // Use a deep-ish clone to trigger Svelte's reactivity correctly
+    const newContent = JSON.parse(JSON.stringify(currentFileContent)) as TestFile;
+    newContent.graph.nodes[newNodeId] = newNode;
+
+    if (fromId === null) {
+      // It's from Start
+      newContent.graph.start = newNodeId;
+    } else {
+      const parentNode = newContent.graph.nodes[fromId];
+      if (parentNode) {
+        if (!parentNode.next) {
+          parentNode.next = newNodeId;
+        } else if (Array.isArray(parentNode.next)) {
+          if (toId) {
+             parentNode.next = parentNode.next.map(id => id === toId ? newNodeId : id);
+          } else {
+             parentNode.next.push(newNodeId);
+          }
+        } else {
+          // Single string next
+          parentNode.next = newNodeId;
+        }
+      }
+    }
+
+    currentFileContent = newContent;
+    await electroview.rpc.request.writeFile({ path: selectedFile, content: newContent });
+    selectedNodeId = newNodeId;
+  }
+
+  async function handleUpdateNode(id: string, updates: Partial<TestNode>) {
+    if (!currentFileContent || !selectedFile) return;
+
+    const newContent = JSON.parse(JSON.stringify(currentFileContent)) as TestFile;
+    if (newContent.graph.nodes[id]) {
+      newContent.graph.nodes[id] = { ...newContent.graph.nodes[id], ...updates };
+      currentFileContent = newContent;
+      // Note: In a real app, we might want to debounce this.
+      await electroview.rpc.request.writeFile({ path: selectedFile, content: newContent });
+    }
+  }
+
+  async function handleDeleteNode(id: string) {
+    if (!currentFileContent || !selectedFile) return;
+
+    if (!confirm('Are you sure you want to delete this node and all its descendants?')) return;
+
+    const newContent = JSON.parse(JSON.stringify(currentFileContent)) as TestFile;
+    const idsToDelete = new Set<string>();
+
+    function collectIds(nodeId: string) {
+      if (idsToDelete.has(nodeId)) return;
+      idsToDelete.add(nodeId);
+      const node = newContent.graph.nodes[nodeId];
+      if (node) {
+        const nexts = Array.isArray(node.next) ? node.next : node.next ? [node.next] : [];
+        nexts.forEach(collectIds);
+      }
+    }
+
+    collectIds(id);
+
+    // Remove from nodes
+    idsToDelete.forEach(nodeId => {
+      delete newContent.graph.nodes[nodeId];
+    });
+
+    // Update parents/start
+    if (newContent.graph.start === id) {
+      newContent.graph.start = '';
+    }
+
+    Object.values(newContent.graph.nodes).forEach(node => {
+      if (Array.isArray(node.next)) {
+        node.next = (node.next as string[]).filter(nextId => !idsToDelete.has(nextId));
+        if ((node.next as string[]).length === 0) delete node.next;
+      } else if (node.next && idsToDelete.has(node.next as string)) {
+        delete node.next;
+      }
+    });
+
+    currentFileContent = newContent;
+    selectedNodeId = null;
+    await electroview.rpc.request.writeFile({ path: selectedFile, content: newContent });
+  }
 </script>
 
 <div class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300">
@@ -204,6 +303,7 @@
       <Canvas
         testFile={currentFileContent}
         bind:selectedNodeId
+        onAddNode={handleAddNode}
       />
     {:else}
       <div class="flex items-center justify-center h-full text-zinc-500">
@@ -236,6 +336,8 @@
     <NodeSidePanel
       node={selectedNode}
       nodeId={selectedNodeId}
+      onUpdate={handleUpdateNode}
+      onDelete={handleDeleteNode}
     />
   {/if}
 

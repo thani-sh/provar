@@ -8,7 +8,7 @@ import { writeFileCommand } from "./commands/writeFile";
 import { createFile } from "./commands/createFile";
 import { createDirectory } from "./commands/createDirectory";
 import { deletePath } from "./commands/deletePath";
-import { setWorkspaceDir } from "./utils";
+import { setWorkspaceDir, WORKSPACE_DIR } from "./utils";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;

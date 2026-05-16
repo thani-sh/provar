@@ -6,9 +6,10 @@
   interface Props {
     testFile: TestFile;
     selectedNodeId: string | null;
+    onAddNode?: (fromId: string | null, toId: string | null) => void;
   }
 
-  let { testFile, selectedNodeId = $bindable() } = $props<Props>();
+  let { testFile, selectedNodeId = $bindable(), onAddNode } = $props<Props>();
 
   let container: HTMLElement;
   let infiniteCanvas: InfiniteCanvas;
@@ -19,6 +20,10 @@
     
     infiniteCanvas.onNodeSelect = (id) => {
       selectedNodeId = id;
+    };
+
+    infiniteCanvas.onAddNode = (fromId, toId) => {
+      onAddNode?.(fromId, toId);
     };
 
     if (testFile) {

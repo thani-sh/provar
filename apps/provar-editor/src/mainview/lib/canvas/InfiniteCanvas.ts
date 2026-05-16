@@ -13,6 +13,7 @@ export class InfiniteCanvas {
 	private currentGraphRenderer: GraphRenderer | null = null;
 
 	public onNodeSelect?: (id: string | null) => void;
+	public onAddNode?: (fromId: string | null, toId: string | null) => void;
 
 	public async init(container: HTMLElement) {
 		this.container = container;
@@ -88,9 +89,15 @@ export class InfiniteCanvas {
 		this.clearGraph();
 		if (!this.shapeContainer || !this.app || !this.viewport) return;
 
-		this.currentGraphRenderer = new GraphRenderer(testFile, (id) => {
-			this.onNodeSelect?.(id);
-		});
+		this.currentGraphRenderer = new GraphRenderer(
+			testFile,
+			(id) => {
+				this.onNodeSelect?.(id);
+			},
+			(fromId, toId) => {
+				this.onAddNode?.(fromId, toId);
+			}
+		);
 		this.shapeContainer.addChild(this.currentGraphRenderer);
 
 		this.viewport.x = LAYOUT.initialOffsetX;

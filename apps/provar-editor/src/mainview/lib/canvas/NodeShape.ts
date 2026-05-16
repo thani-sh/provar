@@ -18,6 +18,14 @@ export class NodeShape extends PIXI.Container {
 		return 10;
 	}
 
+	public get nodeWidth(): number {
+		return this.bg.width;
+	}
+
+	public get nodeHeight(): number {
+		return this.bg.height;
+	}
+
 	constructor(nodeId: string, title: string) {
 		super();
 		this.nodeId = nodeId;

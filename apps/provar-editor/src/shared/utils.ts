@@ -8,6 +8,18 @@ export function getNextNodes(node: Pick<TestNode, 'next'>): string[] {
 	return Array.isArray(node.next) ? node.next : [node.next];
 }
 
+/**
+ * Generates a unique node ID in the format action_[a-z0-9]{5}.
+ */
+export function generateNodeId(): string {
+	const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+	let result = '';
+	for (let i = 0; i < 5; i++) {
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+	}
+	return `action_${result}`;
+}
+
 export type CodeStatus = 'upToDate' | 'outdated' | 'notGenerated';
 
 /**

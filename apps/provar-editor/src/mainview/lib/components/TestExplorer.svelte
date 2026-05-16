@@ -96,10 +96,18 @@
 {#snippet treeNode(node: TreeNode, depth: number)}
 	{#if node.type === 'folder'}
 		<div
+			role="button"
+			tabindex="0"
 			class="mx-2 flex cursor-pointer items-center rounded py-1 pr-2 text-xs text-zinc-300 select-none hover:bg-[#21262d]"
 			style="padding-left: {depth * 14 + 8}px"
 			onclick={(e) => toggleFolder(e, node.path)}
-      oncontextmenu={(e) => handleContextMenu(e, node.path, 'folder')}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					toggleFolder(e, node.path);
+				}
+			}}
+			oncontextmenu={(e) => handleContextMenu(e, node.path, 'folder')}
 		>
 			<ChevronDown
 				class="mr-1 h-3.5 w-3.5 text-zinc-500 transition-transform {closedFolders.has(node.path)
@@ -118,13 +126,21 @@
 		{/if}
 	{:else}
 		<div
+			role="button"
+			tabindex="0"
 			class="mx-2 flex cursor-pointer items-center rounded py-1 pr-2 text-xs select-none hover:bg-[#21262d] {selectedFile ===
 			node.path
 				? 'bg-[#21262d] text-zinc-200'
 				: 'text-zinc-400'}"
 			style="padding-left: {depth * 14 + 26}px"
 			onclick={() => onSelect(node.path)}
-      oncontextmenu={(e) => handleContextMenu(e, node.path, 'file')}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					onSelect(node.path);
+				}
+			}}
+			oncontextmenu={(e) => handleContextMenu(e, node.path, 'file')}
 		>
 			<File
 				class="mr-2 h-3.5 w-3.5 {selectedFile === node.path ? 'text-blue-400' : 'text-zinc-500'}"
