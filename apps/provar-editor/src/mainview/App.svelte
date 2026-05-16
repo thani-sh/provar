@@ -57,7 +57,7 @@
     try {
       const workspaceRes = await electroview.rpc.request.getWorkspace({});
       const configRes = await electroview.rpc.request.getConfig({});
-      
+
       workspacePath = workspaceRes.path || null;
 
       if (configRes.config) {
@@ -131,7 +131,7 @@
   async function handleDelete(path: string) {
     const isFolder = !path.endsWith('.yml');
     const typeLabel = path.endsWith('.spec.yml') ? 'test suite' : path.endsWith('.node.yml') ? 'shared node' : 'folder';
-    
+
     if (confirm(`Are you sure you want to delete this ${typeLabel}?`)) {
       try {
         const res = await electroview.rpc.request.deletePath({ path });
@@ -157,7 +157,7 @@
 
     try {
       let dir = modalParentPath.endsWith('.yml') ? modalParentPath.split('/').slice(0, -1).join('/') : modalParentPath;
-      
+
       // If we're creating a file, ensure it goes to the right base directory if we're at the root level context
       if (modalType === 'file') {
         if (modalFileType === 'suite' && !dir.startsWith('.provar/suites')) {
@@ -292,7 +292,6 @@
   <main class="absolute inset-0 touch-none overscroll-none">
     {#if !workspacePath}
       <div class="flex flex-col items-center justify-center h-full text-zinc-500 space-y-4">
-        <h1 class="text-4xl font-bold text-zinc-200">Welcome to Provar</h1>
         <p class="text-xl">Open a workspace to get started</p>
         <div class="flex items-center space-x-2 text-sm text-zinc-600">
             <kbd class="px-2 py-1 bg-zinc-800 rounded border border-zinc-700 font-mono">Cmd/Ctrl + O</kbd>

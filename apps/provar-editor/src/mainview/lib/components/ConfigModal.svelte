@@ -8,14 +8,14 @@
 
   let { show, onConfirm } = $props<Props>();
 
-  let providerType = $state('copilot-cli');
-  let model = $state('gpt-5.4-mini');
+  let providerType = $state<'local' | 'remote'>('local');
+  let providerName = $state('gemini-cli');
 
   function handleConfirm() {
     onConfirm({
       provider: {
         type: providerType,
-        model: model
+        name: providerName
       }
     });
   }
@@ -24,34 +24,47 @@
 {#if show}
   <div class="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-md">
     <div class="w-[450px] rounded-2xl border border-zinc-800 bg-[#161b22] p-8 shadow-2xl">
-      <h2 class="mb-2 text-2xl font-semibold text-zinc-100">Welcome to Provar</h2>
       <p class="mb-8 text-sm text-zinc-400">Let's set up your project configuration to get started.</p>
-      
+
       <div class="space-y-6">
         <div>
           <label for="provider-type" class="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
-            AI Provider
+            Provider Type
           </label>
           <select
             id="provider-type"
             bind:value={providerType}
+            onchange={() => {
+              if (providerType === 'local') {
+                providerName = 'gemini-cli';
+              } else {
+                providerName = 'openai';
+              }
+            }}
             class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
-            <option value="copilot-cli">Copilot CLI</option>
+            <option value="local">Local</option>
+            <option value="remote">Remote</option>
           </select>
         </div>
 
         <div>
-          <label for="model" class="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
-            Model
+          <label for="provider-name" class="mb-2 block text-xs font-medium uppercase tracking-wider text-zinc-500">
+            AI Provider
           </label>
-          <input
-            id="model"
-            type="text"
-            bind:value={model}
-            placeholder="e.g. gpt-5.4-mini"
-            class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-3 text-sm text-zinc-200 placeholder-zinc-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+          <select
+            id="provider-name"
+            bind:value={providerName}
+            class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          >
+            {#if providerType === 'local'}
+              <option value="gemini-cli">Gemini CLI</option>
+              <option value="copilot-cli">Copilot CLI</option>
+            {:else}
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+            {/if}
+          </select>
         </div>
       </div>
 

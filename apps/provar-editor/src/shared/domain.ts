@@ -90,8 +90,8 @@ export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
  */
 export const configSchema = z.object({
   provider: z.object({
-    type: z.string(),
-    model: z.string(),
+    type: z.enum(["local", "remote"]),
+    name: z.string(),
   }),
   variables: z.record(z.string()).optional(),
 });

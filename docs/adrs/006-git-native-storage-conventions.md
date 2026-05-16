@@ -31,7 +31,7 @@ We will use a **Git-native storage** approach:
 
 The project configuration and test assets are stored in the `.provar/` directory at the root of the repository:
 
-- **`.provar/config.yml`**: Central configuration for AI providers, models, and secret mappings.
+- **`.provar/config.yml`**: Central configuration for AI providers and secret mappings.
 - **`.provar/nodes/`**: Contains reusable graph components. Each node is a `<name>.node.yml` definition compiled to `<name>.node.ts`.
 - **`.provar/suites/`**: Contains end-to-end test suites. Each suite is a `<name>.spec.yml` definition compiled to `<name>.spec.ts`. Sub folders under `suites` can be used to organize the test suites.
 
@@ -259,5 +259,7 @@ suite(metadata.name, () => {
     action_add_item_to_cart,
     action_process_payment,
   ]);
+});
+```
 });
 ```
