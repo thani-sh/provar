@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ChevronDown, File, Folder, Search } from 'lucide-svelte';
+	import { ChevronDown, File, Folder, Search, Settings, Sparkles } from 'lucide-svelte';
 
 	let {
 		files = [],
@@ -7,7 +7,9 @@
 		onSelect = () => {},
     onCreateFile = () => {},
     onCreateFolder = () => {},
-    onDelete = () => {}
+    onDelete = () => {},
+    onShowConfig = () => {},
+    onShowAI = () => {}
 	} = $props<{
 		files?: string[];
 		selectedFile?: string | null;
@@ -15,6 +17,8 @@
     onCreateFile?: (parentPath: string, type: 'suite' | 'node') => void;
     onCreateFolder?: (parentPath: string) => void;
     onDelete?: (path: string) => void;
+    onShowConfig?: () => void;
+    onShowAI?: () => void;
 	}>();
 
 	type TreeNode = {
@@ -174,6 +178,23 @@
 			</div>
 		</div>
 	</div>
+
+  <div class="flex items-center justify-center gap-4 border-t border-zinc-800/50 p-3">
+    <button 
+      onclick={onShowConfig}
+      class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
+      title="Settings"
+    >
+      <Settings size={18} />
+    </button>
+    <button 
+      onclick={onShowAI}
+      class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
+      title="AI Assistant"
+    >
+      <Sparkles size={18} />
+    </button>
+  </div>
 </aside>
 
 {#if contextMenu}

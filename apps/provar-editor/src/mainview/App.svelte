@@ -6,6 +6,8 @@
   import Canvas from './lib/components/Canvas.svelte';
   import NodeSidePanel from './lib/components/NodeSidePanel.svelte';
   import StartSidePanel from './lib/components/StartSidePanel.svelte';
+  import AssistantPanel from './lib/components/AssistantPanel.svelte';
+  import ConfigPanel from './lib/components/ConfigPanel.svelte';
   import InputModal from './lib/components/InputModal.svelte';
   import ConfigModal from './lib/components/ConfigModal.svelte';
   import { GRAPH_START_ID } from './lib/canvas/constants';
@@ -42,6 +44,8 @@
   let modalType = $state<'file' | 'folder'>('file');
   let modalFileType = $state<'suite' | 'node'>('suite');
   let configModalShow = $state(false);
+  let assistantPanelShow = $state(false);
+  let configPanelShow = $state(false);
 
   let selectedNode = $derived.by(() => {
     if (!currentFileContent || !selectedNodeId) return null;
@@ -83,6 +87,7 @@
       if (res.success) {
         config = newConfig;
         configModalShow = false;
+        configPanelShow = false;
         await refreshFiles();
       } else {
         alert('Failed to save configuration. Please check your workspace permissions.');
@@ -98,12 +103,16 @@
     const res = await electroview.rpc.request.readFile({ path });
     currentFileContent = res.content;
     selectedNodeId = null;
+    assistantPanelShow = false;
+    configPanelShow = false;
   }
 
   async function handleBack() {
     selectedFile = null;
     currentFileContent = null;
     selectedNodeId = null;
+    assistantPanelShow = false;
+    configPanelShow = false;
   }
 
   async function refreshFiles() {
@@ -289,7 +298,13 @@
 </script>
 
 <div class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300">
-  <main class="absolute inset-0 touch-none overscroll-none">
+  <main 
+    class="absolute inset-0 touch-none overscroll-none"
+    onclick={() => {
+      assistantPanelShow = false;
+      configPanelShow = false;
+    }}
+  >
     {#if !workspacePath}
       <div class="flex flex-col items-center justify-center h-full text-zinc-500 space-y-4">
         <p class="text-xl">Open a workspace to get started</p>
@@ -319,10 +334,25 @@
       onCreateFile={handleCreateFile}
       onCreateFolder={handleCreateFolder}
       onDelete={handleDelete}
+      onShowConfig={() => {
+        configPanelShow = !configPanelShow;
+        assistantPanelShow = false;
+      }}
+      onShowAI={() => {
+        assistantPanelShow = !assistantPanelShow;
+        configPanelShow = false;
+      }}
     />
   {/if}
 
-  {#if selectedNodeId === GRAPH_START_ID}
+  {#if assistantPanelShow}
+    <AssistantPanel />
+  {:else if configPanelShow}
+    <ConfigPanel 
+      {config} 
+      onSave={handleConfigConfirm} 
+    />
+  {:else if selectedNodeId === GRAPH_START_ID}
     <StartSidePanel
       title={currentFileContent?.name}
       info={currentFileContent?.graph.info}

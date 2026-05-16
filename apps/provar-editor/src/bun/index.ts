@@ -66,8 +66,8 @@ ApplicationMenu.setApplicationMenu([
 		label: "File",
 		submenu: [
 			{
-				label: "Open Workspace...",
-				action: "open-workspace",
+				label: "Open...",
+				action: "open",
 				accelerator: "o",
 			},
 			{ type: "separator" },
@@ -77,7 +77,7 @@ ApplicationMenu.setApplicationMenu([
 ]);
 
 Electrobun.events.on("application-menu-clicked", async (e) => {
-	if (e.data.action === "open-workspace") {
+	if (e.data.action === "open") {
 		const chosenPaths = await Utils.openFileDialog({
 			canChooseFiles: false,
 			canChooseDirectory: true,
