@@ -46,8 +46,9 @@ provider:
   type: openai
   model: gpt-4o
 variables:
-  TEST_USER_EMAIL: ${ENV.PROVAR_TEST_EMAIL}
-  TEST_USER_PASSWORD: ${ENV.PROVAR_TEST_PASSWORD}
+  BASE_URL: https://stg1.app.provar.se
+  USER_EMAIL: ${ENV.USER_EMAIL}
+  USER_PASSWORD: ${ENV.USER_PASSWORD}
 ```
 
 #### 2. Reusable Nodes
