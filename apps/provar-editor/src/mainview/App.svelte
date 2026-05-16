@@ -363,12 +363,20 @@
 </script>
 
 <div class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300">
-  <main 
+  <div 
     class="absolute inset-0 touch-none overscroll-none"
     onclick={() => {
       assistantPanelShow = false;
       configPanelShow = false;
     }}
+    onkeydown={(e) => {
+      if (e.key === 'Escape') {
+        assistantPanelShow = false;
+        configPanelShow = false;
+      }
+    }}
+    role="button"
+    tabindex="-1"
   >
     {#if !workspacePath}
       <div class="flex flex-col items-center justify-center h-full text-zinc-500 space-y-4">
@@ -389,7 +397,7 @@
         <p>Select a test suite to begin</p>
       </div>
     {/if}
-  </main>
+  </div>
 
   {#if workspacePath}
     <TestExplorer

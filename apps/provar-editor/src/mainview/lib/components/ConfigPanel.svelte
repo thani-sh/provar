@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Settings } from 'lucide-svelte';
+  import { untrack } from 'svelte';
   import type { ProvarConfig } from '../../../shared/domain';
 
   let {
@@ -10,9 +11,10 @@
     onSave: (config: ProvarConfig) => void;
   } = $props();
 
-  let providerType = $state<'local' | 'remote'>(config?.provider.type || 'local');
-  let providerName = $state(config?.provider.name || 'gemini-cli');
-  let variablesJson = $state(JSON.stringify(config?.variables || {}, null, 2));
+  const initialConfig = untrack(() => $state.snapshot(config));
+  let providerType = $state<'local' | 'remote'>(initialConfig?.provider.type || 'local');
+  let providerName = $state(initialConfig?.provider.name || 'gemini-cli');
+  let variablesJson = $state(JSON.stringify(initialConfig?.variables || {}, null, 2));
   let jsonError = $state<string | null>(null);
 
   $effect(() => {
