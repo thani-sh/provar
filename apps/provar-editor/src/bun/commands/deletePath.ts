@@ -1,5 +1,5 @@
 import { rm } from "fs/promises";
-import { getAbsPath } from "../utils";
+import { getAbsPath, triggerWorkspaceChanged } from "../utils";
 
 export const deletePath = async ({ path }: { path: string }) => {
     try {
@@ -7,6 +7,7 @@ export const deletePath = async ({ path }: { path: string }) => {
         const fullPath = getAbsPath(path);
         await rm(fullPath, { recursive: true, force: true });
         console.log(`[BUN] Path deleted successfully: ${fullPath}`);
+        triggerWorkspaceChanged();
         return { success: true };
     } catch (error) {
         console.error(`[BUN] Failed to delete path ${path}:`, error);

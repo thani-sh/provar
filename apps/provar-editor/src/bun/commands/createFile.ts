@@ -1,7 +1,7 @@
 import { writeFile, mkdir } from "fs/promises";
 import { dirname } from "path";
 import yaml from "yaml";
-import { getAbsPath } from "../utils";
+import { getAbsPath, triggerWorkspaceChanged } from "../utils";
 
 export const createFile = async ({ path, name }: { path: string, name: string }) => {
     try {
@@ -26,6 +26,7 @@ export const createFile = async ({ path, name }: { path: string, name: string })
         await mkdir(dirname(fullPath), { recursive: true });
         await writeFile(fullPath, yamlContent, "utf-8");
         console.log(`[BUN] File created successfully: ${fullPath}`);
+        triggerWorkspaceChanged();
         return { success: true };
     } catch (error) {
         console.error(`[BUN] Failed to create file ${path}:`, error);

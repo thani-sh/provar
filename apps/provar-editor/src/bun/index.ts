@@ -9,7 +9,7 @@ import { createFile } from "./commands/createFile";
 import { createDirectory } from "./commands/createDirectory";
 import { deletePath } from "./commands/deletePath";
 import { assistEditor } from "./commands/assistEditor";
-import { setWorkspaceDir, WORKSPACE_DIR } from "./utils";
+import { setWorkspaceDir, WORKSPACE_DIR, onWorkspaceChanged } from "./utils";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -64,6 +64,14 @@ const mainWindow = new BrowserWindow({
 	titleBarStyle: "hiddenInset"
 });
 
+onWorkspaceChanged(() => {
+	mainWindow.webview.rpc?.send.workspaceChanged({});
+});
+
+if (WORKSPACE_DIR) {
+	setWorkspaceDir(WORKSPACE_DIR);
+}
+
 ApplicationMenu.setApplicationMenu([
 	{
 		label: "File",
@@ -90,7 +98,7 @@ Electrobun.events.on("application-menu-clicked", async (e) => {
 		if (chosenPaths && chosenPaths.length > 0) {
 			const newWorkspace = chosenPaths[0];
 			setWorkspaceDir(newWorkspace);
-			mainWindow.webview.rpc.send.workspaceSelected({ path: newWorkspace });
+			mainWindow.webview.rpc?.send.workspaceSelected({ path: newWorkspace });
 		}
 	}
 });

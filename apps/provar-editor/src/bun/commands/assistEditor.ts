@@ -1,6 +1,6 @@
 import { spawn } from "bun";
 import { readFile } from "fs/promises";
-import { getAbsPath, WORKSPACE_DIR } from "../utils";
+import { getAbsPath, WORKSPACE_DIR, triggerWorkspaceChanged } from "../utils";
 import { getConfig } from "./getConfig";
 
 let currentSessionId: string | null = null;
@@ -134,5 +134,7 @@ export const assistEditor = async ({ prompt, path }: { prompt: string; path?: st
         return {
             message: "Failed to communicate with the AI Assistant. Make sure 'gemini' CLI is installed and in your PATH."
         };
+    } finally {
+        triggerWorkspaceChanged();
     }
 };

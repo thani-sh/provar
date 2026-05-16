@@ -1,5 +1,5 @@
 import { mkdir } from "fs/promises";
-import { getAbsPath } from "../utils";
+import { getAbsPath, triggerWorkspaceChanged } from "../utils";
 
 export const createDirectory = async ({ path }: { path: string }) => {
     try {
@@ -8,6 +8,7 @@ export const createDirectory = async ({ path }: { path: string }) => {
         console.log(`[BUN] Full path: ${fullPath}`);
         await mkdir(fullPath, { recursive: true });
         console.log(`[BUN] Directory created successfully: ${fullPath}`);
+        triggerWorkspaceChanged();
         return { success: true };
     } catch (error) {
         console.error(`[BUN] Failed to create directory ${path}:`, error);

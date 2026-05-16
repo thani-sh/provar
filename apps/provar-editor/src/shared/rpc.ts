@@ -57,6 +57,9 @@ export type ProvarRPCSchema = {
       workspaceSelected: {
         params: { path: string };
       };
+      workspaceChanged: {
+        params: {};
+      };
     };
   }>;
 };

@@ -22,6 +22,10 @@
           console.log('App: Workspace selected via menu:', params.path);
           workspacePath = params.path;
           handleWorkspaceChange();
+        },
+        workspaceChanged: () => {
+          console.log('App: Workspace changed on disk, refreshing files...');
+          refreshFiles();
         }
       }
     }
@@ -58,6 +62,14 @@
   onMount(async () => {
     console.log('App: Mounted, checking config...');
     await handleWorkspaceChange();
+
+    const refreshInterval = setInterval(() => {
+      if (workspacePath) {
+        refreshFiles();
+      }
+    }, 30000);
+
+    return () => clearInterval(refreshInterval);
   });
 
   async function handleWorkspaceChange() {
