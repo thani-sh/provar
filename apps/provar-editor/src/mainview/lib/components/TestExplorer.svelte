@@ -5,20 +5,20 @@
 		files = [],
 		selectedFile = null,
 		onSelect = () => {},
-    onCreateFile = () => {},
-    onCreateFolder = () => {},
-    onDelete = () => {},
-    onShowConfig = () => {},
-    onShowAI = () => {}
+		onCreateFile = () => {},
+		onCreateFolder = () => {},
+		onDelete = () => {},
+		onShowConfig = () => {},
+		onShowAI = () => {}
 	} = $props<{
 		files?: string[];
 		selectedFile?: string | null;
 		onSelect?: (file: string) => void;
-    onCreateFile?: (parentPath: string) => void;
-    onCreateFolder?: (parentPath: string) => void;
-    onDelete?: (path: string) => void;
-    onShowConfig?: () => void;
-    onShowAI?: () => void;
+		onCreateFile?: (parentPath: string) => void;
+		onCreateFolder?: (parentPath: string) => void;
+		onDelete?: (path: string) => void;
+		onShowConfig?: () => void;
+		onShowAI?: () => void;
 	}>();
 
 	type TreeNode = {
@@ -71,7 +71,9 @@
 	});
 
 	let closedFolders = $state<Set<string>>(new Set());
-  let contextMenu = $state<{ x: number, y: number, path: string, type: 'file' | 'folder' } | null>(null);
+	let contextMenu = $state<{ x: number; y: number; path: string; type: 'file' | 'folder' } | null>(
+		null
+	);
 
 	function toggleFolder(e: Event, path: string) {
 		e.stopPropagation();
@@ -84,15 +86,15 @@
 		closedFolders = newSet;
 	}
 
-  function handleContextMenu(e: MouseEvent, path: string, type: 'file' | 'folder') {
-    e.preventDefault();
-    e.stopPropagation();
-    contextMenu = { x: e.clientX, y: e.clientY, path, type };
-  }
+	function handleContextMenu(e: MouseEvent, path: string, type: 'file' | 'folder') {
+		e.preventDefault();
+		e.stopPropagation();
+		contextMenu = { x: e.clientX, y: e.clientY, path, type };
+	}
 
-  function closeContextMenu() {
-    contextMenu = null;
-  }
+	function closeContextMenu() {
+		contextMenu = null;
+	}
 </script>
 
 <svelte:window onclick={closeContextMenu} />
@@ -156,7 +158,7 @@
 
 <aside
 	class="absolute top-8 bottom-2 left-2 z-20 flex w-[260px] flex-col rounded-xl border border-zinc-800/80 bg-[#161b22]/50 shadow-2xl backdrop-blur-md"
-  oncontextmenu={(e) => handleContextMenu(e, '.provar', 'folder')}
+	oncontextmenu={(e) => handleContextMenu(e, '.provar', 'folder')}
 >
 	<div class="px-3 pt-4 pb-2">
 		<div class="relative">
@@ -179,70 +181,85 @@
 		</div>
 	</div>
 
-  <div class="flex items-center justify-center gap-4 border-t border-zinc-800/50 p-3">
-    <button
-      onclick={onShowConfig}
-      class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
-      title="Settings"
-    >
-      <Settings size={18} />
-    </button>
-    <button
-      onclick={onShowAI}
-      class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
-      title="AI Assistant"
-    >
-      <Sparkles size={18} />
-    </button>
-  </div>
+	<div class="flex items-center justify-center gap-4 border-t border-zinc-800/50 p-3">
+		<button
+			onclick={onShowConfig}
+			class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
+			title="Settings"
+		>
+			<Settings size={18} />
+		</button>
+		<button
+			onclick={onShowAI}
+			class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
+			title="AI Assistant"
+		>
+			<Sparkles size={18} />
+		</button>
+	</div>
 </aside>
 
 {#if contextMenu}
-  <div
-    class="fixed z-[100] min-w-[140px] rounded-lg border border-zinc-800 bg-[#161b22] p-1 shadow-xl"
-    style="top: {contextMenu.y}px; left: {contextMenu.x}px"
-  >
-    {#if contextMenu.type === 'folder'}
-      {#if contextMenu.path === '.provar'}
-        <button
-          class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-          onclick={() => { onCreateFile('.provar/tests'); closeContextMenu(); }}
-        >
-          New test
-        </button>
-      {:else}
-        {#if contextMenu.path.startsWith('.provar/tests')}
-          <button
-            class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-            onclick={() => { onCreateFolder(contextMenu!.path); closeContextMenu(); }}
-          >
-            New Folder
-          </button>
-          <button
-            class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-            onclick={() => { onCreateFile(contextMenu!.path); closeContextMenu(); }}
-          >
-            New test
-          </button>
-        {/if}
+	<div
+		class="fixed z-[100] min-w-[140px] rounded-lg border border-zinc-800 bg-[#161b22] p-1 shadow-xl"
+		style="top: {contextMenu.y}px; left: {contextMenu.x}px"
+	>
+		{#if contextMenu.type === 'folder'}
+			{#if contextMenu.path === '.provar'}
+				<button
+					class="w-full rounded px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
+					onclick={() => {
+						onCreateFile('.provar/tests');
+						closeContextMenu();
+					}}
+				>
+					New test
+				</button>
+			{:else}
+				{#if contextMenu.path.startsWith('.provar/tests')}
+					<button
+						class="w-full rounded px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
+						onclick={() => {
+							onCreateFolder(contextMenu!.path);
+							closeContextMenu();
+						}}
+					>
+						New Folder
+					</button>
+					<button
+						class="w-full rounded px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
+						onclick={() => {
+							onCreateFile(contextMenu!.path);
+							closeContextMenu();
+						}}
+					>
+						New test
+					</button>
+				{/if}
 
-        {#if contextMenu.path !== '.provar/tests'}
-          <div class="my-1 border-t border-zinc-800"></div>
-          <button
-            class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
-            onclick={() => { onDelete(contextMenu!.path); closeContextMenu(); }}
-          >
-            Delete folder
-          </button>
-        {/if}
-      {/if}
-    {:else}
-      <button
-        class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
-        onclick={() => { onDelete(contextMenu!.path); closeContextMenu(); }}
-      >
-        Delete test
-      </button>
-    {/if}
-  </div>
+				{#if contextMenu.path !== '.provar/tests'}
+					<div class="my-1 border-t border-zinc-800"></div>
+					<button
+						class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
+						onclick={() => {
+							onDelete(contextMenu!.path);
+							closeContextMenu();
+						}}
+					>
+						Delete folder
+					</button>
+				{/if}
+			{/if}
+		{:else}
+			<button
+				class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
+				onclick={() => {
+					onDelete(contextMenu!.path);
+					closeContextMenu();
+				}}
+			>
+				Delete test
+			</button>
+		{/if}
+	</div>
 {/if}

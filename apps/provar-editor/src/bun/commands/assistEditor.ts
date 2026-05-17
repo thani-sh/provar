@@ -1,7 +1,7 @@
-import { spawn } from "bun";
-import { readFile } from "fs/promises";
-import { getAbsPath, WORKSPACE_DIR, triggerWorkspaceChanged } from "../utils";
-import { getConfig } from "./getConfig";
+import { spawn } from 'bun';
+import { readFile } from 'fs/promises';
+import { getAbsPath, WORKSPACE_DIR, triggerWorkspaceChanged } from '../utils';
+import { getConfig } from './getConfig';
 
 let currentSessionId: string | null = null;
 
@@ -40,120 +40,101 @@ graph:
 - Be concise and technical.
 `.trim();
 
-export const assistEditor = async ({
-  prompt,
-  path,
-}: {
-  prompt: string;
-  path?: string;
-}) => {
-  const { config } = await getConfig();
+export const assistEditor = async ({ prompt, path }: { prompt: string; path?: string }) => {
+	const { config } = await getConfig();
 
-  if (!config || config.provider.name !== "gemini-cli") {
-    return {
-      message:
-        "AI Provider not configured or not supported for this action. Please check your project settings.",
-    };
-  }
+	if (!config || config.provider.name !== 'gemini-cli') {
+		return {
+			message:
+				'AI Provider not configured or not supported for this action. Please check your project settings.'
+		};
+	}
 
-  try {
-    let fullPrompt = prompt;
+	try {
+		let fullPrompt = prompt;
 
-    // If it's a new session, prepend the base prompt
-    if (!currentSessionId) {
-      fullPrompt = `${PROVAR_BASE_PROMPT}\n\nUser request: ${prompt}`;
-    }
+		// If it's a new session, prepend the base prompt
+		if (!currentSessionId) {
+			fullPrompt = `${PROVAR_BASE_PROMPT}\n\nUser request: ${prompt}`;
+		}
 
-    // Include file context if available
-    if (path) {
-      try {
-        const fileContent = await readFile(getAbsPath(path), "utf-8");
-        fullPrompt = `Context File (${path}):\n${fileContent}\n\n${fullPrompt}`;
-      } catch (e) {
-        console.error(`[AI Assistant] Failed to read context file: ${path}`, e);
-      }
-    }
+		// Include file context if available
+		if (path) {
+			try {
+				const fileContent = await readFile(getAbsPath(path), 'utf-8');
+				fullPrompt = `Context File (${path}):\n${fileContent}\n\n${fullPrompt}`;
+			} catch (e) {
+				console.error(`[AI Assistant] Failed to read context file: ${path}`, e);
+			}
+		}
 
-    const args = [
-      "gemini",
-      "--output-format",
-      "json",
-      "--approval-mode",
-      "auto_edit",
-    ];
+		const args = ['gemini', '--output-format', 'json', '--approval-mode', 'auto_edit'];
 
-    if (WORKSPACE_DIR) {
-      args.push("--include-directories", WORKSPACE_DIR);
-    }
+		if (WORKSPACE_DIR) {
+			args.push('--include-directories', WORKSPACE_DIR);
+		}
 
-    if (currentSessionId) {
-      args.push("-r", currentSessionId);
-    }
+		if (currentSessionId) {
+			args.push('-r', currentSessionId);
+		}
 
-    args.push("-p", fullPrompt);
+		args.push('-p', fullPrompt);
 
-    console.log(`[AI Assistant] Executing: ${args.join(" ")}`);
+		console.log(`[AI Assistant] Executing: ${args.join(' ')}`);
 
-    const process = spawn(args, {
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+		const process = spawn(args, {
+			stdout: 'pipe',
+			stderr: 'pipe'
+		});
 
-    const response = await new Response(process.stdout).text();
-    const errorOutput = await new Response(process.stderr).text();
+		const response = await new Response(process.stdout).text();
+		const errorOutput = await new Response(process.stderr).text();
 
-    if (errorOutput) {
-      console.error(`[AI Assistant] CLI Error Output: ${errorOutput}`);
-    }
+		if (errorOutput) {
+			console.error(`[AI Assistant] CLI Error Output: ${errorOutput}`);
+		}
 
-    try {
-      if (!response.trim()) {
-        throw new Error("Empty response from AI CLI");
-      }
-      const jsonResponse = JSON.parse(response);
+		try {
+			if (!response.trim()) {
+				throw new Error('Empty response from AI CLI');
+			}
+			const jsonResponse = JSON.parse(response);
 
-      if (jsonResponse.session_id) {
-        currentSessionId = jsonResponse.session_id;
-      }
+			if (jsonResponse.session_id) {
+				currentSessionId = jsonResponse.session_id;
+			}
 
-      const aiText = jsonResponse.response || "";
+			const aiText = jsonResponse.response || '';
 
-      // Extract action if present in the text
-      let action: any = undefined;
-      const actionMatch = aiText.match(/\{[\s\S]*"action"[\s\S]*\}/);
-      if (actionMatch) {
-        try {
-          const actionData = JSON.parse(actionMatch[0]);
-          action = actionData.action;
-        } catch (e) {
-          console.error(
-            "[AI Assistant] Failed to parse action from AI response",
-            e,
-          );
-        }
-      }
+			// Extract action if present in the text
+			let action: any = undefined;
+			const actionMatch = aiText.match(/\{[\s\S]*"action"[\s\S]*\}/);
+			if (actionMatch) {
+				try {
+					const actionData = JSON.parse(actionMatch[0]);
+					action = actionData.action;
+				} catch (e) {
+					console.error('[AI Assistant] Failed to parse action from AI response', e);
+				}
+			}
 
-      return {
-        message: aiText,
-        action,
-      };
-    } catch (e) {
-      console.error(
-        "[AI Assistant] Failed to parse CLI response as JSON:",
-        response,
-      );
-      return {
-        message:
-          "Received an invalid response from the AI CLI. Please try again.",
-      };
-    }
-  } catch (e) {
-    console.error("[AI Assistant] Error calling AI CLI:", e);
-    return {
-      message:
-        "Failed to communicate with the AI Assistant. Make sure 'gemini' CLI is installed and in your PATH.",
-    };
-  } finally {
-    triggerWorkspaceChanged();
-  }
+			return {
+				message: aiText,
+				action
+			};
+		} catch (e) {
+			console.error('[AI Assistant] Failed to parse CLI response as JSON:', response);
+			return {
+				message: 'Received an invalid response from the AI CLI. Please try again.'
+			};
+		}
+	} catch (e) {
+		console.error('[AI Assistant] Error calling AI CLI:', e);
+		return {
+			message:
+				"Failed to communicate with the AI Assistant. Make sure 'gemini' CLI is installed and in your PATH."
+		};
+	} finally {
+		triggerWorkspaceChanged();
+	}
 };

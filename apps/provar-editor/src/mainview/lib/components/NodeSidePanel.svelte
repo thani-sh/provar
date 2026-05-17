@@ -2,13 +2,13 @@
 	import type { TestNode } from '../../../shared/domain';
 	import { Check, Image, Share2, Trash2 } from 'lucide-svelte';
 
-	let { 
-		node, 
-		nodeId, 
+	let {
+		node,
+		nodeId,
 		onUpdate,
 		onDelete
-	}: { 
-		node: TestNode; 
+	}: {
+		node: TestNode;
 		nodeId: string;
 		onUpdate: (id: string, updates: Partial<TestNode>) => void;
 		onDelete: (id: string) => void;
@@ -35,13 +35,13 @@
 			type="text"
 			value={node.title}
 			oninput={handleTitleChange}
-			class="mb-2 bg-transparent text-xl font-medium text-zinc-100 outline-none focus:ring-1 focus:ring-indigo-500/50 rounded px-1 -ml-1"
+			class="mb-2 -ml-1 rounded bg-transparent px-1 text-xl font-medium text-zinc-100 outline-none focus:ring-1 focus:ring-indigo-500/50"
 		/>
 		<textarea
 			value={node.info}
 			oninput={handleInfoChange}
 			rows="3"
-			class="resize-none bg-transparent text-sm leading-relaxed text-zinc-400 outline-none focus:ring-1 focus:ring-indigo-500/50 rounded px-1 -ml-1"
+			class="-ml-1 resize-none rounded bg-transparent px-1 text-sm leading-relaxed text-zinc-400 outline-none focus:ring-1 focus:ring-indigo-500/50"
 		></textarea>
 	</div>
 
