@@ -5,7 +5,6 @@
   import TestExplorer from './lib/components/TestExplorer.svelte';
   import Canvas from './lib/components/Canvas.svelte';
   import NodeSidePanel from './lib/components/NodeSidePanel.svelte';
-  import StartSidePanel from './lib/components/StartSidePanel.svelte';
   import AssistantPanel, { type AssistantMessage } from './lib/components/AssistantPanel.svelte';
   import ConfigPanel from './lib/components/ConfigPanel.svelte';
   import InputModal from './lib/components/InputModal.svelte';
@@ -426,18 +425,9 @@
       isBusy={assistantBusy}
     />
   {:else if configPanelShow}
-    <ConfigPanel 
-      {config} 
-      onSave={handleConfigConfirm} 
-    />
-  {:else if selectedNodeId === GRAPH_START_ID}
-    <StartSidePanel
-      title={currentFileContent?.name}
-      info={currentFileContent?.graph.info}
-      config={{
-        startNode: currentFileContent?.graph.start,
-        nodes: Object.keys(currentFileContent?.graph.nodes || {}).length,
-      }}
+    <ConfigPanel
+      {config}
+      onSave={handleConfigConfirm}
     />
   {:else if selectedNode && selectedNodeId}
     <NodeSidePanel
@@ -447,7 +437,6 @@
       onDelete={handleDeleteNode}
     />
   {/if}
-
   <InputModal
     show={modalShow}
     title={modalTitle}

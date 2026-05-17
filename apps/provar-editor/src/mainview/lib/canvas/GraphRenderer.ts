@@ -24,7 +24,7 @@ export class GraphRenderer extends PIXI.Container {
 		this.onNodeSelect = onNodeSelect;
 		this.onAddNode = onAddNode;
 		this.addChild(this.linksContainer);
-		this.startShape = new StartShape(this.onNodeSelect);
+		this.startShape = new StartShape();
 		this.addChild(this.startShape);
 		this.build(testFile.graph);
 	}

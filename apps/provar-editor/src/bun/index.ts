@@ -53,7 +53,7 @@ const url = await getMainViewUrl();
 const mainWindow = new BrowserWindow({
 	title: "Provar Editor",
 	url,
-	renderer: "cef",
+	renderer: "native",
 	frame: {
 		width: 1200,
 		height: 800,

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { TestNode } from '../../../shared/domain';
 	import { Check, Image, Share2, Trash2 } from 'lucide-svelte';
-	import { getCodeStatus } from '../../../shared/utils';
 
 	let { 
 		node, 
@@ -15,7 +14,6 @@
 		onDelete: (id: string) => void;
 	} = $props();
 
-	const codeStatus = $derived(getCodeStatus(node));
 	const hasSubGraph = $derived(!!node.graph);
 
 	function handleTitleChange(e: Event) {
@@ -48,17 +46,6 @@
 	</div>
 
 	<div class="flex-1 space-y-8 overflow-y-auto p-6">
-		<section>
-			<h3 class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase">Actions</h3>
-			<button
-				onclick={() => onDelete(nodeId)}
-				class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
-			>
-				<Trash2 size={16} />
-				Delete Node Branch
-			</button>
-		</section>
-
 		{#if node.asserts && Object.keys(node.asserts).length > 0}
 			<section>
 				<h3
@@ -79,31 +66,6 @@
 		{/if}
 
 		<section>
-			<h3 class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase">Code Status</h3>
-			<div
-				class="flex items-center justify-between rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-4"
-			>
-				<span class="text-sm text-zinc-300">Generated Code</span>
-				{#if codeStatus === 'upToDate'}
-					<span
-						class="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-400"
-						>Up to date</span
-					>
-				{:else if codeStatus === 'outdated'}
-					<span
-						class="rounded-full border border-amber-500/20 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400"
-						>Outdated</span
-					>
-				{:else}
-					<button
-						class="rounded-lg bg-indigo-500 px-4 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-600"
-						>Generate</button
-					>
-				{/if}
-			</div>
-		</section>
-
-		<section>
 			<h3
 				class="mb-3 flex items-center gap-2 text-sm font-medium tracking-wider text-zinc-400 uppercase"
 			>
@@ -118,7 +80,7 @@
 		</section>
 
 		{#if hasSubGraph}
-			<section class="pb-8">
+			<section>
 				<div class="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-5">
 					<div class="mb-3 flex items-center gap-3">
 						<div class="rounded-lg bg-indigo-500/20 p-2 text-indigo-400">
@@ -139,5 +101,16 @@
 				</div>
 			</section>
 		{/if}
+
+		<section class="pb-8">
+			<h3 class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase">Actions</h3>
+			<button
+				onclick={() => onDelete(nodeId)}
+				class="flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/20"
+			>
+				<Trash2 size={16} />
+				Delete Node Branch
+			</button>
+		</section>
 	</div>
 </aside>
