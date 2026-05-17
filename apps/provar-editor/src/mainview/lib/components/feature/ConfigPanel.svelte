@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Settings } from 'lucide-svelte';
 	import { untrack } from 'svelte';
-	import type { ProvarConfig } from '../../../shared/domain';
+	import type { ProvarConfig } from '../../../../shared/domain';
 
 	let {
 		config,

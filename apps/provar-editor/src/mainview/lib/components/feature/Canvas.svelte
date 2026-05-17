@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import type { TestFile } from '../../../shared/domain';
-	import { InfiniteCanvas } from '../canvas/InfiniteCanvas';
+	import type { TestFile } from '../../../../shared/domain';
+	import { InfiniteCanvas } from '../../canvas/InfiniteCanvas';
 
 	interface Props {
 		testFile: TestFile;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ProvarConfig } from '../../shared/domain';
+	import type { ProvarConfig } from '../../../../shared/domain';
 
 	interface Props {
 		show: boolean;

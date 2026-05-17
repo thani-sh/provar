@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { TestNode } from '../../../shared/domain';
+	import type { TestNode } from '../../../../shared/domain';
 	import { Check, Image, Share2, Trash2 } from 'lucide-svelte';
 
 	let {
