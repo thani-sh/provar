@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join, isAbsolute } from 'path';
 import { watch, type FSWatcher } from 'fs';
 
 export let WORKSPACE_DIR = process.env.PROVAR_WORKSPACE_DIR || '';
@@ -11,7 +11,7 @@ export const setWorkspaceDir = (path: string) => {
 	startWatching();
 };
 
-export const getAbsPath = (path: string) => join(WORKSPACE_DIR, path);
+export const getAbsPath = (path: string) => (isAbsolute(path) ? path : join(WORKSPACE_DIR, path));
 
 export const onWorkspaceChanged = (callback: () => void) => {
 	watchCallback = callback;
