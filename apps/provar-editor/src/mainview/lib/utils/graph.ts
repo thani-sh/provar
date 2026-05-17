@@ -38,7 +38,11 @@ export function addNodeToGraph(
 	return { file: newFile, newNodeId };
 }
 
-export function updateNodeInGraph(file: TestFile, id: string, updates: Partial<TestNode>): TestFile {
+export function updateNodeInGraph(
+	file: TestFile,
+	id: string,
+	updates: Partial<TestNode>
+): TestFile {
 	const newFile = structuredClone(file);
 	if (newFile.graph.nodes[id]) {
 		newFile.graph.nodes[id] = {

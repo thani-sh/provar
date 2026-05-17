@@ -46,7 +46,10 @@ class EditorStore {
 	}
 
 	async deleteNode(id: string) {
-		if (!this.currentFile || !confirm('Are you sure you want to delete this node and all its descendants?'))
+		if (
+			!this.currentFile ||
+			!confirm('Are you sure you want to delete this node and all its descendants?')
+		)
 			return;
 
 		this.currentFile = deleteNodeFromGraph(this.currentFile, id);
@@ -77,7 +80,10 @@ class EditorStore {
 		if (confirm(`Are you sure you want to delete this ${typeLabel}?`)) {
 			const res = await ProvarAPI.deletePath(path);
 			if (res.success) {
-				if (this.selectedFilePath === path || (isFolder && this.selectedFilePath?.startsWith(path))) {
+				if (
+					this.selectedFilePath === path ||
+					(isFolder && this.selectedFilePath?.startsWith(path))
+				) {
 					this.closeFile();
 				}
 				await workspaceStore.refreshFiles();

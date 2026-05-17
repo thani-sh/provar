@@ -5,7 +5,9 @@
 	import { editorStore } from './lib/stores/EditorStore.svelte';
 	import { uiStore } from './lib/stores/UIStore.svelte';
 
-	import AssistantPanel, { type AssistantMessage } from './lib/components/feature/AssistantPanel.svelte';
+	import AssistantPanel, {
+		type AssistantMessage
+	} from './lib/components/feature/AssistantPanel.svelte';
 	import Canvas from './lib/components/feature/Canvas.svelte';
 	import ConfigModal from './lib/components/ui/ConfigModal.svelte';
 	import ConfigPanel from './lib/components/feature/ConfigPanel.svelte';
@@ -57,7 +59,12 @@
 		const assistantMsgId = Math.random().toString(36).substring(7);
 		assistantMessages = [
 			...assistantMessages,
-			{ id: Math.random().toString(36).substring(7), role: 'user', content: prompt, status: 'completed' },
+			{
+				id: Math.random().toString(36).substring(7),
+				role: 'user',
+				content: prompt,
+				status: 'completed'
+			},
 			{ id: assistantMsgId, role: 'assistant', content: '', status: 'pending' }
 		];
 
@@ -141,10 +148,7 @@
 			isBusy={assistantBusy}
 		/>
 	{:else if uiStore.isConfigPanelOpen}
-		<ConfigPanel
-			config={workspaceStore.config}
-			onSave={(cfg) => workspaceStore.saveConfig(cfg)}
-		/>
+		<ConfigPanel config={workspaceStore.config} onSave={(cfg) => workspaceStore.saveConfig(cfg)} />
 	{:else if editorStore.selectedNode && editorStore.selectedNodeId}
 		<NodeSidePanel
 			node={editorStore.selectedNode}
