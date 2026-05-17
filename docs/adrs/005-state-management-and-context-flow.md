@@ -9,10 +9,8 @@ Complex test flows require sharing data between steps (e.g., a token from login 
 We will use a **context object** that flows through the graph.
 
 - A copy is made at each state transition to maintain history.
-- Reusable nodes have isolated context, only receiving explicitly defined inputs and returning explicitly defined outputs.
 
 ## Consequences
 
 - Predictable data flow between test steps.
-- Clean isolation for reusable components.
 - Ability to audit state at any point in the graph's execution.

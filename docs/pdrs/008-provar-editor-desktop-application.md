@@ -16,7 +16,7 @@ We will develop a dedicated desktop application called **Provar Editor**.
 
 The Provar Editor will be the primary environment for:
 - **Visual Graph Editing**: Creating and modifying test flows using a canvas-based interface.
-- **Project Management**: Managing configurations, custom nodes, and test suites stored in the local `.provar` directory.
+- **Project Management**: Managing configurations and test files stored in the local `.provar` directory.
 - **Local Debugging**: Running and debugging tests directly from the editor with real-time feedback.
 - **Asset Management**: Managing screenshots, recordings, and other artifacts generated during test execution.
 

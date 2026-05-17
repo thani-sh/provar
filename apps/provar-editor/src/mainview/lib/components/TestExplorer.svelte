@@ -14,7 +14,7 @@
 		files?: string[];
 		selectedFile?: string | null;
 		onSelect?: (file: string) => void;
-    onCreateFile?: (parentPath: string, type: 'suite' | 'node') => void;
+    onCreateFile?: (parentPath: string) => void;
     onCreateFolder?: (parentPath: string) => void;
     onDelete?: (path: string) => void;
     onShowConfig?: () => void;
@@ -180,14 +180,14 @@
 	</div>
 
   <div class="flex items-center justify-center gap-4 border-t border-zinc-800/50 p-3">
-    <button 
+    <button
       onclick={onShowConfig}
       class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
       title="Settings"
     >
       <Settings size={18} />
     </button>
-    <button 
+    <button
       onclick={onShowAI}
       class="rounded-lg p-2 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-zinc-300"
       title="AI Assistant"
@@ -206,18 +206,12 @@
       {#if contextMenu.path === '.provar'}
         <button
           class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-          onclick={() => { onCreateFile('.provar/suites', 'suite'); closeContextMenu(); }}
+          onclick={() => { onCreateFile('.provar/tests'); closeContextMenu(); }}
         >
-          New test suite
-        </button>
-        <button
-          class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-          onclick={() => { onCreateFile('.provar/nodes', 'node'); closeContextMenu(); }}
-        >
-          New shared node
+          New test
         </button>
       {:else}
-        {#if contextMenu.path.startsWith('.provar/suites')}
+        {#if contextMenu.path.startsWith('.provar/tests')}
           <button
             class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
             onclick={() => { onCreateFolder(contextMenu!.path); closeContextMenu(); }}
@@ -226,22 +220,13 @@
           </button>
           <button
             class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-            onclick={() => { onCreateFile(contextMenu!.path, 'suite'); closeContextMenu(); }}
+            onclick={() => { onCreateFile(contextMenu!.path); closeContextMenu(); }}
           >
-            New test suite
+            New test
           </button>
         {/if}
 
-        {#if contextMenu.path === '.provar/nodes'}
-          <button
-            class="w-full rounded px-3 py-1.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
-            onclick={() => { onCreateFile(contextMenu!.path, 'node'); closeContextMenu(); }}
-          >
-            New shared node
-          </button>
-        {/if}
-
-        {#if contextMenu.path !== '.provar/suites' && contextMenu.path !== '.provar/nodes'}
+        {#if contextMenu.path !== '.provar/tests'}
           <div class="my-1 border-t border-zinc-800"></div>
           <button
             class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
@@ -252,21 +237,12 @@
         {/if}
       {/if}
     {:else}
-      {#if contextMenu.path.endsWith('.spec.yml')}
-        <button
-          class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
-          onclick={() => { onDelete(contextMenu!.path); closeContextMenu(); }}
-        >
-          Delete test suite
-        </button>
-      {:else if contextMenu.path.endsWith('.node.yml')}
-        <button
-          class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
-          onclick={() => { onDelete(contextMenu!.path); closeContextMenu(); }}
-        >
-          Delete shared node
-        </button>
-      {/if}
+      <button
+        class="w-full rounded px-3 py-1.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
+        onclick={() => { onDelete(contextMenu!.path); closeContextMenu(); }}
+      >
+        Delete test
+      </button>
     {/if}
   </div>
 {/if}

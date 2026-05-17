@@ -10,8 +10,8 @@ We will use a **Git-native storage** approach:
 
 - **YAML** for readable graph definitions and configuration.
 - **TypeScript** for generated AI code.
-- Organized folder structure (e.g., `.provar/nodes`, `.provar/suites`).
-- Test suites on `.provar/suites` can use multiple levels of sub folders.
+- Organized folder structure (e.g., `.provar/tests`).
+- Tests on `.provar/tests` can use multiple levels of sub folders.
 
 ## Consequences
 
@@ -32,8 +32,7 @@ We will use a **Git-native storage** approach:
 The project configuration and test assets are stored in the `.provar/` directory at the root of the repository:
 
 - **`.provar/config.yml`**: Central configuration for AI providers and secret mappings.
-- **`.provar/nodes/`**: Contains reusable graph components. Each node is a `<name>.node.yml` definition compiled to `<name>.node.ts`.
-- **`.provar/suites/`**: Contains end-to-end test suites. Each suite is a `<name>.spec.yml` definition compiled to `<name>.spec.ts`. Sub folders under `suites` can be used to organize the test suites.
+- **`.provar/tests/`**: Contains end-to-end test files. Each test is a `<name>.test.yml` definition compiled to `<name>.test.ts`. Sub folders under `tests` can be used to organize the tests.
 
 ### Examples
 
@@ -43,84 +42,20 @@ Stores project-level settings and maps environment variables to secure secrets.
 
 ```yaml
 provider:
-  type: local
-  name: gemini-cli
+  name: gemini
+  apiKey: ${ENV.GEMINI_API_KEY}
 variables:
-  BASE_URL: https://stg1.app.provar.se
-  TEST_USER:
-    EMAIL: ${ENV.USER_EMAIL}
-    PASSWORD: ${ENV.USER_PASSWORD}
+  baseUrl: https://stg1.app.provar.se
+  user:
+    email: ${ENV.USER_EMAIL}
+    password: ${ENV.USER_PASSWORD}
 ```
 
-#### 2. Reusable Nodes
+#### 2. Tests
 
-Nodes use a graph structure to allow internal branching and flow control.
+Tests can define complex paths using next arrays to create branches, and nested graph definitions to group sub-steps.
 
-**.provar/nodes/login_flow.node.yml**
-
-```yaml
-name: "Login Flow"
-inputs:
-  - email
-  - password
-outputs:
-  - sessionToken
-graph:
-  start: "action_1"
-  nodes:
-    action_1:
-      title: "Navigate to /login"
-      next: "action_2"
-    action_2:
-      title: "Fill in email and password, then click submit"
-```
-
-**.provar/nodes/login_flow.node.ts (Generated AI Code)**
-
-```typescript
-// date: 2026-05-14T10:11:00Z
-// hash: 8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92
-import { action, Page, TestAPI } from "@provar/execute";
-
-export const metadata = {
-  name: "Login Flow",
-  inputs: ["email", "password"],
-  outputs: ["sessionToken"],
-};
-
-const action_navigate_to_login = action(
-  "1",
-  "Navigate to /login",
-  async (api: TestAPI) => {
-    await api.page.goto("/login");
-  },
-);
-
-const action_submit_credentials = action(
-  "2",
-  "Fill in email and password, then click submit",
-  async (api: TestAPI) => {
-    await api.page.fill('input[name="email"]', api.inputs.email);
-    await api.page.fill('input[name="password"]', api.inputs.password);
-    await api.page.click('button[type="submit"]');
-  },
-);
-
-export const execute = async (api: TestAPI) => {
-  await action_navigate_to_login(api);
-  await action_submit_credentials(api);
-  const sessionToken = await api.page.evaluate(() =>
-    localStorage.getItem("session_token"),
-  );
-  return { sessionToken };
-};
-```
-
-#### 3. Test Suites
-
-Test suites can define complex paths using next arrays to create branches, and nested graph definitions to group sub-steps.
-
-**.provar/suites/checkout_flow.spec.yml**
+**.provar/tests/checkout_flow.test.yml**
 
 ```yaml
 name: "Checkout Process"
@@ -130,10 +65,7 @@ graph:
   nodes:
     action_v2b3n:
       title: "Login to account"
-      node: "login_flow"
-      with:
-        email: ${secrets.TEST_USER_EMAIL}
-        password: ${secrets.TEST_USER_PASSWORD}
+      info: "Navigate to /login and enter the test email and password."
       next: "action_k1l2m"
     action_k1l2m:
       title: "Add item to cart"
@@ -165,7 +97,7 @@ graph:
             info: "Click the 'Pay Now' button."
 ```
 
-**.provar/suites/checkout_flow.spec.ts (Generated AI Code)**
+**.provar/tests/checkout_flow.test.ts (Generated AI Code)**
 
 When the generator encounters branches, it resolves all possible paths from the start node to the end nodes and produces isolated Playwright tests built from the individual action functions. The YAML file is not parsed during execution.
 
@@ -187,81 +119,76 @@ export const metadata = {
   info: "Verifies the end-to-end checkout process, including payment sub-steps.",
 };
 
-const action_login_to_account = action(
-  "v2b3n",
-  "Login to account",
-  async (api: TestAPI) => {
-    const inputs = {
-      email: process.env.PROVAR_TEST_EMAIL,
-      password: process.env.PROVAR_TEST_PASSWORD,
-    };
-    const outputs = await execute("login_flow", api, inputs);
-    api.context.loginToken = outputs.sessionToken;
+const action_login_to_account = action({
+  id: "v2b3n",
+  title: "Login to account",
+  execute: async (api: TestAPI) => {
+    await api.page.goto(`${api.var.baseUrl}/login`);
+    await api.page.fill('input[name="email"]', api.var.user.email);
+    await api.page.fill('input[name="password"]', api.var.user.password);
+    await api.page.click('button[type="submit"]');
   },
-);
+});
 
-const action_add_item_to_cart = action(
-  "k1l2m",
-  "Add item to cart",
-  async (api: TestAPI) => {
-    await api.page.goto("/product/test-item");
+const action_add_item_to_cart = action({
+  id: "k1l2m",
+  title: "Add item to cart",
+  execute: async (api: TestAPI) => {
+    await api.page.goto(`${api.var.baseUrl}/product/test-item`);
     await api.page.click('button:has-text("Add to Cart")');
   },
-);
+});
 
-const action_add_discount_code = action(
-  "d1c2d",
-  "Add discount code",
-  async (api: TestAPI) => {
+const action_add_discount_code = action({
+  id: "d1c2d",
+  title: "Add discount code",
+  execute: async (api: TestAPI) => {
     await api.page.click(".cart-icon");
     await api.page.fill('input[name="promo_code"]', "TESTDISCOUNT");
     await api.page.click('button:has-text("Apply")');
   },
-);
+});
 
-const action_enter_credit_card = action(
-  "w3x4y",
-  "Enter credit card",
-  async (api: TestAPI) => {
+const action_enter_credit_card = action({
+  id: "w3x4y",
+  title: "Enter credit card",
+  execute: async (api: TestAPI) => {
     await api.page.fill('input[name="cardNumber"]', "4242424242424242");
   },
-);
+});
 
-const action_submit_payment = action(
-  "a7b8c",
-  "Submit payment",
-  async (api: TestAPI) => {
+const action_submit_payment = action({
+  id: "a7b8c",
+  title: "Submit payment",
+  execute: async (api: TestAPI) => {
     await api.page.click('button:has-text("Pay Now")');
   },
-);
+});
 
-const action_process_payment = action(
-  "o5p6q",
-  "Process payment",
-  async (api: TestAPI) => {
+const action_process_payment = action({
+  id: "o5p6q",
+  title: "Process payment",
+  execute: async (api: TestAPI) => {
     await api.page.click('button:has-text("Checkout")');
     await action_enter_credit_card(api);
     await action_submit_payment(api);
     await expect(api.page.locator(".order-complete-message")).toBeVisible();
   },
-);
+});
 
-suite(metadata.name, () => {
+export const tests = [
   // Path 1
   test("Successful checkout with discount applied", [
     action_login_to_account,
     action_add_item_to_cart,
     action_add_discount_code,
     action_process_payment,
-  ]);
-
+  ]),
   // Path 2
   test("Successful checkout without discount", [
     action_login_to_account,
     action_add_item_to_cart,
     action_process_payment,
-  ]);
-});
-```
-});
+  ]),
+];
 ```

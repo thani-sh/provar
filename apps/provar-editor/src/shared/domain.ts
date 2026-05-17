@@ -77,8 +77,7 @@ export type TestFile = z.infer<typeof testFileSchema>;
 // ---------------------------------------------------------------------------
 
 export const PROVAR_DIR = ".provar";
-export const NODES_DIR = `${PROVAR_DIR}/nodes`;
-export const SUITES_DIR = `${PROVAR_DIR}/suites`;
+export const TESTS_DIR = `${PROVAR_DIR}/tests`;
 export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
 
 /**

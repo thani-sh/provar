@@ -18,7 +18,7 @@ export type ProvarRPCSchema = {
       };
       listFiles: {
         params: {};
-        response: { suites: string[]; nodes: string[] };
+        response: { tests: string[] };
       };
       readFile: {
         params: { path: string };

@@ -6,8 +6,7 @@ export const APP_NAME = "Provar Editor";
 export const DEFAULT_WIDTH = 1200;
 export const DEFAULT_HEIGHT = 800;
 
-export const TEST_FILE_EXTENSION = ".spec.yml";
-export const NODE_FILE_EXTENSION = ".node.yml";
+export const TEST_FILE_EXTENSION = ".test.yml";
 
 export const COLORS = {
   primary: "#6366f1", // indigo-500

@@ -50,7 +50,7 @@
           <li>Generate new test steps based on a description</li>
           <li>Refactor existing test flows</li>
           <li>Add assertions to your nodes</li>
-          <li>Explain how a test suite works</li>
+          <li>Explain how a test works</li>
         </ul>
         <p class="mt-4 text-[11px] text-zinc-500 border-t border-zinc-800/50 pt-3 italic">
           Tip: You can use the assistant with or without a selected file. When a file is open, it will be used as context for your requests.

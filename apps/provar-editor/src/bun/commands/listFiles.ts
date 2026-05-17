@@ -1,11 +1,10 @@
 import { readdir } from "fs/promises";
 import { join } from "path";
-import { SUITES_DIR, NODES_DIR } from "../../shared/domain";
+import { TESTS_DIR } from "../../shared/domain";
 import { getAbsPath } from "../utils";
 
 export const listFiles = async () => {
-  const suites: string[] = [];
-  const nodes: string[] = [];
+  const tests: string[] = [];
 
   const scan = async (dir: string, extension: string, results: string[]) => {
     try {
@@ -23,8 +22,7 @@ export const listFiles = async () => {
     }
   };
 
-  await scan(SUITES_DIR, ".spec.yml", suites);
-  await scan(NODES_DIR, ".node.yml", nodes);
+  await scan(TESTS_DIR, ".test.yml", tests);
 
-  return { suites, nodes };
+  return { tests };
 };
