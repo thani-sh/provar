@@ -10,9 +10,7 @@ export const assertionSchema = z.object({
 
 export type Assertion = z.infer<typeof assertionSchema>;
 
-export const assertionIdSchema = z
-  .string()
-  .regex(/^assert_[a-z0-9]{5}$/);
+export const assertionIdSchema = z.string().regex(/^assert_[a-z0-9]{5}$/);
 
 /**
  * Type definition for a test node.
@@ -39,12 +37,10 @@ export const testNodeSchema: z.ZodType<TestNode> = z.lazy(() =>
     next: z.union([z.string(), z.array(z.string())]).optional(),
     asserts: z.record(assertionIdSchema, assertionSchema).optional(),
     graph: graphSchema.optional(),
-  })
+  }),
 );
 
-export const testNodeIdSchema = z
-  .string()
-  .regex(/^action_[a-z0-9]{5}$/);
+export const testNodeIdSchema = z.string().regex(/^action_[a-z0-9]{5}$/);
 
 /**
  * Type definition for a test graph.
@@ -63,7 +59,7 @@ export const graphSchema: z.ZodType<Graph> = z.lazy(() =>
     info: z.string(),
     start: z.string(),
     nodes: z.record(testNodeIdSchema, testNodeSchema),
-  })
+  }),
 );
 
 /**

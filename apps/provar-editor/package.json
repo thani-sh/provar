@@ -4,10 +4,12 @@
 	"type": "module",
 	"description": "Electrobun app for Provar test editing",
 	"scripts": {
-		"start": "vite build && electrobun dev",
 		"dev": "concurrently \"bun run hmr\" \"bun run start\"",
 		"hmr": "vite --port 5173",
-		"build": "vite build && electrobun build"
+		"start": "vite build && electrobun dev",
+		"build": "vite build && electrobun build",
+		"lint": "prettier --check src",
+		"lint:fix": "prettier --write src"
 	},
 	"dependencies": {
 		"electrobun": "1.18.1",
@@ -21,10 +23,11 @@
 		"@tailwindcss/vite": "^4.0.0",
 		"@types/bun": "latest",
 		"concurrently": "^9.1.0",
+		"prettier": "^3.8.3",
 		"svelte": "^5.16.1",
 		"svelte-check": "^4.1.1",
 		"tailwindcss": "^4.0.0",
-		"typescript": "^5.7.2",
+		"typescript": "^6",
 		"vite": "^6.0.3"
 	}
 }

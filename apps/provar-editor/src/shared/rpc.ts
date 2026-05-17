@@ -42,10 +42,10 @@ export type ProvarRPCSchema = {
       };
       assistEditor: {
         params: { prompt: string; path?: string };
-        response: { 
+        response: {
           message: string;
           action?: {
-            type: 'selectFile';
+            type: "selectFile";
             path: string;
           };
         };
