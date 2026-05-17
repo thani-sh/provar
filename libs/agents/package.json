@@ -1,0 +1,18 @@
+{
+	"name": "@libs/agents",
+	"version": "1.0.0",
+	"type": "module",
+	"description": "Shared library with common AI code",
+	"scripts": {
+		"lint": "prettier --check src",
+		"lint:fix": "prettier --write src"
+	},
+	"dependencies": {
+		"@agentclientprotocol/sdk": "^0.21.1"
+	},
+	"devDependencies": {
+		"@types/bun": "latest",
+		"prettier": "^3.8.3",
+		"typescript": "^6"
+	}
+}
