@@ -22,6 +22,13 @@
 
 	let message = $state('');
 	let fileName = $derived(selectedFile?.split('/').pop());
+	let textarea: HTMLTextAreaElement | undefined = $state();
+
+	$effect(() => {
+		if (textarea) {
+			textarea.focus();
+		}
+	});
 
 	function handleSend() {
 		if (!message.trim() || isBusy) return;
@@ -100,6 +107,7 @@
 		{/if}
 		<div class="relative">
 			<textarea
+				bind:this={textarea}
 				bind:value={message}
 				placeholder="Type your request here..."
 				class="min-h-[100px] w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none {isBusy
