@@ -84,10 +84,22 @@ export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
  * Schema for the project configuration.
  */
 export const configSchema = z.object({
-	provider: z.object({
-		type: z.enum(['local', 'remote']),
-		name: z.string()
-	}),
+	provider: z.discriminatedUnion('name', [
+		z.object({
+			name: z.literal('gemini-cli'),
+			type: z.literal('local')
+		}),
+		z.object({
+			name: z.literal('copilot-cli'),
+			type: z.literal('local')
+		}),
+		z.object({
+			name: z.literal('openai'),
+			type: z.literal('remote'),
+			apiKey: z.string().optional(),
+			model: z.string().optional()
+		})
+	]),
 	variables: z.record(z.any()).optional()
 });
 

@@ -39,12 +39,20 @@
 			return;
 		}
 
+		const providerChanged = providerName !== config?.provider.name;
+
 		onSave({
 			...config,
-			provider: {
-				type: providerType,
-				name: providerName
-			},
+			provider: providerChanged
+				? {
+						type: providerType,
+						name: providerName
+					}
+				: {
+						...config?.provider,
+						type: providerType,
+						name: providerName
+					},
 			variables: variablesObj
 		} as ProvarConfig);
 	});
