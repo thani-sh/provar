@@ -1,11 +1,12 @@
 import { readFile } from "fs/promises";
-import { getAbsPath, triggerWorkspaceChanged } from "../utils";
+import { getAbsPath, triggerWorkspaceChanged, WORKSPACE_DIR } from "../utils";
 import { getConfig } from "./getConfig";
-import { getAIProvider } from "../ai/registry";
+import { getAgentProvider, type AgentProvider, type Session } from "@libs/agents";
 
-let currentSessionId: string | null = null;
+let activeProvider: AgentProvider | null = null;
+let activeSession: Session | null = null;
 
-const PROVAR_BASE_PROMPT = `
+const PROVAR_SYSTEM_PROMPT = `
 You are the AI Assistant for Provar, a visual, graph-based end-to-end testing tool.
 Provar represents tests as a directed graph of "actions" and "assertions".
 
@@ -32,7 +33,9 @@ graph:
           title: "Assertion Title"
           info: "What to verify"
 \`\`\`
+`.trim();
 
+const SESSION_PROMPT = `
 ### Your Mission:
 - Help users create, refactor, and understand Provar tests.
 - When suggesting changes, provide YAML snippets or clear instructions.
@@ -56,42 +59,67 @@ export const assistEditor = async ({
     };
   }
 
-  const provider = getAIProvider(config.provider.name);
+  // Initialize or re-initialize provider if config changed (simplified for now)
+  if (!activeProvider || activeProvider.name !== config.provider.name) {
+    if (activeProvider) {
+      await activeProvider.stop();
+    }
+    activeProvider = getAgentProvider(config.provider.name, {
+      systemPrompt: PROVAR_SYSTEM_PROMPT,
+      workspaceDir: WORKSPACE_DIR,
+    });
+    activeSession = null;
+  }
 
-  if (!provider) {
+  if (!activeProvider) {
     return {
       message: `AI Provider "${config.provider.name}" is not supported. Please check your project settings.`,
     };
   }
 
   try {
-    let contextFile: { path: string; content: string } | undefined = undefined;
+    if (!activeSession) {
+      activeSession = await activeProvider.createSession({
+        sessionPrompt: SESSION_PROMPT,
+      });
+    }
+
+    let finalPrompt = prompt;
 
     // Include file context if available
     if (path) {
       try {
         const fileContent = await readFile(getAbsPath(path), "utf-8");
-        contextFile = { path, content: fileContent };
+        finalPrompt = `Context File (${path}):\n${fileContent}\n\n${prompt}`;
       } catch (e) {
         console.error(`[AI Assistant] Failed to read context file: ${path}`, e);
       }
     }
 
-    const response = await provider.assist({
-      prompt,
-      basePrompt: PROVAR_BASE_PROMPT,
-      contextFile,
-      sessionId: currentSessionId,
-      config: config.provider,
-    });
+    const responses = await activeSession.prompt([
+      { type: "text", text: finalPrompt },
+    ]);
 
-    if (response.sessionId) {
-      currentSessionId = response.sessionId;
+    const aiText = responses[0]?.text || "";
+
+    // Extract action if present in the text (keeping legacy behavior)
+    let action: any = undefined;
+    const actionMatch = aiText.match(/\{[\s\S]*"action"[\s\S]*\}/);
+    if (actionMatch) {
+      try {
+        const actionData = JSON.parse(actionMatch[0]);
+        action = actionData.action;
+      } catch (e) {
+        console.error(
+          "[AI Assistant] Failed to parse action from AI response",
+          e,
+        );
+      }
     }
 
     return {
-      message: response.message,
-      action: response.action,
+      message: aiText,
+      action,
     };
   } catch (e: any) {
     console.error("[AI Assistant] Error calling AI Provider:", e);

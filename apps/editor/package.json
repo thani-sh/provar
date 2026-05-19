@@ -12,7 +12,7 @@
 		"lint:fix": "prettier --write src"
 	},
 	"dependencies": {
-		"@agentclientprotocol/sdk": "^0.21.1",
+		"@libs/agents": "workspace:*",
 		"electrobun": "1.18.1",
 		"lucide-svelte": "^0.474.0",
 		"pixi.js": "^8.18.1",

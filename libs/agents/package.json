@@ -3,6 +3,10 @@
 	"version": "1.0.0",
 	"type": "module",
 	"description": "Shared library with common AI code",
+	"main": "src/index.ts",
+	"exports": {
+		".": "./src/index.ts"
+	},
 	"scripts": {
 		"lint": "prettier --check src",
 		"lint:fix": "prettier --write src"
