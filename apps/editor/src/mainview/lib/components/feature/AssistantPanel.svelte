@@ -35,6 +35,208 @@
     onSend(message);
     message = "";
   }
+
+  type InlineToken =
+    | { type: "text"; text: string }
+    | { type: "bold"; text: string }
+    | { type: "italic"; text: string }
+    | { type: "code"; text: string };
+
+  type BlockToken =
+    | { type: "heading"; level: number; text: string }
+    | { type: "code-block"; language: string; code: string }
+    | { type: "list"; ordered: boolean; items: string[] }
+    | { type: "paragraph"; text: string };
+
+  function parseInlineTokens(text: string): InlineToken[] {
+    const tokens: InlineToken[] = [];
+    let index = 0;
+
+    while (index < text.length) {
+      // 1. Inline code: `code`
+      if (text.startsWith("`", index)) {
+        const closingIndex = text.indexOf("`", index + 1);
+        if (closingIndex !== -1) {
+          tokens.push({
+            type: "code",
+            text: text.slice(index + 1, closingIndex),
+          });
+          index = closingIndex + 1;
+          continue;
+        }
+      }
+
+      // 2. Bold: **text** or __text__
+      if (text.startsWith("**", index) || text.startsWith("__", index)) {
+        const marker = text.slice(index, index + 2);
+        const closingIndex = text.indexOf(marker, index + 2);
+        if (closingIndex !== -1) {
+          tokens.push({
+            type: "bold",
+            text: text.slice(index + 2, closingIndex),
+          });
+          index = closingIndex + 2;
+          continue;
+        }
+      }
+
+      // 3. Italic: *text* or _text_
+      if (text.startsWith("*", index) || text.startsWith("_", index)) {
+        const marker = text.charAt(index);
+        const closingIndex = text.indexOf(marker, index + 1);
+        if (closingIndex !== -1) {
+          tokens.push({
+            type: "italic",
+            text: text.slice(index + 1, closingIndex),
+          });
+          index = closingIndex + 1;
+          continue;
+        }
+      }
+
+      // If we get here, either we are not at a special character, or we are at one but it has no closing match.
+      // We should find the next special character starting from index + 1.
+      let nextSpecial = -1;
+      for (let i = index + 1; i < text.length; i++) {
+        const char = text.charAt(i);
+        if (char === "`" || char === "*" || char === "_") {
+          nextSpecial = i;
+          break;
+        }
+      }
+
+      if (nextSpecial === -1) {
+        // No more special characters, push everything else as text
+        tokens.push({ type: "text", text: text.slice(index) });
+        break;
+      } else {
+        // Push everything from index to nextSpecial as text
+        tokens.push({ type: "text", text: text.slice(index, nextSpecial) });
+        index = nextSpecial;
+      }
+    }
+
+    // Combine consecutive text tokens for efficiency
+    const mergedTokens: InlineToken[] = [];
+    for (const t of tokens) {
+      if (
+        t.type === "text" &&
+        mergedTokens.length > 0 &&
+        mergedTokens[mergedTokens.length - 1].type === "text"
+      ) {
+        mergedTokens[mergedTokens.length - 1].text += t.text;
+      } else {
+        mergedTokens.push(t);
+      }
+    }
+
+    return mergedTokens;
+  }
+
+  function parseMarkdownToTokens(text: string): BlockToken[] {
+    const lines = text.split(/\r?\n/);
+    const tokens: BlockToken[] = [];
+    let inCodeBlock = false;
+    let codeLanguage = "";
+    let codeLines: string[] = [];
+
+    let inList = false;
+    let listOrdered = false;
+    let listItems: string[] = [];
+
+    const commitList = () => {
+      if (inList && listItems.length > 0) {
+        tokens.push({ type: "list", ordered: listOrdered, items: listItems });
+        listItems = [];
+        inList = false;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      // Handle code block
+      if (line.trim().startsWith("```")) {
+        if (inCodeBlock) {
+          // End of code block
+          tokens.push({
+            type: "code-block",
+            language: codeLanguage,
+            code: codeLines.join("\n"),
+          });
+          codeLines = [];
+          inCodeBlock = false;
+        } else {
+          // Start of code block
+          commitList();
+          inCodeBlock = true;
+          codeLanguage = line.trim().slice(3).trim();
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        codeLines.push(line);
+        continue;
+      }
+
+      // Handle Headings
+      const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
+      if (headingMatch) {
+        commitList();
+        const level = headingMatch[1].length;
+        const headingText = headingMatch[2].trim();
+        tokens.push({ type: "heading", level, text: headingText });
+        continue;
+      }
+
+      // Handle Unordered Lists
+      const ulMatch = line.match(/^(\*|-)\s+(.*)$/);
+      if (ulMatch) {
+        if (!inList || listOrdered) {
+          commitList();
+          inList = true;
+          listOrdered = false;
+        }
+        listItems.push(ulMatch[2].trim());
+        continue;
+      }
+
+      // Handle Ordered Lists
+      const olMatch = line.match(/^(\d+)\.\s+(.*)$/);
+      if (olMatch) {
+        if (!inList || !listOrdered) {
+          commitList();
+          inList = true;
+          listOrdered = true;
+        }
+        listItems.push(olMatch[2].trim());
+        continue;
+      }
+
+      // Handle Blank Lines
+      if (line.trim() === "") {
+        commitList();
+        continue;
+      }
+
+      // Standard Paragraph text
+      commitList();
+      tokens.push({ type: "paragraph", text: line.trim() });
+    }
+
+    commitList();
+
+    if (inCodeBlock && codeLines.length > 0) {
+      tokens.push({
+        type: "code-block",
+        language: codeLanguage,
+        code: codeLines.join("\n"),
+      });
+    }
+
+    return tokens;
+  }
 </script>
 
 <aside
@@ -92,7 +294,114 @@
               {#if msg.role === "assistant" && msg.status === "pending"}
                 <span class="text-zinc-400 italic">Thinking...</span>
               {:else}
-                {msg.content}
+                <div class="flex flex-col gap-1">
+                  {#each parseMarkdownToTokens(msg.content) as token}
+                    {#if token.type === "heading"}
+                      {#if token.level === 1}
+                        <h1 class="mt-2 mb-1 text-base font-bold text-zinc-100">
+                          {token.text}
+                        </h1>
+                      {:else if token.level === 2}
+                        <h2 class="mt-2 mb-1 text-sm font-bold text-zinc-100">
+                          {token.text}
+                        </h2>
+                      {:else}
+                        <h3 class="mt-2 mb-0.5 text-xs font-bold text-zinc-200">
+                          {token.text}
+                        </h3>
+                      {/if}
+                    {:else if token.type === "code-block"}
+                      <pre
+                        class="my-1.5 overflow-x-auto rounded-lg border border-zinc-800/80 bg-zinc-950 p-3 font-mono text-[11px] whitespace-pre text-zinc-300"><code
+                          >{token.code}</code
+                        ></pre>
+                    {:else if token.type === "list"}
+                      {#if token.ordered}
+                        <ol
+                          class="my-1 list-decimal space-y-0.5 pl-5 text-zinc-300"
+                        >
+                          {#each token.items as item}
+                            <li>
+                              {#each parseInlineTokens(item) as inline}
+                                {#if inline.type === "text"}
+                                  {inline.text}
+                                {:else if inline.type === "bold"}
+                                  <strong
+                                    class="font-bold {msg.role === 'user'
+                                      ? 'text-white'
+                                      : 'text-zinc-100'}">{inline.text}</strong
+                                  >
+                                {:else if inline.type === "italic"}
+                                  <em
+                                    class="italic {msg.role === 'user'
+                                      ? 'text-indigo-100'
+                                      : 'text-zinc-300'}">{inline.text}</em
+                                  >
+                                {:else if inline.type === "code"}
+                                  <code class="font-mono">{inline.text}</code>
+                                {/if}
+                              {/each}
+                            </li>
+                          {/each}
+                        </ol>
+                      {:else}
+                        <ul
+                          class="my-1 list-disc space-y-0.5 pl-5 text-zinc-300"
+                        >
+                          {#each token.items as item}
+                            <li>
+                              {#each parseInlineTokens(item) as inline}
+                                {#if inline.type === "text"}
+                                  {inline.text}
+                                {:else if inline.type === "bold"}
+                                  <strong
+                                    class="font-bold {msg.role === 'user'
+                                      ? 'text-white'
+                                      : 'text-zinc-100'}">{inline.text}</strong
+                                  >
+                                {:else if inline.type === "italic"}
+                                  <em
+                                    class="italic {msg.role === 'user'
+                                      ? 'text-indigo-100'
+                                      : 'text-zinc-300'}">{inline.text}</em
+                                  >
+                                {:else if inline.type === "code"}
+                                  <code class="font-mono">{inline.text}</code>
+                                {/if}
+                              {/each}
+                            </li>
+                          {/each}
+                        </ul>
+                      {/if}
+                    {:else if token.type === "paragraph"}
+                      <p
+                        class="my-0.5 {msg.role === 'user'
+                          ? 'text-white'
+                          : 'text-zinc-200'}"
+                      >
+                        {#each parseInlineTokens(token.text) as inline}
+                          {#if inline.type === "text"}
+                            {inline.text}
+                          {:else if inline.type === "bold"}
+                            <strong
+                              class="font-bold {msg.role === 'user'
+                                ? 'text-white'
+                                : 'text-zinc-100'}">{inline.text}</strong
+                            >
+                          {:else if inline.type === "italic"}
+                            <em
+                              class="italic {msg.role === 'user'
+                                ? 'text-indigo-100'
+                                : 'text-zinc-300'}">{inline.text}</em
+                            >
+                          {:else if inline.type === "code"}
+                            <code class="font-mono">{inline.text}</code>
+                          {/if}
+                        {/each}
+                      </p>
+                    {/if}
+                  {/each}
+                </div>
               {/if}
             </div>
           </div>

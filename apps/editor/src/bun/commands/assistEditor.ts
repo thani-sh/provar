@@ -1,7 +1,11 @@
 import { readFile } from "fs/promises";
 import { getAbsPath, triggerWorkspaceChanged, WORKSPACE_DIR } from "../utils";
 import { getConfig } from "./getConfig";
-import { getAgentProvider, type AgentProvider, type Session } from "@libs/agents";
+import {
+  getAgentProvider,
+  type AgentProvider,
+  type Session,
+} from "@libs/agents";
 
 let activeProvider: AgentProvider | null = null;
 let activeSession: Session | null = null;
@@ -41,6 +45,8 @@ const SESSION_PROMPT = `
 - When suggesting changes, provide YAML snippets or clear instructions.
 - You can trigger the editor to select a file by including a JSON block: \`{ "action": { "type": "selectFile", "path": ".provar/tests/..." } }\` in your response.
 - Be concise and technical.
+- Format your response using only basic markdown formatting (headers, lists, inline code, code blocks, bold, and italic text).
+- STRICTLY avoid tables, HTML tags, or complex markdown formats.
 `.trim();
 
 export const assistEditor = async ({
