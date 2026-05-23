@@ -7,14 +7,9 @@ export class ACPSession implements Session {
 		private client: ACPClient,
 	) {}
 
-	async prompt(stuff: Attachment[]): Promise<Attachment[]> {
-		const result = await this.client.prompt(this.id, stuff);
-
-		return [
-			{
-				type: 'text',
-				text: result.message,
-			},
-		];
+	async *prompt(stuff: Attachment[]): AsyncGenerator<Attachment, void> {
+		for await (const chunk of this.client.promptStream(this.id, stuff)) {
+			yield chunk;
+		}
 	}
 }

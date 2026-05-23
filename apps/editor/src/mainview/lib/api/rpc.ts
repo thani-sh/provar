@@ -11,6 +11,9 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
       workspaceChanged: () => {
         handlers.workspaceChanged?.();
       },
+      assistantChunk: (params) => {
+        handlers.assistantChunk?.(params);
+      },
     },
   },
 });
@@ -20,6 +23,7 @@ export const electroview = new Electroview({ rpc });
 type Handlers = {
   workspaceSelected?: (path: string) => void;
   workspaceChanged?: () => void;
+  assistantChunk?: (params: { text: string; status: "pending" | "completed" | "error" }) => void;
 };
 
 const handlers: Handlers = {};

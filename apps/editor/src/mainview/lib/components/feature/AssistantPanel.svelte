@@ -119,12 +119,9 @@
     // Combine consecutive text tokens for efficiency
     const mergedTokens: InlineToken[] = [];
     for (const t of tokens) {
-      if (
-        t.type === "text" &&
-        mergedTokens.length > 0 &&
-        mergedTokens[mergedTokens.length - 1].type === "text"
-      ) {
-        mergedTokens[mergedTokens.length - 1].text += t.text;
+      const lastToken = mergedTokens[mergedTokens.length - 1];
+      if (t.type === "text" && lastToken && lastToken.type === "text") {
+        lastToken.text += t.text;
       } else {
         mergedTokens.push(t);
       }
@@ -152,9 +149,7 @@
       }
     };
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
+    for (const line of lines) {
       // Handle code block
       if (line.trim().startsWith("```")) {
         if (inCodeBlock) {
@@ -184,8 +179,8 @@
       const headingMatch = line.match(/^(#{1,6})\s+(.*)$/);
       if (headingMatch) {
         commitList();
-        const level = headingMatch[1].length;
-        const headingText = headingMatch[2].trim();
+        const level = headingMatch[1]?.length ?? 1;
+        const headingText = headingMatch[2]?.trim() ?? "";
         tokens.push({ type: "heading", level, text: headingText });
         continue;
       }
@@ -198,7 +193,7 @@
           inList = true;
           listOrdered = false;
         }
-        listItems.push(ulMatch[2].trim());
+        listItems.push(ulMatch[2]?.trim() ?? "");
         continue;
       }
 
@@ -210,7 +205,7 @@
           inList = true;
           listOrdered = true;
         }
-        listItems.push(olMatch[2].trim());
+        listItems.push(olMatch[2]?.trim() ?? "");
         continue;
       }
 

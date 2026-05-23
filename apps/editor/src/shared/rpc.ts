@@ -60,6 +60,9 @@ export type ProvarRPCSchema = {
       workspaceChanged: {
         params: {};
       };
+      assistantChunk: {
+        params: { text: string; status: "pending" | "completed" | "error" };
+      };
     };
   }>;
 };

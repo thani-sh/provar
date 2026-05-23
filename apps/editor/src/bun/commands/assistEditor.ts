@@ -52,9 +52,11 @@ const SESSION_PROMPT = `
 export const assistEditor = async ({
   prompt,
   path,
+  onChunk,
 }: {
   prompt: string;
   path?: string;
+  onChunk?: (text: string, status: "pending" | "completed" | "error") => void;
 }) => {
   const { config } = await getConfig();
 
@@ -102,11 +104,15 @@ export const assistEditor = async ({
       }
     }
 
-    const responses = await activeSession.prompt([
-      { type: "text", text: finalPrompt },
-    ]);
+    const chunks: string[] = [];
+    for await (const chunk of activeSession.prompt([{ type: "text", text: finalPrompt }])) {
+      if (chunk.type === "text" && chunk.text) {
+        chunks.push(chunk.text);
+        onChunk?.(chunk.text, "pending");
+      }
+    }
 
-    const aiText = responses[0]?.text || "";
+    const aiText = chunks.join("");
 
     // Extract action if present in the text (keeping legacy behavior)
     let action: any = undefined;
@@ -123,14 +129,18 @@ export const assistEditor = async ({
       }
     }
 
+    onChunk?.("", "completed");
+
     return {
       message: aiText,
       action,
     };
   } catch (e: any) {
     console.error("[AI Assistant] Error calling AI Provider:", e);
+    const errorMsg = `Failed to communicate with the AI Assistant (${config.provider.name}): ${e.message || "Unknown error"}`;
+    onChunk?.(errorMsg, "error");
     return {
-      message: `Failed to communicate with the AI Assistant (${config.provider.name}): ${e.message || "Unknown error"}`,
+      message: errorMsg,
     };
   } finally {
     triggerWorkspaceChanged();

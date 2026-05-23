@@ -9,7 +9,7 @@
     onAddNode?: (fromId: string | null, toId: string | null) => void;
   }
 
-  let { testFile, selectedNodeId = $bindable(), onAddNode } = $props<Props>();
+  let { testFile, selectedNodeId = $bindable(), onAddNode }: Props = $props();
 
   let container: HTMLElement;
   let infiniteCanvas: InfiniteCanvas;

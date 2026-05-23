@@ -15,6 +15,7 @@ export class ACPClient implements acp.Client {
 	private sessionLocks = new Map<string, Promise<void>>();
 	private fs: FSCapability;
 	private permissionHandler: PermissionHandler;
+	private activeStreams = new Map<string, { push: (chunk: acp.ContentBlock) => void; close: () => void }>();
 
 	constructor(
 		private command: string[],
@@ -102,10 +103,19 @@ export class ACPClient implements acp.Client {
 			return;
 		}
 		const update = params.update as any;
+		let chunkText = '';
 		if (update.sessionUpdate === 'agent_message_chunk' && update.content?.text) {
-			this.sessionBuffers.set(params.sessionId, buffer + update.content.text);
+			chunkText = update.content.text;
 		} else if (update.type === 'agent_message_chunk' && update.text) {
-			this.sessionBuffers.set(params.sessionId, buffer + update.text);
+			chunkText = update.text;
+		}
+
+		if (chunkText) {
+			this.sessionBuffers.set(params.sessionId, buffer + chunkText);
+			const activeStream = this.activeStreams.get(params.sessionId);
+			if (activeStream) {
+				activeStream.push({ type: 'text', text: chunkText });
+			}
 		}
 	}
 
@@ -133,28 +143,57 @@ export class ACPClient implements acp.Client {
 		this.sessionBuffers.set(sessionId, '');
 	}
 
-	async prompt(
+	async *promptStream(
 		sessionId: string,
 		prompt: acp.ContentBlock[],
-	): Promise<{ message: string; sessionId: string }> {
+	): AsyncGenerator<acp.ContentBlock, void> {
 		if (!this.connection) {
 			throw new Error('Client not started or process crashed');
 		}
 
-		// Ensure only one prompt is active per session to avoid buffer corruption
+		const queue: acp.ContentBlock[] = [];
+		let isDone = false;
+		let resolveNext: (() => void) | null = null;
+
+		this.activeStreams.set(sessionId, {
+			push: (chunk) => {
+				queue.push(chunk);
+				resolveNext?.();
+			},
+			close: () => {
+				isDone = true;
+				resolveNext?.();
+			},
+		});
+
+		// Start command execution inside the lock to ensure sequence
 		const currentLock = this.sessionLocks.get(sessionId) || Promise.resolve();
 		const nextLock = currentLock.then(async () => {
 			this.sessionBuffers.set(sessionId, '');
-			await this.connection!.prompt({ sessionId, prompt });
+			try {
+				await this.connection!.prompt({ sessionId, prompt });
+			} finally {
+				this.activeStreams.get(sessionId)?.close();
+				this.activeStreams.delete(sessionId);
+			}
 		});
-
 		this.sessionLocks.set(sessionId, nextLock);
-		await nextLock;
 
-		return {
-			message: this.sessionBuffers.get(sessionId) || '',
-			sessionId,
-		};
+		// Consume the generator queue as elements become available
+		while (true) {
+			if (queue.length > 0) {
+				yield queue.shift()!;
+			} else if (isDone) {
+				break;
+			} else {
+				await new Promise<void>((r) => {
+					resolveNext = r;
+				});
+			}
+		}
+
+		// Ensure we wait for the lock to completely clear
+		await nextLock;
 	}
 
 	private async readStderr() {

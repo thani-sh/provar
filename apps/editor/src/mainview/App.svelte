@@ -4,6 +4,7 @@
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
   import { uiStore } from "./lib/stores/UIStore.svelte";
+  import { registerRPCHandlers } from "./lib/api/rpc";
 
   import AssistantPanel, {
     type AssistantMessage,
@@ -18,9 +19,21 @@
   // Assistant State (keeping local as it's view-specific and transient)
   let assistantMessages = $state<AssistantMessage[]>([]);
   let assistantBusy = $state(false);
+  let activeAssistantMsgId = $state<string | null>(null);
 
-  onMount(async () => {
-    await workspaceStore.initialize();
+  onMount(() => {
+    workspaceStore.initialize();
+
+    registerRPCHandlers({
+      assistantChunk: ({ text, status }) => {
+        if (!activeAssistantMsgId) return;
+        assistantMessages = assistantMessages.map((msg) =>
+          msg.id === activeAssistantMsgId
+            ? { ...msg, content: msg.content + text, status }
+            : msg
+        );
+      },
+    });
 
     const refreshInterval = setInterval(() => {
       workspaceStore.refreshFiles();
@@ -57,6 +70,7 @@
     if (assistantBusy) return;
 
     const assistantMsgId = Math.random().toString(36).substring(7);
+    activeAssistantMsgId = assistantMsgId;
     assistantMessages = [
       ...assistantMessages,
       {
@@ -76,6 +90,7 @@
         editorStore.selectedFilePath || undefined,
       );
 
+      // Final replacement in case the RPC resolves with full message text
       assistantMessages = assistantMessages.map((msg) =>
         msg.id === assistantMsgId
           ? { ...msg, content: res.message, status: "completed" }

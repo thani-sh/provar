@@ -47,43 +47,6 @@ if (provider) {
 }
 ```
 
-### Direct ACP Client Usage
-
-If you need lower-level control over an ACP-compatible agent:
-
-```typescript
-import { ACPClient } from "@libs/agents";
-
-const client = new ACPClient(["my-agent-cli", "--acp"], {
-  workspaceDir: "/path/to/project"
-});
-
-await client.start();
-const sessionId = await client.createSession();
-const result = await client.prompt(sessionId, [{ type: "text", text: "Hello agent!" }]);
-console.log(result.message);
-await client.stop();
-```
-
-## How It Works
-
-### 1. ACP Interaction (`acp.ts`)
-The `ACPClient` handles communication with external agent processes using the Agent Client Protocol. It:
-- Spawns the agent process via `bun.spawn`.
-- Manages an ND-JSON stream for bidirectional communication.
-- Implements the ACP `fs` capability, allowing the agent to read and write files within the specified `workspaceDir` (with permission checks).
-- Handles session management and streaming response buffering.
-
-### 2. Agent Provider Pattern (`types.ts` & `providers/`)
-The `AgentProvider` interface defines a common contract for different AI backends.
-- **GeminiCLIProvider**: A concrete implementation that wraps the `gemini-cli` tool using the `ACPClient`. It maintains its own sessions and handles prompt formatting.
-
-### 3. Session Management
-The library uses a `Session` object to maintain conversation state. Each session is tied to an underlying ACP session.
-
-### 4. Registry (`registry.ts`)
-The registry acts as a central lookup for available agent providers.
-
 ## Extending the Library
 
 To add a new agent provider:
@@ -91,8 +54,3 @@ To add a new agent provider:
 2. Implement the `AgentProvider` interface and a corresponding `Session` implementation.
 3. Register the new provider in `src/registry.ts`.
 4. Export the provider from `src/index.ts`.
-
-## Development
-
-- **Linting**: `bun run lint`
-- **Fixing**: `bun run lint:fix`

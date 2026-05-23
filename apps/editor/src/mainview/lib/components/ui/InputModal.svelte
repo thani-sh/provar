@@ -7,7 +7,7 @@
     onCancel: () => void;
   }
 
-  let { show, title, placeholder, onConfirm, onCancel } = $props<Props>();
+  let { show, title, placeholder, onConfirm, onCancel }: Props = $props();
   let value = $state("");
 
   function handleConfirm() {

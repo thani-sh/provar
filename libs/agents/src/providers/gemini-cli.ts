@@ -43,18 +43,22 @@ export class GeminiCLIProvider implements AgentProvider {
 		}
 
 		if (initialPrompt) {
-			await session.prompt([{ type: 'text', text: initialPrompt }]);
+			for await (const _ of session.prompt([{ type: 'text', text: initialPrompt }])) {
+				// Consume initial prompt setup stream
+			}
 		}
 
 		return session;
 	}
 
-	async prompt(sessionId: string, stuff: Attachment[]): Promise<Attachment[]> {
+	async *prompt(sessionId: string, stuff: Attachment[]): AsyncGenerator<Attachment, void> {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
 			throw new Error(`Session ${sessionId} not found`);
 		}
-		return session.prompt(stuff);
+		for await (const chunk of session.prompt(stuff)) {
+			yield chunk;
+		}
 	}
 
 	async stop(): Promise<void> {
