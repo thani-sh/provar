@@ -7,6 +7,11 @@ export interface TestAPI {
   state: Record<string, any>;
 }
 
+export interface GroundingContext {
+  pageContent?: string;
+  screenshot?: string;
+}
+
 export interface Action {
   (api: TestAPI): Promise<void>;
   id: string;
@@ -81,6 +86,7 @@ export class TestRun {
   private isFinished = false;
   private browser: Browser | null = null;
   private activePage: Page | null = null;
+  private groundingContext: GroundingContext | null = null;
 
   constructor(private options: RunTestOptions) {}
 
@@ -90,6 +96,10 @@ export class TestRun {
 
   getActivePage(): Page | null {
     return this.activePage;
+  }
+
+  getGroundingContext(): GroundingContext | null {
+    return this.groundingContext;
   }
 
   async *events(): AsyncGenerator<TestRunEvent, void, unknown> {
@@ -225,6 +235,19 @@ export class TestRun {
       }
 
       if (this.options.upToActionId && act.id === this.options.upToActionId) {
+        try {
+          const pageContent = await page.content();
+          let screenshot: string | undefined;
+          try {
+            const screenshotBuf = await page.screenshot({ type: "png" });
+            screenshot = screenshotBuf.toString("base64");
+          } catch (e) {
+            // Ignore
+          }
+          this.groundingContext = { pageContent, screenshot };
+        } catch (err) {
+          // Ignore
+        }
         break;
       }
     }
