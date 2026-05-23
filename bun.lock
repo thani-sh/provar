@@ -47,7 +47,9 @@
       },
       "dependencies": {
         "@libs/compiler": "workspace:*",
+        "@libs/domain": "workspace:*",
         "@libs/executor": "workspace:*",
+        "@libs/parser": "workspace:*",
         "js-yaml": "^4.1.1",
         "picocolors": "^1.1.1",
       },
@@ -89,7 +91,9 @@
       "version": "1.0.0",
       "dependencies": {
         "@libs/agents": "workspace:*",
+        "@libs/domain": "workspace:*",
         "@libs/executor": "workspace:*",
+        "@libs/parser": "workspace:*",
         "js-yaml": "^4.1.1",
       },
       "devDependencies": {

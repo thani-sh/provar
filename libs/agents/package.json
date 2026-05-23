@@ -8,6 +8,7 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "build": "tsc --noEmit -p tsconfig.json",
     "lint": "prettier --check src",
     "lint:fix": "prettier --write src"
   },

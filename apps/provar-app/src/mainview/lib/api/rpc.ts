@@ -6,13 +6,13 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
   handlers: {
     messages: {
       workspaceSelected: (params) => {
-        handlers.workspaceSelected?.(params.path);
+        handlers.workspaceSelected?.(params.params.path);
       },
       workspaceChanged: () => {
         handlers.workspaceChanged?.();
       },
       assistantChunk: (params) => {
-        handlers.assistantChunk?.(params);
+        handlers.assistantChunk?.(params.params);
       },
     },
   },

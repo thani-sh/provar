@@ -12,6 +12,7 @@
   "scripts": {
     "provar": "bun run ./apps/provar-cli/src/index.ts",
     "dev": "bun --filter '*' dev",
+    "build": "bun --filter '*' build",
     "lint": "bun --filter '*' lint",
     "lint:fix": "bun --filter '*' lint:fix"
   },

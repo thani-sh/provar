@@ -1,7 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import yaml from "js-yaml";
-import { Config, ConfigSchema, TestGraph, TestGraphSchema } from "@libs/domain";
+import { ConfigSchema, TestGraphSchema } from "@libs/domain";
+import type { Config, TestGraph } from "@libs/domain";
 
 export interface WorkspaceTest {
   filePath: string;

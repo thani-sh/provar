@@ -1,30 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
-import yaml from "js-yaml";
-import { runTest, TestAPI, GroundingContext } from "@libs/executor";
+import { runTest } from "@libs/executor";
+import type { TestAPI, GroundingContext } from "@libs/executor";
 import crypto from "crypto";
-
-export interface GraphNode {
-  title: string;
-  info: string;
-  next?: string | string[];
-  visualCompare?: boolean;
-  asserts?: Record<string, { title: string; info: string }>;
-  graph?: {
-    info: string;
-    start: string;
-    nodes: Record<string, GraphNode>;
-  };
-}
-
-export interface TestGraph {
-  name: string;
-  graph: {
-    info: string;
-    start: string;
-    nodes: Record<string, GraphNode>;
-  };
-}
+import type { GraphNode, TestGraph } from "@libs/domain";
+import { parseTestGraph, loadWorkspace } from "@libs/parser";
 
 export interface CompilerOptions {
   yamlPath: string;
@@ -41,44 +21,6 @@ export interface CompileResult {
   outputPath: string;
   generatedCode: string;
   pathsResolved: number;
-}
-
-// Find variables from .provar/config.yml by locating the .provar directory in the path
-function findAndLoadVariables(testFilePath: string): Record<string, any> {
-  const provarIndex = testFilePath.lastIndexOf(".provar");
-  if (provarIndex === -1) {
-    return {};
-  }
-
-  const configPath = path.join(
-    testFilePath.slice(0, provarIndex + 7),
-    "config.yml",
-  );
-  if (fs.existsSync(configPath)) {
-    try {
-      const content = fs.readFileSync(configPath, "utf-8");
-      const doc = yaml.load(content) as any;
-      const rawVariables = doc?.variables || {};
-
-      const resolved: Record<string, any> = {};
-      for (const [key, val] of Object.entries(rawVariables)) {
-        if (typeof val === "string") {
-          const envMatch = val.match(/^\$\{ENV\.(.+)\}$/);
-          if (envMatch && envMatch[1]) {
-            resolved[key] = process.env[envMatch[1]] || "";
-          } else {
-            resolved[key] = val;
-          }
-        } else {
-          resolved[key] = val;
-        }
-      }
-      return resolved;
-    } catch (err) {
-      // Silent ignore
-    }
-  }
-  return {};
 }
 
 // Function to resolve all unique linear paths from start to terminal nodes in a directed graph
@@ -308,7 +250,13 @@ export async function groundAndGenerateAction(
     try {
       fs.writeFileSync(tempSpecPath, tempSpecString, "utf-8");
 
-      const variables = findAndLoadVariables(targetFilePath);
+      let variables = {};
+      try {
+        const ws = await loadWorkspace(targetFilePath);
+        variables = ws.config.variables || {};
+      } catch (err) {
+        // Ignore
+      }
 
       const runner = runTest({
         testFilePath: tempSpecPath,
@@ -346,7 +294,7 @@ export async function compile(
   options: CompilerOptions,
 ): Promise<CompileResult> {
   const content = fs.readFileSync(options.yamlPath, "utf-8");
-  const graphDef = yaml.load(content) as TestGraph;
+  const graphDef = parseTestGraph(content);
 
   const resolvedPathsList = resolvePaths(graphDef);
   const outputPath =

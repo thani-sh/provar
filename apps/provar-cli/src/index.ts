@@ -3,47 +3,7 @@ import { compile } from "@libs/compiler";
 import pc from "picocolors";
 import * as path from "path";
 import * as fs from "fs";
-import yaml from "js-yaml";
-
-function findAndLoadVariables(testFilePath: string): Record<string, any> {
-  let currentDir = path.dirname(testFilePath);
-  const rootDir = path.parse(currentDir).root;
-
-  while (currentDir && currentDir !== rootDir) {
-    const configPath = path.join(currentDir, ".provar", "config.yml");
-    if (fs.existsSync(configPath)) {
-      try {
-        const content = fs.readFileSync(configPath, "utf-8");
-        const doc = yaml.load(content) as any;
-        const rawVariables = doc?.variables || {};
-
-        // Resolve environment variables using ${ENV.VAR_NAME} mapping
-        const resolved: Record<string, any> = {};
-        for (const [key, val] of Object.entries(rawVariables)) {
-          if (typeof val === "string") {
-            const envMatch = val.match(/^\$\{ENV\.(.+)\}$/);
-            if (envMatch && envMatch[1]) {
-              resolved[key] = process.env[envMatch[1]] || "";
-            } else {
-              resolved[key] = val;
-            }
-          } else {
-            resolved[key] = val;
-          }
-        }
-        return resolved;
-      } catch (err: any) {
-        console.warn(
-          pc.yellow(
-            `⚠️  Failed to parse config at ${configPath}: ${err.message}`,
-          ),
-        );
-      }
-    }
-    currentDir = path.dirname(currentDir);
-  }
-  return {};
-}
+import { loadWorkspace } from "@libs/parser";
 
 // Recursively find all files of a specific extension
 function findFilesByExtension(targetPath: string, extension: string): string[] {
@@ -117,7 +77,13 @@ async function main() {
       }
       filesToCompile.push(resolvedPath);
     } else if (stat.isDirectory()) {
-      filesToCompile = findFilesByExtension(resolvedPath, ".test.yml");
+      try {
+        const ws = await loadWorkspace(resolvedPath);
+        filesToCompile = ws.tests.map((t) => t.filePath);
+      } catch (err: any) {
+        console.error(pc.red(`❌ Error loading workspace: ${err.message}`));
+        process.exit(1);
+      }
       if (filesToCompile.length === 0) {
         console.log(
           pc.yellow(`⚠️  No .test.yml files found in: ${resolvedPath}`),
@@ -222,7 +188,13 @@ async function main() {
     for (const testFilePath of filesToRun) {
       console.log(pc.cyan(`\n📦 Executing Suite: ${pc.bold(testFilePath)}`));
 
-      const variables = findAndLoadVariables(testFilePath);
+      let variables = {};
+      try {
+        const ws = await loadWorkspace(testFilePath);
+        variables = ws.config.variables || {};
+      } catch (err) {
+        // Ignore
+      }
       if (Object.keys(variables).length > 0) {
         console.log(
           pc.dim(`  ⚙ Loaded Variables: ${JSON.stringify(variables)}`),

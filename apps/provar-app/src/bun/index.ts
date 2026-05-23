@@ -53,7 +53,9 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
         assistEditor({
           ...params,
           onChunk: (text, status) => {
-            mainWindow.webview.rpc?.send.assistantChunk({ text, status });
+            mainWindow.webview.rpc?.send.assistantChunk({
+              params: { text, status },
+            });
           },
         }),
     },
@@ -77,7 +79,7 @@ const mainWindow = new BrowserWindow({
 });
 
 onWorkspaceChanged(() => {
-  mainWindow.webview.rpc?.send.workspaceChanged({});
+  mainWindow.webview.rpc?.send.workspaceChanged({ params: {} });
 });
 
 if (WORKSPACE_DIR) {
@@ -110,7 +112,9 @@ Electrobun.events.on("application-menu-clicked", async (e) => {
     if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
       const newWorkspace = chosenPaths[0];
       setWorkspaceDir(newWorkspace);
-      mainWindow.webview.rpc?.send.workspaceSelected({ path: newWorkspace });
+      mainWindow.webview.rpc?.send.workspaceSelected({
+        params: { path: newWorkspace },
+      });
     }
   }
 });
