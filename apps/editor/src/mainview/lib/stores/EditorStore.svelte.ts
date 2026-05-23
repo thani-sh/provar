@@ -37,7 +37,11 @@ class EditorStore {
 
   async addNode(fromId: string | null, toId: string | null) {
     if (!this.currentFile) return;
-    const { file, newNodeId } = addNodeToGraph(this.currentFile, fromId, toId);
+    const { file, newNodeId } = addNodeToGraph(
+      $state.snapshot(this.currentFile),
+      fromId,
+      toId,
+    );
     this.currentFile = file;
     this.selectedNodeId = newNodeId;
     await this.saveFile();
@@ -45,7 +49,11 @@ class EditorStore {
 
   async updateNode(id: string, updates: Partial<TestNode>) {
     if (!this.currentFile) return;
-    this.currentFile = updateNodeInGraph(this.currentFile, id, updates);
+    this.currentFile = updateNodeInGraph(
+      $state.snapshot(this.currentFile),
+      id,
+      updates,
+    );
     await this.saveFile();
   }
 
@@ -58,7 +66,10 @@ class EditorStore {
     )
       return;
 
-    this.currentFile = deleteNodeFromGraph(this.currentFile, id);
+    this.currentFile = deleteNodeFromGraph(
+      $state.snapshot(this.currentFile),
+      id,
+    );
     this.selectedNodeId = null;
     await this.saveFile();
   }

@@ -20,6 +20,7 @@ graph:
     action_amkl1:
       title: add personal task
       info: Add task "Buy groceries" to Personal list
+      next: action_01bcy
     action_crew1:
       title: create work list
       info: Create a list named "Work"
@@ -27,3 +28,6 @@ graph:
     action_arpt1:
       title: add work task
       info: Add task "Submit report" to Work list
+    action_01bcy:
+      title: Mark it as done
+      info: Describe what this action does...

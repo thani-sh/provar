@@ -242,10 +242,9 @@ export async function compile(
 
   // 2. Resolve tests mapping to linear paths
   let testsArray = `export const tests = [\n`;
-  resolvedPathsList.forEach((pathNodeIds, idx) => {
-    const pathName = `Path ${idx + 1}: ${pathNodeIds.map((nid) => nodeMap[nid]?.title || nid).join(" -> ")}`;
+  resolvedPathsList.forEach((pathNodeIds) => {
     const actionArray = pathNodeIds.map((nid) => `action_${nid}`).join(", ");
-    testsArray += `  test(${JSON.stringify(pathName)}, [${actionArray}]),\n`;
+    testsArray += `  test([${actionArray}]),\n`;
   });
   testsArray += `];\n`;
 

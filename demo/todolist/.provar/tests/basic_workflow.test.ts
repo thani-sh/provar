@@ -1,5 +1,5 @@
-// date: 2026-05-23T09:25:42.067Z
-// hash: c909f20bdc63e9f7e31c06f9f4dc5303cb9e4456c7f93a2dc5fd6e3d2c892e1c
+// date: 2026-05-23T10:13:03.881Z
+// hash: 88f116ef7e4bf281721650c2c6a21cda315eb5bed601a6852a7a68d6afc1b05d
 import { test, action, expect, TestAPI } from "@libs/executor";
 
 export const metadata = {
@@ -53,5 +53,5 @@ const action_action_compt = action({
 });
 
 export const tests = [
-  test("Path 1: open app -> login -> create list -> add task -> complete task", [action_action_init1, action_action_logi1, action_action_clis1, action_action_atask, action_action_compt]),
+  test([action_action_init1, action_action_logi1, action_action_clis1, action_action_atask, action_action_compt]),
 ];

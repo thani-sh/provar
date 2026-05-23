@@ -31,7 +31,8 @@ export interface TestDefinition {
   actions: Action[];
 }
 
-export function test(name: string, actions: Action[]): TestDefinition {
+export function test(actions: Action[]): TestDefinition {
+  const name = actions.map((a) => a.title).join(" -> ");
   return { name, actions };
 }
 
