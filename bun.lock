@@ -15,7 +15,6 @@
       "name": "@apps/editor",
       "version": "1.0.0",
       "dependencies": {
-        "@agentclientprotocol/sdk": "^0.21.1",
         "@libs/agents": "workspace:*",
         "electrobun": "1.18.1",
         "lucide-svelte": "^0.474.0",
@@ -36,21 +35,6 @@
         "tailwindcss": "^4.0.0",
         "typescript": "^6",
         "vite": "^6.0.3",
-      },
-    },
-    "demo/checkout": {
-      "name": "@demo/checkout",
-      "dependencies": {
-        "react": "^19.2.6",
-        "react-dom": "^19.2.6",
-      },
-      "devDependencies": {
-        "@types/bun": "latest",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
-      },
-      "peerDependencies": {
-        "typescript": "^6",
       },
     },
     "demo/todolist": {
@@ -87,8 +71,6 @@
     "@apps/editor": ["@apps/editor@workspace:apps/editor"],
 
     "@babylonjs/core": ["@babylonjs/core@7.54.3", "", {}, "sha512-P5ncXVd8GEUJLhwloP9V0oVwQYIrvZztguVeLlvd5Rx+9aQnenKjpV8auJ6SRsUlAmNZU4pFTKzwF6o2EUfhAw=="],
-
-    "@demo/checkout": ["@demo/checkout@workspace:demo/checkout"],
 
     "@demo/todolist": ["@demo/todolist@workspace:demo/todolist"],
 
@@ -538,8 +520,6 @@
 
     "@apps/editor/typescript": ["typescript@6.0.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw=="],
 
-    "@demo/checkout/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
-
     "@demo/todolist/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
 
     "@libs/agents/@types/bun": ["@types/bun@1.3.14", "", { "dependencies": { "bun-types": "1.3.14" } }, "sha512-h1hFqFVcvAvD9j9K7ZW7vd82aSA+rTdznZa+5bwvCwqSB1jmmfLcbIWhOLx1/+boy/xmjgCs/OMUL8hRJSmnPw=="],
@@ -565,8 +545,6 @@
     "png-to-ico/@types/node": ["@types/node@17.0.45", "", {}, "sha512-w+tIMs3rq2afQdsPJlODhoUEKzFP1ayaoyl1CcnwtIlsVe7K7bA1NGm4s3PraqTLlXnbIN84zuBlxBWo1u9BLw=="],
 
     "@apps/editor/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
-
-    "@demo/checkout/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
     "@demo/todolist/@types/bun/bun-types": ["bun-types@1.3.14", "", { "dependencies": { "@types/node": "*" } }, "sha512-4N0ig0fEomHt5R0KCFWjovxow98rIoRwKolrYdCcknNwMekCXRnWEUvgu5soYV8QXtVsrUD8B95MBOZGPvr6KQ=="],
 
