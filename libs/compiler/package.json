@@ -11,6 +11,7 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
+    "@libs/agents": "workspace:*",
     "@libs/executor": "workspace:*",
     "js-yaml": "^4.1.1"
   },

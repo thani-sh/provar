@@ -93,6 +93,7 @@
       "name": "@libs/compiler",
       "version": "1.0.0",
       "dependencies": {
+        "@libs/agents": "workspace:*",
         "@libs/executor": "workspace:*",
         "js-yaml": "^4.1.1",
       },
