@@ -52,7 +52,11 @@ export function resolvePaths(graphDef: TestGraph): string[][] {
     return [];
   }
 
-  function traverse(currentNodeId: string, currentPath: string[], visited: Set<string>) {
+  function traverse(
+    currentNodeId: string,
+    currentPath: string[],
+    visited: Set<string>,
+  ) {
     if (visited.has(currentNodeId)) {
       // Loop detected, truncate path to avoid infinite loops
       paths.push([...currentPath]);
@@ -90,39 +94,68 @@ function translateNodeToCode(nodeId: string, node: GraphNode): string {
   let codeLines: string[] = [];
 
   // Open App/Go to BASE_URL
-  if (info.includes("navigate to") || info.includes("open app") || title.includes("open app") || title.includes("navigate")) {
+  if (
+    info.includes("navigate to") ||
+    info.includes("open app") ||
+    title.includes("open app") ||
+    title.includes("navigate")
+  ) {
     codeLines.push(`await api.page.goto(api.var.BASE_URL);`);
   }
   // Login flow
   else if (title.includes("login") || info.includes("login")) {
-    const username = info.match(/"([^"]+)"/) || title.match(/"([^"]+)"/) || ["", "testuser"];
-    codeLines.push(`await api.page.fill('input[placeholder="Username"]', ${JSON.stringify(username[1])});`);
-    codeLines.push(`await api.page.click('button:has-text("Login / Register")');`);
+    const username = info.match(/"([^"]+)"/) ||
+      title.match(/"([^"]+)"/) || ["", "testuser"];
+    codeLines.push(
+      `await api.page.fill('input[placeholder="Username"]', ${JSON.stringify(username[1])});`,
+    );
+    codeLines.push(
+      `await api.page.click('button:has-text("Login / Register")');`,
+    );
   }
   // Add task flow (high priority check to avoid list creation false matches)
-  else if (title.includes("add task") || info.includes("add task") || title.includes("add personal task") || title.includes("add work task")) {
-    const taskName = info.match(/"([^"]+)"/) || title.match(/"([^"]+)"/) || ["", "Buy Milk"];
-    codeLines.push(`await api.page.fill('input[placeholder="What needs to be done?"]', ${JSON.stringify(taskName[1])});`);
+  else if (
+    title.includes("add task") ||
+    info.includes("add task") ||
+    title.includes("add personal task") ||
+    title.includes("add work task")
+  ) {
+    const taskName = info.match(/"([^"]+)"/) ||
+      title.match(/"([^"]+)"/) || ["", "Buy Milk"];
+    codeLines.push(
+      `await api.page.fill('input[placeholder="What needs to be done?"]', ${JSON.stringify(taskName[1])});`,
+    );
     codeLines.push(`await api.page.click('button:has-text("Add Task")');`);
   }
   // Create list flow
   else if (title.includes("create list") || info.includes("create list")) {
-    const listName = info.match(/"([^"]+)"/) || title.match(/"([^"]+)"/) || ["", "Shopping"];
-    codeLines.push(`await api.page.fill('input[placeholder="New List..."]', ${JSON.stringify(listName[1])});`);
+    const listName = info.match(/"([^"]+)"/) ||
+      title.match(/"([^"]+)"/) || ["", "Shopping"];
+    codeLines.push(
+      `await api.page.fill('input[placeholder="New List..."]', ${JSON.stringify(listName[1])});`,
+    );
     codeLines.push(`await api.page.click('button:has-text("Add List")');`);
   }
   // Create personal list
   else if (title.includes("personal list") || info.includes("personal list")) {
-    codeLines.push(`await api.page.fill('input[placeholder="New List..."]', "Personal");`);
+    codeLines.push(
+      `await api.page.fill('input[placeholder="New List..."]', "Personal");`,
+    );
     codeLines.push(`await api.page.click('button:has-text("Add List")');`);
   }
   // Create work list
   else if (title.includes("work list") || info.includes("work list")) {
-    codeLines.push(`await api.page.fill('input[placeholder="New List..."]', "Work");`);
+    codeLines.push(
+      `await api.page.fill('input[placeholder="New List..."]', "Work");`,
+    );
     codeLines.push(`await api.page.click('button:has-text("Add List")');`);
   }
   // Complete task flow
-  else if (title.includes("complete task") || info.includes("complete task") || title.includes("checkbox")) {
+  else if (
+    title.includes("complete task") ||
+    info.includes("complete task") ||
+    title.includes("checkbox")
+  ) {
     codeLines.push(`await api.page.click('input[type="checkbox"]');`);
   }
   // Fallback placeholder
@@ -137,8 +170,14 @@ function translateNodeToCode(nodeId: string, node: GraphNode): string {
       const assertInfo = (assert.info || "").toLowerCase();
       const assertTitle = (assert.title || "").toLowerCase();
 
-      if (assertInfo.includes("completed") || assertTitle.includes("completed") || assertInfo.includes("class")) {
-        codeLines.push(`const label = api.page.locator('span:has-text("Buy Milk")');`);
+      if (
+        assertInfo.includes("completed") ||
+        assertTitle.includes("completed") ||
+        assertInfo.includes("class")
+      ) {
+        codeLines.push(
+          `const label = api.page.locator('span:has-text("Buy Milk")');`,
+        );
         codeLines.push(`await expect(label).toHaveClass(/completed/);`);
       } else {
         codeLines.push(`// Assert: ${assert.title} - ${assert.info}`);
@@ -146,18 +185,18 @@ function translateNodeToCode(nodeId: string, node: GraphNode): string {
     }
   }
 
-  return codeLines.map(line => `    ${line}`).join("\n");
+  return codeLines.map((line) => `    ${line}`).join("\n");
 }
 
 // Function to compile nodes, handling nested sub-graphs
 function compileNodeDefinition(nodeId: string, node: GraphNode): string {
   const actionName = `action_${nodeId}`;
-  
+
   if (node.graph) {
     // Nested sub-graph translation
     let subGraphCode = "";
     const innerNodes = node.graph.nodes;
-    
+
     // Compile inner nodes first
     for (const [subId, subNode] of Object.entries(innerNodes)) {
       subGraphCode += compileNodeDefinition(subId, subNode) + "\n";
@@ -183,15 +222,18 @@ function compileNodeDefinition(nodeId: string, node: GraphNode): string {
 }
 
 // Main compiler orchestrator
-export async function compile(options: CompilerOptions): Promise<CompileResult> {
+export async function compile(
+  options: CompilerOptions,
+): Promise<CompileResult> {
   const content = fs.readFileSync(options.yamlPath, "utf-8");
   const graphDef = yaml.load(content) as TestGraph;
-  
+
   const resolvedPathsList = resolvePaths(graphDef);
-  const outputPath = options.outputPath || options.yamlPath.replace(".test.yml", ".test.ts");
+  const outputPath =
+    options.outputPath || options.yamlPath.replace(".test.yml", ".test.ts");
 
   let codeBody = "";
-  
+
   // 1. Process and compile all actions (including nested graphs)
   const nodeMap = graphDef.graph.nodes;
   for (const [id, node] of Object.entries(nodeMap)) {
@@ -201,14 +243,15 @@ export async function compile(options: CompilerOptions): Promise<CompileResult> 
   // 2. Resolve tests mapping to linear paths
   let testsArray = `export const tests = [\n`;
   resolvedPathsList.forEach((pathNodeIds, idx) => {
-    const pathName = `Path ${idx + 1}: ${pathNodeIds.map(nid => nodeMap[nid]?.title || nid).join(" -> ")}`;
-    const actionArray = pathNodeIds.map(nid => `action_${nid}`).join(", ");
+    const pathName = `Path ${idx + 1}: ${pathNodeIds.map((nid) => nodeMap[nid]?.title || nid).join(" -> ")}`;
+    const actionArray = pathNodeIds.map((nid) => `action_${nid}`).join(", ");
     testsArray += `  test(${JSON.stringify(pathName)}, [${actionArray}]),\n`;
   });
   testsArray += `];\n`;
 
   // Combine body
-  const bodyContent = `import { test, action, expect, TestAPI } from "@libs/executor";\n\n` +
+  const bodyContent =
+    `import { test, action, expect, TestAPI } from "@libs/executor";\n\n` +
     `export const metadata = {\n  name: ${JSON.stringify(graphDef.name)},\n  info: ${JSON.stringify(graphDef.graph.info || "")}\n};\n\n` +
     codeBody +
     testsArray;
@@ -217,7 +260,8 @@ export async function compile(options: CompilerOptions): Promise<CompileResult> 
   const hash = crypto.createHash("sha256").update(bodyContent).digest("hex");
 
   // Format final file contents with standard header
-  const fileContent = `// date: ${new Date().toISOString()}\n` +
+  const fileContent =
+    `// date: ${new Date().toISOString()}\n` +
     `// hash: ${hash}\n` +
     bodyContent;
 
@@ -227,6 +271,6 @@ export async function compile(options: CompilerOptions): Promise<CompileResult> 
     success: true,
     outputPath,
     generatedCode: fileContent,
-    pathsResolved: resolvedPathsList.length
+    pathsResolved: resolvedPathsList.length,
   };
 }

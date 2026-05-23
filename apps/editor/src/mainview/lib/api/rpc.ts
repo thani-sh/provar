@@ -23,7 +23,10 @@ export const electroview = new Electroview({ rpc });
 type Handlers = {
   workspaceSelected?: (path: string) => void;
   workspaceChanged?: () => void;
-  assistantChunk?: (params: { text: string; status: "pending" | "completed" | "error" }) => void;
+  assistantChunk?: (params: {
+    text: string;
+    status: "pending" | "completed" | "error";
+  }) => void;
 };
 
 const handlers: Handlers = {};

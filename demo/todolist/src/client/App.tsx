@@ -36,14 +36,14 @@ export function App() {
       method: "POST",
       body: JSON.stringify({ username }),
     });
-    const data = await res.json() as User;
+    const data = (await res.json()) as User;
     setUser(data);
   };
 
   useEffect(() => {
     if (user) {
       fetch(`/api/lists?userId=${user.id}`)
-        .then(res => res.json())
+        .then((res) => res.json())
         .then((data: TodoList[]) => {
           setLists(data);
           if (data.length > 0) setActiveListId(data[0]!.id);
@@ -54,7 +54,7 @@ export function App() {
   useEffect(() => {
     if (activeListId) {
       fetch(`/api/items?listId=${activeListId}`)
-        .then(res => res.json())
+        .then((res) => res.json())
         .then((data: TodoItem[]) => setItems(data));
     }
   }, [activeListId]);
@@ -65,7 +65,7 @@ export function App() {
       method: "POST",
       body: JSON.stringify({ userId: user.id, name: newListName }),
     });
-    const newList = await res.json() as TodoList;
+    const newList = (await res.json()) as TodoList;
     setLists([...lists, newList]);
     setNewListName("");
     setActiveListId(newList.id);
@@ -77,7 +77,7 @@ export function App() {
       method: "POST",
       body: JSON.stringify({ listId: activeListId, text: newItemText }),
     });
-    const newItem = await res.json() as TodoItem;
+    const newItem = (await res.json()) as TodoItem;
     setItems([...items, newItem]);
     setNewItemText("");
   };
@@ -87,25 +87,29 @@ export function App() {
       method: "PATCH",
       body: JSON.stringify({ completed: !item.completed }),
     });
-    const updated = await res.json() as TodoItem;
-    setItems(items.map(i => (i.id === item.id ? updated : i)));
+    const updated = (await res.json()) as TodoItem;
+    setItems(items.map((i) => (i.id === item.id ? updated : i)));
   };
 
   const deleteItem = async (id: string) => {
     await fetch(`/api/items/${id}`, { method: "DELETE" });
-    setItems(items.filter(i => i.id !== id));
+    setItems(items.filter((i) => i.id !== id));
   };
 
   if (!user) {
     return (
       <div className="login-screen">
         <Card title="Login to Todo Demo" className="login-card">
-          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            <Input 
-              placeholder="Username" 
-              value={username} 
-              onChange={e => setUsername((e.target as HTMLInputElement).value)}
-              onKeyDown={e => e.key === "Enter" && login()}
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "16px" }}
+          >
+            <Input
+              placeholder="Username"
+              value={username}
+              onChange={(e) =>
+                setUsername((e.target as HTMLInputElement).value)
+              }
+              onKeyDown={(e) => e.key === "Enter" && login()}
             />
             <Button onClick={login}>Login / Register</Button>
           </div>
@@ -117,12 +121,14 @@ export function App() {
   const sidebarContent = (
     <>
       <div className="sidebar-header">
-        <h3 style={{ fontSize: "14px", color: "var(--on-surface-variant)" }}>My Lists</h3>
+        <h3 style={{ fontSize: "14px", color: "var(--on-surface-variant)" }}>
+          My Lists
+        </h3>
       </div>
       <div className="list-nav">
-        {lists.map(list => (
-          <div 
-            key={list.id} 
+        {lists.map((list) => (
+          <div
+            key={list.id}
             className={`list-item ${activeListId === list.id ? "active" : ""}`}
             onClick={() => setActiveListId(list.id)}
           >
@@ -131,19 +137,25 @@ export function App() {
         ))}
       </div>
       <div className="sidebar-footer">
-        <Input 
-          placeholder="New List..." 
-          value={newListName} 
-          onChange={e => setNewListName((e.target as HTMLInputElement).value)}
-          onKeyDown={e => e.key === "Enter" && addList()}
+        <Input
+          placeholder="New List..."
+          value={newListName}
+          onChange={(e) => setNewListName((e.target as HTMLInputElement).value)}
+          onKeyDown={(e) => e.key === "Enter" && addList()}
           className="sidebar-input"
         />
-        <Button variant="ghost" onClick={addList} style={{ width: "100%", marginTop: "8px" }}>Add List</Button>
+        <Button
+          variant="ghost"
+          onClick={addList}
+          style={{ width: "100%", marginTop: "8px" }}
+        >
+          Add List
+        </Button>
       </div>
     </>
   );
 
-  const activeList = lists.find(l => l.id === activeListId);
+  const activeList = lists.find((l) => l.id === activeListId);
 
   return (
     <Layout sidebar={sidebarContent}>
@@ -159,29 +171,37 @@ export function App() {
 
       <div className="task-section">
         <div className="add-task">
-          <Input 
-            placeholder="What needs to be done?" 
-            value={newItemText} 
-            onChange={e => setNewItemText((e.target as HTMLInputElement).value)}
-            onKeyDown={e => e.key === "Enter" && addItem()}
+          <Input
+            placeholder="What needs to be done?"
+            value={newItemText}
+            onChange={(e) =>
+              setNewItemText((e.target as HTMLInputElement).value)
+            }
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
           />
           <Button onClick={addItem}>Add Task</Button>
         </div>
 
         <div className="task-list">
-          {items.map(item => (
+          {items.map((item) => (
             <Card key={item.id} className="task-card">
               <div className="task-row">
-                <input 
-                  type="checkbox" 
-                  checked={item.completed} 
+                <input
+                  type="checkbox"
+                  checked={item.completed}
                   onChange={() => toggleItem(item)}
                   className="task-checkbox"
                 />
-                <span className={`task-text ${item.completed ? "completed" : ""}`}>
+                <span
+                  className={`task-text ${item.completed ? "completed" : ""}`}
+                >
                   {item.text}
                 </span>
-                <Button variant="ghost" onClick={() => deleteItem(item.id)} className="delete-btn">
+                <Button
+                  variant="ghost"
+                  onClick={() => deleteItem(item.id)}
+                  className="delete-btn"
+                >
                   &times;
                 </Button>
               </div>

@@ -11,6 +11,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "prettier": "^3.8.3",
         "typescript": "^6",
       },
       "peerDependencies": {
@@ -58,6 +59,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/js-yaml": "^4.0.9",
+        "prettier": "^3.8.3",
         "typescript": "^6",
       },
     },
@@ -72,6 +74,7 @@
         "@types/bun": "latest",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
+        "prettier": "^3.8.3",
       },
     },
     "libs/agents": {
@@ -96,6 +99,7 @@
       "devDependencies": {
         "@types/bun": "latest",
         "@types/js-yaml": "^4.0.9",
+        "prettier": "^3.8.3",
         "typescript": "^6",
       },
     },
@@ -108,6 +112,7 @@
       },
       "devDependencies": {
         "@types/bun": "latest",
+        "prettier": "^3.8.3",
         "typescript": "^6",
       },
     },

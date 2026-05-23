@@ -38,20 +38,30 @@ export function test(name: string, actions: Action[]): TestDefinition {
 export { expect };
 
 export interface TestRunState {
-  status: 'idle' | 'running' | 'success' | 'failed';
+  status: "idle" | "running" | "success" | "failed";
   currentTestName?: string;
   currentActionId?: string;
   errors: Array<{ testName: string; actionId?: string; error: Error }>;
 }
 
 export type TestRunEvent =
-  | { type: 'run-started' }
-  | { type: 'test-started'; testName: string }
-  | { type: 'action-started'; testName: string; actionId: string; actionTitle: string }
-  | { type: 'action-finished'; testName: string; actionId: string }
-  | { type: 'action-failed'; testName: string; actionId: string; error: any }
-  | { type: 'test-finished'; testName: string; status: 'success' | 'failed'; error?: any }
-  | { type: 'run-finished'; status: 'success' | 'failed' };
+  | { type: "run-started" }
+  | { type: "test-started"; testName: string }
+  | {
+      type: "action-started";
+      testName: string;
+      actionId: string;
+      actionTitle: string;
+    }
+  | { type: "action-finished"; testName: string; actionId: string }
+  | { type: "action-failed"; testName: string; actionId: string; error: any }
+  | {
+      type: "test-finished";
+      testName: string;
+      status: "success" | "failed";
+      error?: any;
+    }
+  | { type: "run-finished"; status: "success" | "failed" };
 
 export interface RunTestOptions {
   testFilePath: string;
@@ -62,9 +72,11 @@ export interface RunTestOptions {
 }
 
 export class TestRun {
-  private state: TestRunState = { status: 'idle', errors: [] };
+  private state: TestRunState = { status: "idle", errors: [] };
   private eventQueue: TestRunEvent[] = [];
-  private resolveNextEvent: ((value: IteratorResult<TestRunEvent>) => void) | null = null;
+  private resolveNextEvent:
+    | ((value: IteratorResult<TestRunEvent>) => void)
+    | null = null;
   private isFinished = false;
   private browser: Browser | null = null;
   private activePage: Page | null = null;
@@ -84,9 +96,11 @@ export class TestRun {
       if (this.eventQueue.length > 0) {
         yield this.eventQueue.shift()!;
       } else {
-        const nextPromise = new Promise<IteratorResult<TestRunEvent>>((resolve) => {
-          this.resolveNextEvent = resolve;
-        });
+        const nextPromise = new Promise<IteratorResult<TestRunEvent>>(
+          (resolve) => {
+            this.resolveNextEvent = resolve;
+          },
+        );
         const result = await nextPromise;
         if (result.done) break;
         yield result.value;
@@ -107,29 +121,29 @@ export class TestRun {
 
   private updateState(event: TestRunEvent) {
     switch (event.type) {
-      case 'run-started':
-        this.state.status = 'running';
+      case "run-started":
+        this.state.status = "running";
         break;
-      case 'test-started':
+      case "test-started":
         this.state.currentTestName = event.testName;
         break;
-      case 'action-started':
+      case "action-started":
         this.state.currentActionId = event.actionId;
         break;
-      case 'action-finished':
+      case "action-finished":
         this.state.currentActionId = undefined;
         break;
-      case 'action-failed':
+      case "action-failed":
         this.state.errors.push({
           testName: event.testName,
           actionId: event.actionId,
           error: event.error,
         });
         break;
-      case 'test-finished':
+      case "test-finished":
         this.state.currentTestName = undefined;
         break;
-      case 'run-finished':
+      case "run-finished":
         this.state.status = event.status;
         this.isFinished = true;
         if (this.resolveNextEvent) {
@@ -140,7 +154,7 @@ export class TestRun {
   }
 
   async start(): Promise<void> {
-    this.pushEvent({ type: 'run-started' });
+    this.pushEvent({ type: "run-started" });
     let runSuccess = true;
 
     try {
@@ -151,17 +165,18 @@ export class TestRun {
     } catch (err: any) {
       runSuccess = false;
       this.pushEvent({
-        type: 'action-failed',
-        testName: this.state.currentTestName || 'unknown',
-        actionId: this.state.currentActionId || 'unknown',
-        error: err
+        type: "action-failed",
+        testName: this.state.currentTestName || "unknown",
+        actionId: this.state.currentActionId || "unknown",
+        error: err,
       });
       throw err;
     } finally {
       await this.cleanup();
       this.pushEvent({
-        type: 'run-finished',
-        status: runSuccess && this.state.errors.length === 0 ? 'success' : 'failed'
+        type: "run-finished",
+        status:
+          runSuccess && this.state.errors.length === 0 ? "success" : "failed",
       });
     }
   }
@@ -169,7 +184,7 @@ export class TestRun {
   private async loadTestModule(): Promise<{ tests: TestDefinition[] }> {
     const module = await import(this.options.testFilePath);
     return {
-      tests: module.tests || []
+      tests: module.tests || [],
     };
   }
 
@@ -187,7 +202,7 @@ export class TestRun {
   }
 
   private async executeTestPath(t: TestDefinition): Promise<void> {
-    this.pushEvent({ type: 'test-started', testName: t.name });
+    this.pushEvent({ type: "test-started", testName: t.name });
 
     if (!this.browser) throw new Error("Browser not initialized");
     const context = await this.browser.newContext();
@@ -197,7 +212,7 @@ export class TestRun {
     const api: TestAPI = {
       page,
       var: this.options.variables || {},
-      state: {}
+      state: {},
     };
 
     let testSuccess = true;
@@ -218,34 +233,38 @@ export class TestRun {
     await context.close();
 
     this.pushEvent({
-      type: 'test-finished',
+      type: "test-finished",
       testName: t.name,
-      status: testSuccess ? 'success' : 'failed'
+      status: testSuccess ? "success" : "failed",
     });
   }
 
-  private async executeAction(testName: string, act: Action, api: TestAPI): Promise<boolean> {
+  private async executeAction(
+    testName: string,
+    act: Action,
+    api: TestAPI,
+  ): Promise<boolean> {
     this.pushEvent({
-      type: 'action-started',
+      type: "action-started",
       testName,
       actionId: act.id,
-      actionTitle: act.title
+      actionTitle: act.title,
     });
 
     try {
       await act(api);
       this.pushEvent({
-        type: 'action-finished',
+        type: "action-finished",
         testName,
-        actionId: act.id
+        actionId: act.id,
       });
       return true;
     } catch (err: any) {
       this.pushEvent({
-        type: 'action-failed',
+        type: "action-failed",
         testName,
         actionId: act.id,
-        error: err
+        error: err,
       });
       return false;
     }

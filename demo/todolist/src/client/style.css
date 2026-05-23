@@ -38,21 +38,24 @@
 
 @font-face {
   font-family: "Geist";
-  src: url("https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Regular.woff2") format("woff2");
+  src: url("https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-Regular.woff2")
+    format("woff2");
   font-weight: 400;
   font-style: normal;
 }
 
 @font-face {
   font-family: "Geist";
-  src: url("https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-SemiBold.woff2") format("woff2");
+  src: url("https://cdn.jsdelivr.net/npm/geist@1.0.0/dist/fonts/geist-sans/Geist-SemiBold.woff2")
+    format("woff2");
   font-weight: 600;
   font-style: normal;
 }
 
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.0/files/jetbrains-mono-latin-400-normal.woff2") format("woff2");
+  src: url("https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5.0.0/files/jetbrains-mono-latin-400-normal.woff2")
+    format("woff2");
   font-weight: 400;
   font-style: normal;
 }
@@ -78,17 +81,27 @@ body {
   background-size: 20px 20px;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-weight: 600;
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
 
-h1 { font-size: 32px; }
-h2 { font-size: 24px; }
-h3 { font-size: 18px; }
+h1 {
+  font-size: 32px;
+}
+h2 {
+  font-size: 24px;
+}
+h3 {
+  font-size: 18px;
+}
 
-code, pre {
+code,
+pre {
   font-family: var(--font-mono);
   font-size: 13px;
 }
@@ -206,10 +219,22 @@ code, pre {
   text-transform: uppercase;
 }
 
-.status-success { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
-.status-error { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
-.status-warning { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-.status-info { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.status-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+.status-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+.status-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+.status-info {
+  background-color: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
 
 /* Layout Components */
 .layout {
@@ -249,7 +274,8 @@ code, pre {
   width: 360px;
 }
 
-.sidebar-header, .sidebar-footer {
+.sidebar-header,
+.sidebar-footer {
   padding: var(--space-md);
 }
 

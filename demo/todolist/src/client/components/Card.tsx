@@ -10,9 +10,7 @@ export function Card({ children, className = "", title }: CardProps) {
   return (
     <div className={`card ${className}`}>
       {title && <div className="card-header">{title}</div>}
-      <div className="card-content">
-        {children}
-      </div>
+      <div className="card-content">{children}</div>
     </div>
   );
 }

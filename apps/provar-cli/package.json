@@ -5,6 +5,10 @@
   "bin": {
     "provar": "./src/index.ts"
   },
+  "scripts": {
+    "lint": "prettier --check src",
+    "lint:fix": "prettier --write src"
+  },
   "dependencies": {
     "@libs/compiler": "workspace:*",
     "@libs/executor": "workspace:*",
@@ -14,6 +18,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
+    "prettier": "^3.8.3",
     "typescript": "^6"
   }
 }

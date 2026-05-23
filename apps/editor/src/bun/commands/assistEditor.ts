@@ -105,7 +105,9 @@ export const assistEditor = async ({
     }
 
     const chunks: string[] = [];
-    for await (const chunk of activeSession.prompt([{ type: "text", text: finalPrompt }])) {
+    for await (const chunk of activeSession.prompt([
+      { type: "text", text: finalPrompt },
+    ])) {
       if (chunk.type === "text" && chunk.text) {
         chunks.push(chunk.text);
         onChunk?.(chunk.text, "pending");

@@ -30,7 +30,7 @@
         assistantMessages = assistantMessages.map((msg) =>
           msg.id === activeAssistantMsgId
             ? { ...msg, content: msg.content + text, status }
-            : msg
+            : msg,
         );
       },
     });

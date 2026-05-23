@@ -30,15 +30,30 @@ class Store {
     this.lists.push(demoList);
 
     this.items.push(
-      { id: "item1", listId: "list1", text: "Integrate Provar Design System", completed: true },
-      { id: "item2", listId: "list1", text: "Implement Bun Full-stack server", completed: true },
-      { id: "item3", listId: "list1", text: "Complete Frontend development", completed: false }
+      {
+        id: "item1",
+        listId: "list1",
+        text: "Integrate Provar Design System",
+        completed: true,
+      },
+      {
+        id: "item2",
+        listId: "list1",
+        text: "Implement Bun Full-stack server",
+        completed: true,
+      },
+      {
+        id: "item3",
+        listId: "list1",
+        text: "Complete Frontend development",
+        completed: false,
+      },
     );
   }
 
   // Auth
   getUser(username: string) {
-    return this.users.find(u => u.username === username);
+    return this.users.find((u) => u.username === username);
   }
 
   addUser(username: string) {
@@ -49,33 +64,42 @@ class Store {
 
   // Lists
   getLists(userId: string) {
-    return this.lists.filter(l => l.userId === userId);
+    return this.lists.filter((l) => l.userId === userId);
   }
 
   addList(userId: string, name: string) {
-    const newList = { id: Math.random().toString(36).substr(2, 9), userId, name };
+    const newList = {
+      id: Math.random().toString(36).substr(2, 9),
+      userId,
+      name,
+    };
     this.lists.push(newList);
     return newList;
   }
 
   deleteList(listId: string) {
-    this.lists = this.lists.filter(l => l.id !== listId);
-    this.items = this.items.filter(i => i.listId !== listId);
+    this.lists = this.lists.filter((l) => l.id !== listId);
+    this.items = this.items.filter((i) => i.listId !== listId);
   }
 
   // Items
   getItems(listId: string) {
-    return this.items.filter(i => i.listId === listId);
+    return this.items.filter((i) => i.listId === listId);
   }
 
   addItem(listId: string, text: string) {
-    const newItem = { id: Math.random().toString(36).substr(2, 9), listId, text, completed: false };
+    const newItem = {
+      id: Math.random().toString(36).substr(2, 9),
+      listId,
+      text,
+      completed: false,
+    };
     this.items.push(newItem);
     return newItem;
   }
 
   updateItem(itemId: string, updates: Partial<TodoItem>) {
-    const item = this.items.find(i => i.id === itemId);
+    const item = this.items.find((i) => i.id === itemId);
     if (item) {
       Object.assign(item, updates);
     }
@@ -83,7 +107,7 @@ class Store {
   }
 
   deleteItem(itemId: string) {
-    this.items = this.items.filter(i => i.id !== itemId);
+    this.items = this.items.filter((i) => i.id !== itemId);
   }
 }
 

@@ -15,11 +15,15 @@ export const getAbsPath = (path: string) => {
   if (!WORKSPACE_DIR) {
     throw new Error("Workspace directory is not set");
   }
-  const absPath = isAbsolute(path) ? resolve(path) : resolve(join(WORKSPACE_DIR, path));
+  const absPath = isAbsolute(path)
+    ? resolve(path)
+    : resolve(join(WORKSPACE_DIR, path));
   const relPath = relative(resolve(WORKSPACE_DIR), absPath);
 
   if (relPath.startsWith("..") || isAbsolute(relPath)) {
-    throw new Error(`Path security violation: ${path} is outside of workspace directory`);
+    throw new Error(
+      `Path security violation: ${path} is outside of workspace directory`,
+    );
   }
   return absPath;
 };

@@ -9,7 +9,9 @@
   let { show, onConfirm }: Props = $props();
 
   let providerType = $state<"local" | "remote">("local");
-  let providerName = $state<"gemini-cli" | "copilot-cli" | "openai">("gemini-cli");
+  let providerName = $state<"gemini-cli" | "copilot-cli" | "openai">(
+    "gemini-cli",
+  );
 
   function handleConfirm() {
     onConfirm({
