@@ -1,5 +1,5 @@
 {
-  "name": "@apps/editor",
+  "name": "@apps/provar-app",
   "type": "module",
   "version": "1.0.0",
   "description": "Electrobun app for Provar test editing",
