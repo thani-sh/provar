@@ -6,12 +6,14 @@
   "description": "AI agentic tool to create end-to-end tests",
   "workspaces": ["apps/*", "libs/*", "demo/*"],
   "scripts": {
+    "provar": "bun run ./apps/provar-cli/src/index.ts",
     "dev": "bun --filter '*' dev",
     "lint": "bun --filter '*' lint",
     "lint:fix": "bun --filter '*' lint:fix"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9"
   },
   "peerDependencies": {
     "typescript": "^6"
@@ -19,5 +21,12 @@
   "repository": {
     "type": "git",
     "url": "git@github.com:aivara-se/provar.se.git"
+  },
+  "dependencies": {
+    "@libs/executor": "workspace:*",
+    "@libs/compiler": "workspace:*",
+    "@apps/provar-cli": "workspace:*",
+    "js-yaml": "^4.1.1",
+    "picocolors": "^1.1.1"
   }
 }
