@@ -15,11 +15,6 @@
     "lint": "bun --filter '*' lint",
     "lint:fix": "bun --filter '*' lint:fix"
   },
-  "dependencies": {
-    "@apps/provar-cli": "workspace:*",
-    "@libs/compiler": "workspace:*",
-    "@libs/executor": "workspace:*"
-  },
   "devDependencies": {
     "@types/bun": "latest",
     "prettier": "^3.8.3",

@@ -1,0 +1,21 @@
+{
+  "name": "@libs/domain",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "prettier --check src",
+    "lint:fix": "prettier --write src"
+  },
+  "dependencies": {
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "prettier": "^3.8.3",
+    "typescript": "^6"
+  }
+}

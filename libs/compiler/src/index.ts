@@ -1,13 +1,14 @@
 import * as fs from "fs";
 import * as path from "path";
 import yaml from "js-yaml";
-import { runTest } from "@libs/executor";
+import { runTest, TestAPI, GroundingContext } from "@libs/executor";
 import crypto from "crypto";
 
 export interface GraphNode {
   title: string;
   info: string;
   next?: string | string[];
+  visualCompare?: boolean;
   asserts?: Record<string, { title: string; info: string }>;
   graph?: {
     info: string;
@@ -28,6 +29,11 @@ export interface TestGraph {
 export interface CompilerOptions {
   yamlPath: string;
   outputPath?: string;
+  generator?: (
+    nodeId: string,
+    node: GraphNode,
+    context: GroundingContext | null,
+  ) => Promise<string>;
 }
 
 export interface CompileResult {
@@ -37,9 +43,42 @@ export interface CompileResult {
   pathsResolved: number;
 }
 
-export interface GroundingContext {
-  domHtml: string;
-  screenshotBase64?: string;
+// Find variables from .provar/config.yml by locating the .provar directory in the path
+function findAndLoadVariables(testFilePath: string): Record<string, any> {
+  const provarIndex = testFilePath.lastIndexOf(".provar");
+  if (provarIndex === -1) {
+    return {};
+  }
+
+  const configPath = path.join(
+    testFilePath.slice(0, provarIndex + 7),
+    "config.yml",
+  );
+  if (fs.existsSync(configPath)) {
+    try {
+      const content = fs.readFileSync(configPath, "utf-8");
+      const doc = yaml.load(content) as any;
+      const rawVariables = doc?.variables || {};
+
+      const resolved: Record<string, any> = {};
+      for (const [key, val] of Object.entries(rawVariables)) {
+        if (typeof val === "string") {
+          const envMatch = val.match(/^\$\{ENV\.(.+)\}$/);
+          if (envMatch && envMatch[1]) {
+            resolved[key] = process.env[envMatch[1]] || "";
+          } else {
+            resolved[key] = val;
+          }
+        } else {
+          resolved[key] = val;
+        }
+      }
+      return resolved;
+    } catch (err) {
+      // Silent ignore
+    }
+  }
+  return {};
 }
 
 // Function to resolve all unique linear paths from start to terminal nodes in a directed graph
@@ -87,7 +126,7 @@ export function resolvePaths(graphDef: TestGraph): string[][] {
   return paths;
 }
 
-// Rules-based selector translator for visual graph grounding
+// Rules-based selector translator for visual graph grounding (used as mock generation fallback)
 function translateNodeToCode(nodeId: string, node: GraphNode): string {
   const info = (node.info || "").toLowerCase();
   const title = (node.title || "").toLowerCase();
@@ -188,37 +227,118 @@ function translateNodeToCode(nodeId: string, node: GraphNode): string {
   return codeLines.map((line) => `    ${line}`).join("\n");
 }
 
-// Function to compile nodes, handling nested sub-graphs
-function compileNodeDefinition(nodeId: string, node: GraphNode): string {
-  const actionName = `action_${nodeId}`;
-
-  if (node.graph) {
-    // Nested sub-graph translation
-    let subGraphCode = "";
-    const innerNodes = node.graph.nodes;
-
-    // Compile inner nodes first
-    for (const [subId, subNode] of Object.entries(innerNodes)) {
-      subGraphCode += compileNodeDefinition(subId, subNode) + "\n";
-    }
-
-    // Resolve inner graph execution pathway
-    const innerPaths = resolvePaths({ name: nodeId, graph: node.graph });
-    const primaryPath = innerPaths[0] || [];
-
-    let executeBlock = `async (api: TestAPI) => {\n`;
-    executeBlock += `    // Sub-graph context: ${node.title}\n`;
-    for (const subId of primaryPath) {
-      executeBlock += `    await action_${subId}(api);\n`;
-    }
-    executeBlock += `  }`;
-
-    return `${subGraphCode}const ${actionName} = action({\n  id: ${JSON.stringify(nodeId)},\n  title: ${JSON.stringify(node.title)},\n  execute: ${executeBlock}\n});\n`;
+// Pluggable generator fallback with rich grounding logging
+export async function defaultGenerator(
+  nodeId: string,
+  node: GraphNode,
+  context: GroundingContext | null,
+): Promise<string> {
+  if (context) {
+    console.log(`[Compiler Grounding] Context available for node: ${nodeId}`);
+    console.log(
+      `  - DOM length: ${context.pageContent?.length || 0} characters`,
+    );
+    console.log(
+      `  - Screenshot state: ${context.screenshot ? "Base64 png captured" : "Not captured"}`,
+    );
+  } else {
+    console.log(
+      `[Compiler Grounding] Initial context for start node: ${nodeId}`,
+    );
   }
 
-  // Linear node code translation
-  const executeCode = translateNodeToCode(nodeId, node);
-  return `const ${actionName} = action({\n  id: ${JSON.stringify(nodeId)},\n  title: ${JSON.stringify(node.title)},\n  execute: async (api: TestAPI) => {\n${executeCode}\n  }\n});\n`;
+  return translateNodeToCode(nodeId, node);
+}
+
+// Single-action execution-grounded generation logic
+export async function groundAndGenerateAction(
+  targetFilePath: string,
+  nodeId: string,
+  node: GraphNode,
+  options?: {
+    generator?: (
+      nodeId: string,
+      node: GraphNode,
+      context: GroundingContext | null,
+    ) => Promise<string>;
+    prefixActions?: string[];
+    compiledActionsCache?: Map<
+      string,
+      { code: string; visualCompare?: boolean; title: string }
+    >;
+  },
+): Promise<string> {
+  const generator = options?.generator || defaultGenerator;
+  const prefixNodeIds = options?.prefixActions || [];
+  const cache = options?.compiledActionsCache || new Map();
+
+  let context: GroundingContext | null = null;
+
+  if (prefixNodeIds.length > 0) {
+    let prefixCode = "";
+    for (const pid of prefixNodeIds) {
+      const cached = cache.get(pid);
+      if (cached) {
+        prefixCode += cached.code + "\n\n";
+      }
+    }
+
+    const lastPrefixId = prefixNodeIds[prefixNodeIds.length - 1];
+
+    // Stub implementation for the current action to compile properly in dynamic import
+    const currentActionStub = `const action_${nodeId} = action({\n  id: ${JSON.stringify(nodeId)},\n  title: ${JSON.stringify(node.title)},\n  execute: async (api) => {}\n});\n`;
+
+    const pathActionList = [
+      ...prefixNodeIds.map((pid) => `action_${pid}`),
+      `action_${nodeId}`,
+    ].join(", ");
+
+    const tempSpecString =
+      `import { test, action, expect, TestAPI } from "@libs/executor";\n\n` +
+      `export const metadata = { name: "grounding", info: "" };\n\n` +
+      prefixCode +
+      currentActionStub +
+      `export const tests = [\n  test([${pathActionList}]),\n];\n`;
+
+    const tempSpecPath = path.join(
+      path.dirname(targetFilePath),
+      `__grounding_${nodeId}.test.ts`,
+    );
+
+    try {
+      fs.writeFileSync(tempSpecPath, tempSpecString, "utf-8");
+
+      const variables = findAndLoadVariables(targetFilePath);
+
+      const runner = runTest({
+        testFilePath: tempSpecPath,
+        upToActionId: lastPrefixId,
+        headless: true,
+        variables,
+      });
+
+      for await (const event of runner.events()) {
+        if (event.type === "action-failed") {
+          console.error(
+            `  ⚠️ [Grounding Execution Warning] Action ${event.actionId} failed: ${event.error?.message || event.error}`,
+          );
+        }
+      }
+
+      context = runner.getGroundingContext();
+    } finally {
+      try {
+        if (fs.existsSync(tempSpecPath)) {
+          fs.unlinkSync(tempSpecPath);
+        }
+      } catch (err) {
+        // Ignore cleanup errors
+      }
+    }
+  }
+
+  const generatedBody = await generator(nodeId, node, context);
+  return generatedBody;
 }
 
 // Main compiler orchestrator
@@ -232,15 +352,111 @@ export async function compile(
   const outputPath =
     options.outputPath || options.yamlPath.replace(".test.yml", ".test.ts");
 
-  let codeBody = "";
+  const generator = options.generator || defaultGenerator;
+  const generatedActions = new Map<
+    string,
+    { code: string; visualCompare?: boolean; title: string }
+  >();
 
-  // 1. Process and compile all actions (including nested graphs)
-  const nodeMap = graphDef.graph.nodes;
-  for (const [id, node] of Object.entries(nodeMap)) {
-    codeBody += compileNodeDefinition(id, node) + "\n";
+  // Sequential recursive node compilation in correct path prefix context
+  async function compileNodeRecursively(
+    nodeId: string,
+    node: GraphNode,
+    prefixActions: string[],
+  ) {
+    if (generatedActions.has(nodeId)) {
+      return;
+    }
+
+    if (node.graph) {
+      const innerNodes = node.graph.nodes;
+      const innerPaths = resolvePaths({ name: nodeId, graph: node.graph });
+      const primaryPath = innerPaths[0] || [];
+
+      let subPrefix = [...prefixActions];
+      for (const subId of primaryPath) {
+        const subNode = innerNodes[subId];
+        if (subNode) {
+          await compileNodeRecursively(subId, subNode, subPrefix);
+          subPrefix.push(subId);
+        }
+      }
+
+      let executeBlock = `async (api: TestAPI) => {\n`;
+      executeBlock += `    // Sub-graph context: ${node.title}\n`;
+      for (const subId of primaryPath) {
+        executeBlock += `    await action_${subId}(api);\n`;
+      }
+      executeBlock += `  }`;
+
+      const visualCompareLine =
+        node.visualCompare !== undefined
+          ? `\n  visualCompare: ${node.visualCompare},`
+          : "";
+
+      const actionCode =
+        `const action_${nodeId} = action({\n` +
+        `  id: ${JSON.stringify(nodeId)},\n` +
+        `  title: ${JSON.stringify(node.title)},${visualCompareLine}\n` +
+        `  execute: ${executeBlock}\n` +
+        `});`;
+
+      generatedActions.set(nodeId, {
+        code: actionCode,
+        visualCompare: node.visualCompare,
+        title: node.title,
+      });
+    } else {
+      const actionBody = await groundAndGenerateAction(
+        options.yamlPath,
+        nodeId,
+        node,
+        {
+          generator,
+          prefixActions,
+          compiledActionsCache: generatedActions,
+        },
+      );
+
+      const visualCompareLine =
+        node.visualCompare !== undefined
+          ? `\n  visualCompare: ${node.visualCompare},`
+          : "";
+
+      const actionCode =
+        `const action_${nodeId} = action({\n` +
+        `  id: ${JSON.stringify(nodeId)},\n` +
+        `  title: ${JSON.stringify(node.title)},${visualCompareLine}\n` +
+        `  execute: async (api: TestAPI) => {\n` +
+        `${actionBody}\n` +
+        `  }\n` +
+        `});`;
+
+      generatedActions.set(nodeId, {
+        code: actionCode,
+        visualCompare: node.visualCompare,
+        title: node.title,
+      });
+    }
   }
 
-  // 2. Resolve tests mapping to linear paths
+  // Iterate over paths and recursively compile action nodes chronologically
+  for (const pathNodeIds of resolvedPathsList) {
+    const prefix: string[] = [];
+    for (const nid of pathNodeIds) {
+      const node = graphDef.graph.nodes[nid];
+      if (node) {
+        await compileNodeRecursively(nid, node, prefix);
+        prefix.push(nid);
+      }
+    }
+  }
+
+  let codeBody = "";
+  for (const [id, cached] of generatedActions.entries()) {
+    codeBody += cached.code + "\n\n";
+  }
+
   let testsArray = `export const tests = [\n`;
   resolvedPathsList.forEach((pathNodeIds) => {
     const actionArray = pathNodeIds.map((nid) => `action_${nid}`).join(", ");
@@ -248,17 +464,14 @@ export async function compile(
   });
   testsArray += `];\n`;
 
-  // Combine body
   const bodyContent =
     `import { test, action, expect, TestAPI } from "@libs/executor";\n\n` +
     `export const metadata = {\n  name: ${JSON.stringify(graphDef.name)},\n  info: ${JSON.stringify(graphDef.graph.info || "")}\n};\n\n` +
     codeBody +
     testsArray;
 
-  // 3. Compute SHA-256 hash using standard crypto module
   const hash = crypto.createHash("sha256").update(bodyContent).digest("hex");
 
-  // Format final file contents with standard header
   const fileContent =
     `// date: ${new Date().toISOString()}\n` +
     `// hash: ${hash}\n` +

@@ -1,0 +1,24 @@
+{
+  "name": "@libs/parser",
+  "type": "module",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "prettier --check src",
+    "lint:fix": "prettier --write src"
+  },
+  "dependencies": {
+    "@libs/domain": "workspace:*",
+    "js-yaml": "^4.1.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
+    "prettier": "^3.8.3",
+    "typescript": "^6"
+  }
+}
