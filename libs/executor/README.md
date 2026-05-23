@@ -46,7 +46,7 @@ const assertLoaded = action({
 });
 
 export const tests = [
-  test("Standard Landing Page verification", [openPage, assertLoaded])
+  test([openPage, assertLoaded])
 ];
 ```
 
