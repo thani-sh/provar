@@ -1,5 +1,5 @@
-// date: 2026-05-23T17:56:06.713Z
-// hash: 88f116ef7e4bf281721650c2c6a21cda315eb5bed601a6852a7a68d6afc1b05d
+// date: 2026-05-23T18:30:38.022Z
+// hash: c8234a6ccf2f714eb3ce36247ac9e08c87e84c1f4f5fe57258e8a28654f1bf98
 import { test, action, expect, TestAPI } from "@libs/executor";
 
 export const metadata = {
@@ -19,8 +19,8 @@ const action_action_logi1 = action({
   id: "action_logi1",
   title: "login",
   execute: async (api: TestAPI) => {
-    await api.page.fill('input[placeholder="Username"]', "testuser");
-    await api.page.click('button:has-text("Login / Register")');
+    await api.page.getByPlaceholder('Username').fill('testuser');
+    await api.page.getByRole('button', { name: 'Login / Register' }).click();
   }
 });
 
@@ -28,8 +28,8 @@ const action_action_clis1 = action({
   id: "action_clis1",
   title: "create list",
   execute: async (api: TestAPI) => {
-    await api.page.fill('input[placeholder="New List..."]', "shopping");
-    await api.page.click('button:has-text("Add List")');
+    await api.page.getByPlaceholder('New List...').fill('Shopping');
+    await api.page.getByRole('button', { name: 'Add List' }).click();
   }
 });
 
@@ -37,8 +37,8 @@ const action_action_atask = action({
   id: "action_atask",
   title: "add task",
   execute: async (api: TestAPI) => {
-    await api.page.fill('input[placeholder="What needs to be done?"]', "buy milk");
-    await api.page.click('button:has-text("Add Task")');
+    await api.page.getByPlaceholder('What needs to be done?').fill('Buy Milk');
+    await api.page.getByRole('button', { name: 'Add Task' }).click();
   }
 });
 
@@ -46,9 +46,9 @@ const action_action_compt = action({
   id: "action_compt",
   title: "complete task",
   execute: async (api: TestAPI) => {
-    await api.page.click('input[type="checkbox"]');
-    const label = api.page.locator('span:has-text("Buy Milk")');
-    await expect(label).toHaveClass(/completed/);
+    const task = api.page.locator('.task-row', { hasText: 'Buy Milk' });
+    await task.getByRole('checkbox').click();
+    await expect(task.locator('.task-text')).toHaveClass(/completed/);
   }
 });
 

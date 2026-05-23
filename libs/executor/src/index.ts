@@ -231,6 +231,21 @@ export class TestRun {
       const actionSucceeded = await this.executeAction(t.name, act, api);
       if (!actionSucceeded) {
         testSuccess = false;
+        if (this.options.upToActionId && act.id === this.options.upToActionId) {
+          try {
+            const pageContent = await page.content();
+            let screenshot: string | undefined;
+            try {
+              const screenshotBuf = await page.screenshot({ type: "png" });
+              screenshot = screenshotBuf.toString("base64");
+            } catch (e) {
+              // Ignore
+            }
+            this.groundingContext = { pageContent, screenshot };
+          } catch (err) {
+            // Ignore
+          }
+        }
         break;
       }
 
