@@ -20,8 +20,9 @@ _.log
 .cache
 *.tsbuildinfo
 
-# IntelliJ based IDEs
+# IDEs and tools
 .idea
+.antigravitycli
 
 # Finder (MacOS) folder config
 .DS_Store
