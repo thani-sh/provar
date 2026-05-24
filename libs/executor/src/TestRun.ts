@@ -125,6 +125,7 @@ export class TestRun {
   }
 
   private async loadTestModule(): Promise<{ tests: TestDefinition[] }> {
+    // FIXME: We will fix this later.
     const module = await import(this.options.testFilePath);
     return {
       tests: module.tests || [],
