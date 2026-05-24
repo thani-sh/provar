@@ -7,6 +7,11 @@ description: Describes how to write ADRs, PDRs, READMEs, etc.
 
 This skill provides guidelines and templates for maintaining consistent and high-quality documentation across the Provar codebase. Use the templates below to structure new documentation.
 
+## General Guidelines
+
+- **Never include "Built with X, Y, Z" details:** Technology stack lists (e.g., "Built with Svelte, Electrobun, Vite") are useless information for users. Keep descriptions focused entirely on the project's purpose, key features, and primary goals.
+
+
 ## Guidelines & Templates
 
 ### 1. Shared Library READMEs

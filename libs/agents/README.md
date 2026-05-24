@@ -2,23 +2,11 @@
 
 A shared library for AI agent interactions, primarily supporting the [Agent Client Protocol (ACP)](https://github.com/agentclientprotocol/protocol).
 
-## Overview
+## Key Features
 
-This library provides a standardized way to interact with AI agents and providers within the Provar monorepo. It abstracts the complexities of ACP communication and provides a registry-based system for managing different AI providers (like Gemini CLI).
-
-## Installation
-
-This library is part of the Provar monorepo. To use it in another package:
-
-1. Add it to your `package.json`:
-   ```json
-   {
-     "dependencies": {
-       "@libs/agents": "workspace:*"
-     }
-   }
-   ```
-2. Run `bun install` at the root of the monorepo.
+- **ACP Compliance:** Implements standard client protocols for structured interaction with AI agents.
+- **Provider Registry:** Centralized registry for resolving different agent backends.
+- **Context-Aware Sessions:** Manages stateful conversation histories and prompts within automated workflows.
 
 ## Usage
 

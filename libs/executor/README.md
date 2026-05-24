@@ -2,17 +2,12 @@
 
 A shared library providing the core Playwright-backed browser automation framework, custom assertion mechanisms, state encapsulation, and event-driven test execution.
 
-## Installation
+## Key Features
 
-Add it as a dependency in your package.json:
-
-```json
-{
-  "dependencies": {
-    "@libs/executor": "workspace:*"
-  }
-}
-```
+- **Playwright Backed:** Reliable, high-performance browser automation built on Playwright.
+- **Event-Driven Execution:** Streams real-time test execution events using an asynchronous generator.
+- **State Encapsulation:** Safe state isolation and variable scoping across actions.
+- **Partial Execution:** Supports pausing or stopping at specific steps for live AI grounding.
 
 ## Usage
 
