@@ -2,7 +2,6 @@ import * as fs from "fs";
 import * as path from "path";
 import { runTest } from "@libs/executor";
 import type { TestAPI, GroundingContext } from "@libs/executor";
-import crypto from "crypto";
 import type { GraphNode, TestGraph } from "@libs/domain";
 import { parseTestGraph, loadWorkspace } from "@libs/parser";
 import { getAgentProvider } from "@libs/agents";
@@ -481,24 +480,26 @@ Ensure you address the selector failure or assertion failure correctly. ONLY out
 export async function compile(
   options: CompilerOptions,
 ): Promise<CompileResult> {
-  const content = fs.readFileSync(options.yamlPath, "utf-8");
-  const graphDef = parseTestGraph(content);
+  const ws = await loadWorkspace(options.yamlPath);
+  const testFile = ws.tests.find(
+    (t) => t.filePath === path.resolve(options.yamlPath),
+  );
+  if (!testFile) {
+    throw new Error(`Test file not found in workspace: ${options.yamlPath}`);
+  }
+
+  const graphDef = testFile.getDefinition();
+  const yamlHash = testFile.getHash();
 
   const resolvedPathsList = resolvePaths(graphDef);
   const outputPath =
     options.outputPath || options.yamlPath.replace(".test.yml", ".test.ts");
 
-  // Load workspace config to determine provider and workspace root directory
   let providerName = "gemini-cli";
-  let workspaceDir = process.cwd();
-  try {
-    const ws = await loadWorkspace(options.yamlPath);
-    if (ws.config?.provider?.name) {
-      providerName = ws.config.provider.name;
-    }
-    workspaceDir = path.dirname(ws.provarPath);
-  } catch (err) {
-    // Ignore
+  let workspaceDir = path.dirname(ws.provarPath);
+
+  if (ws.config?.provider?.name) {
+    providerName = ws.config.provider.name;
   }
 
   const agentProvider = getAgentProvider(providerName, {
@@ -636,11 +637,9 @@ export async function compile(
       codeBody +
       testsArray;
 
-    const hash = crypto.createHash("sha256").update(bodyContent).digest("hex");
-
     const fileContent =
       `// date: ${new Date().toISOString()}\n` +
-      `// hash: ${hash}\n` +
+      `// hash: ${yamlHash}\n` +
       bodyContent;
 
     fs.writeFileSync(outputPath, fileContent, "utf-8");

@@ -1,5 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import yaml from "js-yaml";
 import { ConfigSchema, TestGraphSchema } from "@libs/domain";
 import type { Config, TestGraph } from "@libs/domain";
@@ -8,6 +9,7 @@ export interface WorkspaceTest {
   filePath: string;
   relativePath: string;
   getDefinition: () => TestGraph;
+  getHash: () => string;
 }
 
 export interface Workspace {
@@ -95,6 +97,10 @@ export async function loadWorkspace(workspacePath: string): Promise<Workspace> {
           getDefinition: () => {
             const content = fs.readFileSync(fullPath, "utf-8");
             return parseTestGraph(content);
+          },
+          getHash: () => {
+            const content = fs.readFileSync(fullPath, "utf-8");
+            return crypto.createHash("sha256").update(content).digest("hex");
           },
         });
       }
