@@ -36,7 +36,7 @@ export async function compile(
 
   const resolvedPathsList = resolvePaths(graphDef);
   const outputPath =
-    options.outputPath || options.yamlPath.replace(".test.yml", ".test.ts");
+    options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
 
   // Load workspace config to determine provider and workspace root directory
   let providerName = "gemini-cli";

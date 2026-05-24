@@ -159,6 +159,7 @@ export async function groundAndGenerateAction(
       currentActionStub +
       `export const tests = [\n  test([${pathActionList}]),\n];\n`;
 
+    // FIXME: This is a hacky way to generate the spec path
     const tempSpecPath = path.join(
       path.dirname(targetFilePath),
       `__grounding_${nodeId}.test.ts`,
