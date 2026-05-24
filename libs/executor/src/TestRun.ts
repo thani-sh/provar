@@ -252,6 +252,6 @@ export class TestRun {
 
 export function runTest(options: RunTestOptions): TestRun {
   const tr = new TestRun(options);
-  tr.start().catch(() => {});
+  tr.start().catch((e) => { console.error(e) });
   return tr;
 }
