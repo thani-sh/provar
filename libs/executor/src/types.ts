@@ -1,9 +1,11 @@
 import { type Page } from "playwright";
+import type { Path } from "@libs/domain";
 
 export interface TestAPI {
   page: Page;
   var: Record<string, any>;
   state: Record<string, any>;
+  expect: any;
 }
 
 export interface GroundingContext {
@@ -11,47 +13,40 @@ export interface GroundingContext {
   screenshot?: string;
 }
 
-export interface Action {
-  (api: TestAPI): Promise<void>;
-  id: string;
-  title: string;
+export interface RunnerState {
+  status: "idle" | "running" | "paused" | "success" | "failed" | "cancelled";
+  current?: string;
+  elapsed?: number;
+  errors: Array<{ taskId: string; error: Error }>;
 }
 
-export interface TestDefinition {
-  name: string;
-  actions: Action[];
-}
-
-export interface TestRunState {
-  status: "idle" | "running" | "success" | "failed";
-  currentTestName?: string;
-  currentActionId?: string;
-  errors: Array<{ testName: string; actionId?: string; error: Error }>;
-}
-
-export type TestRunEvent =
+export type RunnerEvent =
   | { type: "run-started" }
-  | { type: "test-started"; testName: string }
+  | { type: "task-started"; taskId: string; title: string }
+  | { type: "task-finished"; taskId: string }
+  | { type: "task-failed"; taskId: string; error: any }
   | {
-      type: "action-started";
-      testName: string;
-      actionId: string;
-      actionTitle: string;
+      type: "visual-comparison-triggered";
+      taskId: string;
+      screenshotBase64: string;
     }
-  | { type: "action-finished"; testName: string; actionId: string }
-  | { type: "action-failed"; testName: string; actionId: string; error: any }
-  | {
-      type: "test-finished";
-      testName: string;
-      status: "success" | "failed";
-      error?: any;
-    }
-  | { type: "run-finished"; status: "success" | "failed" };
+  | { type: "run-finished"; status: RunnerState["status"] };
 
-export interface RunTestOptions {
-  testFilePath: string;
-  testName?: string;
-  upToActionId?: string;
+export interface RunnerResult extends RunnerState {
+  status: "success" | "failed" | "cancelled";
+}
+
+export interface Runner {
+  getState(): RunnerState;
+  events(): AsyncGenerator<RunnerEvent, void>;
+  pause(): Promise<void>;
+  resume(): Promise<void>;
+  cancel(): Promise<void>;
+  wait(): Promise<RunnerResult>;
+}
+
+export interface ExecuteOptions {
   headless?: boolean;
   variables?: Record<string, any>;
+  upToActionId?: string;
 }

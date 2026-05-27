@@ -1,13 +1,12 @@
 import * as fs from "fs";
 import * as path from "path";
 import crypto from "crypto";
-import type { GraphNode, TestGraph } from "@libs/domain";
-import { parseTestGraph, loadWorkspace } from "@libs/parser";
-import { getAgentProvider } from "@libs/agents";
-import type { Session, Attachment } from "@libs/agents";
+import type { Task, File } from "@libs/domain";
+import { parseTestFile, loadProject } from "@libs/loader";
+import { createClient } from "@libs/agents";
+import type { Session, Attachment, Client } from "@libs/agents";
 import type { GroundingContext, TestAPI } from "@libs/executor";
 
-import { resolvePaths } from "./resolver";
 import { defaultGenerator, groundAndGenerateAction } from "./generator";
 
 export interface CompilerOptions {
@@ -15,7 +14,7 @@ export interface CompilerOptions {
   outputPath?: string;
   generator?: (
     nodeId: string,
-    node: GraphNode,
+    node: Task,
     context: GroundingContext | null,
   ) => Promise<string>;
 }
@@ -32,51 +31,39 @@ export async function compile(
   options: CompilerOptions,
 ): Promise<CompileResult> {
   const content = fs.readFileSync(options.yamlPath, "utf-8");
-  const graphDef = parseTestGraph(content);
+  const fileDef = parseTestFile(content, options.yamlPath);
 
-  const resolvedPathsList = resolvePaths(graphDef);
   const outputPath =
     options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
 
-  // Load workspace config to determine provider and workspace root directory
-  let providerName = "gemini-cli";
+  // Load project config to determine provider and workspace root directory
+  let providerName: "gemini-cli" | "copilot-cli" = "gemini-cli";
   let workspaceDir = process.cwd();
   try {
-    const ws = await loadWorkspace(options.yamlPath);
-    if (ws.config?.provider?.name) {
-      providerName = ws.config.provider.name;
-    }
-    workspaceDir = path.dirname(ws.provarPath);
+    const project = await loadProject(options.yamlPath);
+    workspaceDir = path.dirname(project.path);
   } catch (err) {
     // Ignore
   }
 
-  const agentProvider = getAgentProvider(providerName, {
-    systemPrompt:
-      "You are the Provar AI compiler. Your task is to generate selector-accurate and robust Playwright code for a test step. Generate ONLY the raw JavaScript/TypeScript code inside the execute block of the action. Do not include markdown code fences or backticks. Just the code lines.",
-    workspaceDir,
-  });
-
+  let client: Client | undefined;
   let session: Session | undefined;
-  if (agentProvider) {
-    console.log(`[Compiler] Starting agent provider: ${providerName}`);
-    await agentProvider.start();
-    session = await agentProvider.createSession({
-      sessionPrompt: `We are compiling the test graph: ${graphDef.name}.`,
-    });
+  try {
+    console.log(`[Compiler] Starting agent client: ${providerName}`);
+    client = createClient(providerName, { workspaceDir });
+    session = await client.session();
+  } catch (err) {
+    console.warn(`[Compiler Warning] Failed to start LLM agent:`, err);
   }
 
   const generator = options.generator || defaultGenerator;
-  const generatedActions = new Map<
-    string,
-    { code: string; visualCompare?: boolean; title: string }
-  >();
+  const generatedActions = new Map<string, { code: string; title: string }>();
 
   try {
     // Sequential recursive node compilation in correct path prefix context
     async function compileNodeRecursively(
       nodeId: string,
-      node: GraphNode,
+      node: Task,
       prefixActions: string[],
     ) {
       if (generatedActions.has(nodeId)) {
@@ -84,41 +71,25 @@ export async function compile(
       }
 
       if (node.graph) {
-        const innerNodes = node.graph.nodes;
-        const innerPaths = resolvePaths({ name: nodeId, graph: node.graph });
-        const primaryPath = innerPaths[0] || [];
+        const innerTasks = node.graph.tasks;
+        const innerPaths = node.graph.paths;
+        const primaryPath = innerPaths[0]?.tasks || [];
 
         let subPrefix = [...prefixActions];
-        for (const subId of primaryPath) {
-          const subNode = innerNodes[subId];
-          if (subNode) {
-            await compileNodeRecursively(subId, subNode, subPrefix);
-            subPrefix.push(subId);
-          }
+        for (const subTask of primaryPath) {
+          await compileNodeRecursively(subTask.id, subTask, subPrefix);
+          subPrefix.push(subTask.id);
         }
 
         let executeBlock = `async (api: TestAPI) => {\n`;
         executeBlock += `    // Sub-graph context: ${node.title}\n`;
-        for (const subId of primaryPath) {
-          executeBlock += `    await action_${subId}(api);\n`;
+        for (const subTask of primaryPath) {
+          executeBlock += `    await tasks[${JSON.stringify(subTask.id)}](api);\n`;
         }
         executeBlock += `  }`;
 
-        const visualCompareLine =
-          node.visualCompare !== undefined
-            ? `\n  visualCompare: ${node.visualCompare},`
-            : "";
-
-        const actionCode =
-          `const action_${nodeId} = action({\n` +
-          `  id: ${JSON.stringify(nodeId)},\n` +
-          `  title: ${JSON.stringify(node.title)},${visualCompareLine}\n` +
-          `  execute: ${executeBlock}\n` +
-          `});`;
-
         generatedActions.set(nodeId, {
-          code: actionCode,
-          visualCompare: node.visualCompare,
+          code: executeBlock,
           title: node.title,
         });
       } else {
@@ -134,64 +105,52 @@ export async function compile(
           },
         );
 
-        const visualCompareLine =
-          node.visualCompare !== undefined
-            ? `\n  visualCompare: ${node.visualCompare},`
-            : "";
-
-        const actionCode =
-          `const action_${nodeId} = action({\n` +
-          `  id: ${JSON.stringify(nodeId)},\n` +
-          `  title: ${JSON.stringify(node.title)},${visualCompareLine}\n` +
-          `  execute: async (api: TestAPI) => {\n` +
-          `${actionBody}\n` +
-          `  }\n` +
-          `});`;
+        const formattedBody = actionBody
+          .split("\n")
+          .map((l) => `    ${l}`)
+          .join("\n");
+        const executeBlock = `async (api: TestAPI) => {\n${formattedBody}\n  }`;
 
         generatedActions.set(nodeId, {
-          code: actionCode,
-          visualCompare: node.visualCompare,
+          code: executeBlock,
           title: node.title,
         });
       }
     }
 
     // Iterate over paths and recursively compile action nodes chronologically
-    for (const pathNodeIds of resolvedPathsList) {
+    for (const resolvedPath of fileDef.paths) {
       const prefix: string[] = [];
-      for (const nid of pathNodeIds) {
-        const node = graphDef.graph.nodes[nid];
-        if (node) {
-          await compileNodeRecursively(nid, node, prefix);
-          prefix.push(nid);
-        }
+      for (const task of resolvedPath.tasks) {
+        await compileNodeRecursively(task.id, task, prefix);
+        prefix.push(task.id);
       }
     }
 
-    let codeBody = "";
+    let tasksMap = `export const tasks = {\n`;
     for (const [id, cached] of generatedActions.entries()) {
-      codeBody += cached.code + "\n\n";
+      tasksMap += `  [${JSON.stringify(id)}]: ${cached.code},\n`;
     }
+    tasksMap += `};\n`;
 
-    let testsArray = `export const tests = [\n`;
-    resolvedPathsList.forEach((pathNodeIds) => {
-      const actionArray = pathNodeIds.map((nid) => `action_${nid}`).join(", ");
-      testsArray += `  test([${actionArray}]),\n`;
+    let pathsList = `export const paths = [\n`;
+    fileDef.paths.forEach((resolvedPath) => {
+      const taskIds = resolvedPath.tasks
+        .map((t) => JSON.stringify(t.id))
+        .join(", ");
+      pathsList += `  [${taskIds}],\n`;
     });
-    testsArray += `];\n`;
+    pathsList += `];\n`;
 
     const bodyContent =
-      `import { test, action, expect, TestAPI } from "@libs/executor";\n\n` +
-      `export const metadata = {\n  name: ${JSON.stringify(graphDef.name)},\n  info: ${JSON.stringify(graphDef.graph.info || "")}\n};\n\n` +
-      codeBody +
-      testsArray;
+      `import type { TestAPI } from "@libs/executor";\n\n` +
+      tasksMap +
+      `\n` +
+      pathsList;
 
-    const hash = crypto.createHash("sha256").update(bodyContent).digest("hex");
+    const yamlHash = crypto.createHash("sha256").update(content).digest("hex");
 
-    const fileContent =
-      `// date: ${new Date().toISOString()}\n` +
-      `// hash: ${hash}\n` +
-      bodyContent;
+    const fileContent = `// hash: ${yamlHash}\n` + bodyContent;
 
     fs.writeFileSync(outputPath, fileContent, "utf-8");
 
@@ -199,12 +158,12 @@ export async function compile(
       success: true,
       outputPath,
       generatedCode: fileContent,
-      pathsResolved: resolvedPathsList.length,
+      pathsResolved: fileDef.paths.length,
     };
   } finally {
-    if (agentProvider) {
-      console.log(`[Compiler] Stopping agent provider: ${providerName}`);
-      await agentProvider.stop();
+    if (client) {
+      console.log(`[Compiler] Stopping agent client...`);
+      await client.close();
     }
   }
 }

@@ -2,7 +2,7 @@
 
 Client Orchestration:
 
- - `function: createClient(provider: 'antigravity-cli' | 'copilot-cli'): Client` - Creates a generic, protocol-agnostic client for the given provider.
+ - `function: createClient(provider: 'gemini-cli' | 'copilot-cli'): Client` - Creates a generic, protocol-agnostic client for the given provider.
  - `interface: Client`
     - `async session(): Promise<Session>` - Spawns a new session with the agent (same interface across all providers).
     - `async close(): Promise<void>` - Safely closes the connection and shuts down the underlying agent subprocess.

@@ -14,7 +14,7 @@
     "@libs/compiler": "workspace:*",
     "@libs/domain": "workspace:*",
     "@libs/executor": "workspace:*",
-    "@libs/parser": "workspace:*",
+    "@libs/loader": "workspace:*",
     "js-yaml": "^4.1.1",
     "picocolors": "^1.1.1"
   },

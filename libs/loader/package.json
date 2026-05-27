@@ -1,5 +1,5 @@
 {
-  "name": "@libs/parser",
+  "name": "@libs/loader",
   "type": "module",
   "version": "1.0.0",
   "main": "src/index.ts",
@@ -13,8 +13,8 @@
   },
   "dependencies": {
     "@libs/domain": "workspace:*",
-    "js-yaml": "^4.1.0",
-    "zod": "^3.24.1"
+    "@libs/executor": "workspace:*",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

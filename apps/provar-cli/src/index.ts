@@ -1,9 +1,9 @@
-import { runTest } from "@libs/executor";
+import { execute } from "@libs/executor";
 import { compile } from "@libs/compiler";
 import pc from "picocolors";
 import * as path from "path";
 import * as fs from "fs";
-import { loadWorkspace } from "@libs/parser";
+import { loadProject } from "@libs/loader";
 
 // Recursively find all files of a specific extension
 function findFilesByExtension(targetPath: string, extension: string): string[] {
@@ -78,10 +78,10 @@ async function main() {
       filesToCompile.push(resolvedPath);
     } else if (stat.isDirectory()) {
       try {
-        const ws = await loadWorkspace(resolvedPath);
-        filesToCompile = ws.tests.map((t) => t.filePath);
+        const project = await loadProject(resolvedPath);
+        filesToCompile = project.files.map((f) => f.path);
       } catch (err: any) {
-        console.error(pc.red(`❌ Error loading workspace: ${err.message}`));
+        console.error(pc.red(`❌ Error loading project: ${err.message}`));
         process.exit(1);
       }
       if (filesToCompile.length === 0) {
@@ -124,7 +124,7 @@ async function main() {
     if (successCount < filesToCompile.length) {
       process.exit(1);
     }
-    return;
+    process.exit(0);
   }
 
   if (command === "run") {
@@ -189,61 +189,63 @@ async function main() {
       console.log(pc.cyan(`\n📦 Executing Suite: ${pc.bold(testFilePath)}`));
 
       let variables = {};
+      let execFile;
       try {
-        const ws = await loadWorkspace(testFilePath);
-        variables = ws.config.variables || {};
-      } catch (err) {
-        // Ignore
+        const yamlPath = testFilePath.replace(".test.ts", ".test.yml");
+        const project = await loadProject(testFilePath);
+        variables = project.variables || {};
+        execFile = await project.readFile(yamlPath);
+      } catch (err: any) {
+        console.error(pc.red(`  ❌ Failed to load test suite: ${err.message}`));
+        runSuccess = false;
+        continue;
       }
+
       if (Object.keys(variables).length > 0) {
         console.log(
           pc.dim(`  ⚙ Loaded Variables: ${JSON.stringify(variables)}`),
         );
       }
 
-      const runner = runTest({
-        testFilePath,
-        upToActionId,
-        headless,
-        variables,
-      });
-
       let suiteSuccess = true;
-      for await (const event of runner.events()) {
-        switch (event.type) {
-          case "run-started":
-            console.log(pc.yellow("  • Test run initialized..."));
-            break;
-          case "test-started":
-            console.log(
-              `\n  🎬 ${pc.bold(pc.magenta(`Running Path Suite: "${event.testName}"`))}`,
-            );
-            break;
-          case "action-started":
-            console.log(
-              `    ${pc.cyan("⏳")} ${event.actionTitle} (${pc.dim(event.actionId)})...`,
-            );
-            break;
-          case "action-finished":
-            console.log(`    ${pc.green("✔")} ${pc.green("Completed")}`);
-            break;
-          case "action-failed":
-            console.log(
-              `    ${pc.red("✖")} ${pc.red("Failed:")} ${pc.bold(event.error.message || event.error)}`,
-            );
-            break;
-          case "test-finished":
-            const color = event.status === "success" ? pc.green : pc.red;
-            console.log(
-              `  🏁 Path Finished: ${color(event.status.toUpperCase())}`,
-            );
-            break;
-          case "run-finished":
-            if (event.status === "failed") {
-              suiteSuccess = false;
-              runSuccess = false;
-            }
-            break;
+      for (const resolvedPath of execFile.paths) {
+        const runner = await execute(resolvedPath, {
+          upToActionId,
+          headless,
+          variables,
+        });
+
+        for await (const event of runner.events()) {
+          switch (event.type) {
+            case "run-started":
+              console.log(pc.yellow("  • Test run initialized..."));
+              break;
+            case "task-started":
+              console.log(
+                `    ${pc.cyan("⏳")} ${event.title} (${pc.dim(event.taskId)})...`,
+              );
+              break;
+            case "task-finished":
+              console.log(`    ${pc.green("✔")} ${pc.green("Completed")}`);
+              break;
+            case "task-failed":
+              console.log(
+                `    ${pc.red("✖")} ${pc.red("Failed:")} ${pc.bold(event.error.message || event.error)}`,
+              );
+              break;
+            case "run-finished":
+              if (event.status === "failed") {
+                suiteSuccess = false;
+                runSuccess = false;
+              }
+              const color = event.status === "success" ? pc.green : pc.red;
+              if (event.status === "success" || event.status === "failed") {
+                console.log(
+                  `  🏁 Path Finished: ${color(event.status.toUpperCase())}`,
+                );
+              }
+              break;
+          }
         }
       }
 
@@ -262,6 +264,7 @@ async function main() {
     if (!runSuccess) {
       process.exit(1);
     }
+    process.exit(0);
   }
 }
 

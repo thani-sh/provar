@@ -1,62 +1,30 @@
-import { z } from "zod";
-
-export const ConfigSchema = z.object({
-  provider: z
-    .object({
-      type: z.string().optional(),
-      name: z.string(),
-      apiKey: z.string().optional(),
-    })
-    .passthrough(),
-  variables: z.record(z.any()).default({}),
-});
-
-export type Config = z.infer<typeof ConfigSchema>;
-
-export interface GraphNode {
+export interface Task {
+  id: string;
   title: string;
   info: string;
-  next?: string | string[];
-  visualCompare?: boolean;
-  asserts?: Record<string, { title: string; info: string }>;
-  graph?: {
-    info: string;
-    start: string;
-    nodes: Record<string, GraphNode>;
-  };
+  next: string[];
+  code?: string;
+  graph?: Graph;
 }
 
-export const GraphNodeSchema: z.ZodType<GraphNode> = z.lazy(() =>
-  z.object({
-    title: z.string(),
-    info: z.string(),
-    next: z.union([z.string(), z.array(z.string())]).optional(),
-    visualCompare: z.boolean().optional(),
-    asserts: z
-      .record(
-        z.object({
-          title: z.string(),
-          info: z.string(),
-        }),
-      )
-      .optional(),
-    graph: z
-      .object({
-        info: z.string(),
-        start: z.string(),
-        nodes: z.record(GraphNodeSchema),
-      })
-      .optional(),
-  }),
-);
+export interface Graph {
+  info: string;
+  start: string;
+  tasks: Record<string, Task>;
+  paths: Path[];
+}
 
-export const TestGraphSchema = z.object({
-  name: z.string(),
-  graph: z.object({
-    info: z.string(),
-    start: z.string(),
-    nodes: z.record(GraphNodeSchema),
-  }),
-});
+export interface File extends Graph {
+  name: string;
+  path: string;
+}
 
-export type TestGraph = z.infer<typeof TestGraphSchema>;
+export interface Path {
+  tasks: Task[];
+}
+
+export interface Project {
+  path: string;
+  variables: Record<string, string>;
+  files: File[];
+}

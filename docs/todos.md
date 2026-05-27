@@ -9,7 +9,7 @@ This document tracks the backlog of engineering tasks required to bring Provar f
 - [ ] **`TODO-COMPILER-REF001`**: **Refactor compiler library into modular files**
   - **Description**: Split the single compiler source file into logical modules (parsing, code generation, optimization) to improve readability and maintainability.
   - **Action**: Create a `libs/compiler/src/` directory, move related functions, update imports/exports.
-- [ ] **`TODO-COMPILER-REF002`**: **Generated test file hash should be based on the .yml file**
+- [x] **`TODO-COMPILER-REF002`**: **Generated test file hash should be based on the .yml file**
   - **Description**: Ensure the hash embedded in generated test TypeScript files derives from the source YAML file, not the generated TS file.
   - **Action**: Update the compiler's hash generation logic to use the parser shared library to compute the hash from the source YAML file.
 

@@ -1,45 +1,60 @@
 import { type Browser, type Page, chromium } from "playwright";
+import { expect } from "@playwright/test";
+import type { Path, Task } from "@libs/domain";
 import type {
   TestAPI,
-  GroundingContext,
-  Action,
-  TestDefinition,
-  TestRunState,
-  TestRunEvent,
-  RunTestOptions,
+  Runner,
+  RunnerState,
+  RunnerEvent,
+  RunnerResult,
+  ExecuteOptions,
 } from "./types";
 
-export class TestRun {
-  private state: TestRunState = { status: "idle", errors: [] };
-  private eventQueue: TestRunEvent[] = [];
+export class PathRunner implements Runner {
+  private state: RunnerState = { status: "idle", errors: [] };
+  private eventQueue: RunnerEvent[] = [];
   private resolveNextEvent:
-    | ((value: IteratorResult<TestRunEvent>) => void)
+    | ((value: IteratorResult<RunnerEvent>) => void)
     | null = null;
   private isFinished = false;
   private browser: Browser | null = null;
   private activePage: Page | null = null;
-  private groundingContext: GroundingContext | null = null;
 
-  constructor(private options: RunTestOptions) {}
+  private resumeSignal: { resolve: () => void; promise: Promise<void> } | null =
+    null;
+  private cancelSignal = false;
+  private startTime = 0;
 
-  getState(): TestRunState {
-    return this.state;
+  private waitResolve: ((value: RunnerResult) => void) | null = null;
+  private waitPromise: Promise<RunnerResult>;
+
+  constructor(
+    private path: Path,
+    private options: ExecuteOptions = {},
+  ) {
+    let resolveFn: any;
+    this.waitPromise = new Promise<RunnerResult>((resolve) => {
+      resolveFn = resolve;
+    });
+    this.waitResolve = resolveFn;
   }
 
-  getActivePage(): Page | null {
-    return this.activePage;
+  getState(): RunnerState {
+    const elapsed = this.startTime
+      ? Math.round(Date.now() - this.startTime)
+      : 0;
+    return {
+      ...this.state,
+      elapsed,
+    };
   }
 
-  getGroundingContext(): GroundingContext | null {
-    return this.groundingContext;
-  }
-
-  async *events(): AsyncGenerator<TestRunEvent, void, unknown> {
+  async *events(): AsyncGenerator<RunnerEvent, void> {
     while (!this.isFinished || this.eventQueue.length > 0) {
       if (this.eventQueue.length > 0) {
         yield this.eventQueue.shift()!;
       } else {
-        const nextPromise = new Promise<IteratorResult<TestRunEvent>>(
+        const nextPromise = new Promise<IteratorResult<RunnerEvent>>(
           (resolve) => {
             this.resolveNextEvent = resolve;
           },
@@ -51,7 +66,7 @@ export class TestRun {
     }
   }
 
-  private pushEvent(event: TestRunEvent) {
+  private pushEvent(event: RunnerEvent) {
     this.updateState(event);
     if (this.resolveNextEvent) {
       const resolve = this.resolveNextEvent;
@@ -62,29 +77,22 @@ export class TestRun {
     }
   }
 
-  private updateState(event: TestRunEvent) {
+  private updateState(event: RunnerEvent) {
     switch (event.type) {
       case "run-started":
         this.state.status = "running";
         break;
-      case "test-started":
-        this.state.currentTestName = event.testName;
+      case "task-started":
+        this.state.current = event.taskId;
         break;
-      case "action-started":
-        this.state.currentActionId = event.actionId;
+      case "task-finished":
+        this.state.current = undefined;
         break;
-      case "action-finished":
-        this.state.currentActionId = undefined;
-        break;
-      case "action-failed":
+      case "task-failed":
         this.state.errors.push({
-          testName: event.testName,
-          actionId: event.actionId,
+          taskId: event.taskId,
           error: event.error,
         });
-        break;
-      case "test-finished":
-        this.state.currentTestName = undefined;
         break;
       case "run-finished":
         this.state.status = event.status;
@@ -96,164 +104,177 @@ export class TestRun {
     }
   }
 
-  async start(): Promise<void> {
+  async pause(): Promise<void> {
+    if (this.state.status !== "running") return;
+
+    // Set up standard deferred signal promise
+    let resolveFn: any;
+    const promise = new Promise<void>((resolve) => {
+      resolveFn = resolve;
+    });
+
+    this.resumeSignal = {
+      resolve: resolveFn,
+      promise,
+    };
+
+    this.state.status = "paused";
+    // We emit run-finished with status paused as an event
+    this.pushEvent({ type: "run-finished", status: "paused" });
+    this.state.status = "paused";
+  }
+
+  async resume(): Promise<void> {
+    if (this.state.status !== "paused") return;
+    this.state.status = "running";
     this.pushEvent({ type: "run-started" });
+    this.resumeSignal?.resolve();
+    this.resumeSignal = null;
+  }
+
+  async cancel(): Promise<void> {
+    this.cancelSignal = true;
+    if (this.state.status === "paused") {
+      this.resumeSignal?.resolve();
+    }
+  }
+
+  async wait(): Promise<RunnerResult> {
+    return this.waitPromise;
+  }
+
+  async start(): Promise<void> {
+    this.startTime = Date.now();
+    this.pushEvent({ type: "run-started" });
+
     let runSuccess = true;
-
     try {
-      const { tests } = await this.loadTestModule();
-      this.browser = await this.initializeBrowser();
+      this.browser = await chromium.launch({
+        headless: this.options.headless !== false,
+      });
+      const context = await this.browser.newContext();
+      const page = await context.newPage();
+      this.activePage = page;
 
-      await this.executeTests(tests);
+      const api: TestAPI = {
+        page,
+        var: this.options.variables || {},
+        state: {},
+        expect,
+      };
+
+      for (const task of this.path.tasks) {
+        if (this.cancelSignal) {
+          this.state.status = "cancelled";
+          runSuccess = false;
+          break;
+        }
+
+        // Task Boundary Pause checkpoint
+        if (this.state.status === "paused" && this.resumeSignal) {
+          await this.resumeSignal.promise;
+        }
+
+        if (this.cancelSignal) {
+          this.state.status = "cancelled";
+          runSuccess = false;
+          break;
+        }
+
+        this.pushEvent({
+          type: "task-started",
+          taskId: task.id,
+          title: task.title,
+        });
+
+        // Capture visual screenshot comparisons natively if flagged
+        if ((task as any).visualCompare) {
+          try {
+            const buf = await page.screenshot({ type: "png" });
+            this.pushEvent({
+              type: "visual-comparison-triggered",
+              taskId: task.id,
+              screenshotBase64: buf.toString("base64"),
+            });
+          } catch (e) {
+            // Ignore screenshot triggers failures
+          }
+        }
+
+        // Execute dynamic action bindings
+        try {
+          const executableTask = task as Task & {
+            execute: (api: TestAPI) => Promise<void>;
+          };
+          if (typeof executableTask.execute !== "function") {
+            throw new Error(
+              `Task '${task.id}' does not have a compiled execute function bound.`,
+            );
+          }
+          await executableTask.execute(api);
+          this.pushEvent({
+            type: "task-finished",
+            taskId: task.id,
+          });
+        } catch (err: any) {
+          runSuccess = false;
+          this.pushEvent({
+            type: "task-failed",
+            taskId: task.id,
+            error: err,
+          });
+          break;
+        }
+
+        if (
+          this.options.upToActionId &&
+          task.id === this.options.upToActionId
+        ) {
+          break;
+        }
+      }
     } catch (err: any) {
       runSuccess = false;
       this.pushEvent({
-        type: "action-failed",
-        testName: this.state.currentTestName || "unknown",
-        actionId: this.state.currentActionId || "unknown",
+        type: "task-failed",
+        taskId: this.state.current || "unknown",
         error: err,
       });
-      throw err;
     } finally {
-      await this.cleanup();
+      if (this.browser) {
+        await this.browser.close();
+        this.browser = null;
+        this.activePage = null;
+      }
+
+      let finalStatus: RunnerState["status"] = "success";
+      if (this.cancelSignal) {
+        finalStatus = "cancelled";
+      } else if (!runSuccess || this.state.errors.length > 0) {
+        finalStatus = "failed";
+      }
+
       this.pushEvent({
         type: "run-finished",
-        status:
-          runSuccess && this.state.errors.length === 0 ? "success" : "failed",
+        status: finalStatus,
       });
-    }
-  }
 
-  private async loadTestModule(): Promise<{ tests: TestDefinition[] }> {
-    // FIXME: We will fix this later.
-    const module = await import(this.options.testFilePath);
-    return {
-      tests: module.tests || [],
-    };
-  }
-
-  private async initializeBrowser(): Promise<Browser> {
-    return await chromium.launch({ headless: this.options.headless !== false });
-  }
-
-  private async executeTests(tests: TestDefinition[]): Promise<void> {
-    for (const t of tests) {
-      if (this.options.testName && t.name !== this.options.testName) {
-        continue;
-      }
-      await this.executeTestPath(t);
-    }
-  }
-
-  private async executeTestPath(t: TestDefinition): Promise<void> {
-    this.pushEvent({ type: "test-started", testName: t.name });
-
-    if (!this.browser) throw new Error("Browser not initialized");
-    const context = await this.browser.newContext();
-    const page = await context.newPage();
-    this.activePage = page;
-
-    const api: TestAPI = {
-      page,
-      var: this.options.variables || {},
-      state: {},
-    };
-
-    let testSuccess = true;
-    for (const act of t.actions) {
-      const actionSucceeded = await this.executeAction(t.name, act, api);
-      if (!actionSucceeded) {
-        testSuccess = false;
-        if (this.options.upToActionId && act.id === this.options.upToActionId) {
-          try {
-            const pageContent = await page.content();
-            let screenshot: string | undefined;
-            try {
-              const screenshotBuf = await page.screenshot({ type: "png" });
-              screenshot = screenshotBuf.toString("base64");
-            } catch (e) {
-              // Ignore
-            }
-            this.groundingContext = { pageContent, screenshot };
-          } catch (err) {
-            // Ignore
-          }
-        }
-        break;
-      }
-
-      if (this.options.upToActionId && act.id === this.options.upToActionId) {
-        try {
-          const pageContent = await page.content();
-          let screenshot: string | undefined;
-          try {
-            const screenshotBuf = await page.screenshot({ type: "png" });
-            screenshot = screenshotBuf.toString("base64");
-          } catch (e) {
-            // Ignore
-          }
-          this.groundingContext = { pageContent, screenshot };
-        } catch (err) {
-          // Ignore
-        }
-        break;
-      }
-    }
-
-    this.activePage = null;
-    await page.close();
-    await context.close();
-
-    this.pushEvent({
-      type: "test-finished",
-      testName: t.name,
-      status: testSuccess ? "success" : "failed",
-    });
-  }
-
-  private async executeAction(
-    testName: string,
-    act: Action,
-    api: TestAPI,
-  ): Promise<boolean> {
-    this.pushEvent({
-      type: "action-started",
-      testName,
-      actionId: act.id,
-      actionTitle: act.title,
-    });
-
-    try {
-      await act(api);
-      this.pushEvent({
-        type: "action-finished",
-        testName,
-        actionId: act.id,
-      });
-      return true;
-    } catch (err: any) {
-      this.pushEvent({
-        type: "action-failed",
-        testName,
-        actionId: act.id,
-        error: err,
-      });
-      return false;
-    }
-  }
-
-  private async cleanup(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
+      const result: RunnerResult = {
+        status: finalStatus as any,
+        errors: this.state.errors,
+      };
+      this.waitResolve?.(result);
     }
   }
 }
 
-export function runTest(options: RunTestOptions): TestRun {
-  const tr = new TestRun(options);
-  tr.start().catch((e) => {
-    console.error(e);
+export async function execute(
+  path: Path,
+  options?: ExecuteOptions,
+): Promise<Runner> {
+  const runner = new PathRunner(path, options);
+  runner.start().catch((e) => {
+    console.error("[Executor Path Runner Error]", e);
   });
-  return tr;
+  return runner;
 }

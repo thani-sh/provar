@@ -1,14 +1,11 @@
 import { readFile } from "fs/promises";
 import { getAbsPath, triggerWorkspaceChanged, WORKSPACE_DIR } from "../utils";
 import { getConfig } from "./getConfig";
-import {
-  getAgentProvider,
-  type AgentProvider,
-  type Session,
-} from "@libs/agents";
+import { createClient, type Client, type Session } from "@libs/agents";
 
-let activeProvider: AgentProvider | null = null;
+let activeClient: Client | null = null;
 let activeSession: Session | null = null;
+let activeProviderName: string = "";
 
 const PROVAR_SYSTEM_PROMPT = `
 You are the AI Assistant for Provar, a visual, graph-based end-to-end testing tool.
@@ -67,29 +64,41 @@ export const assistEditor = async ({
     };
   }
 
-  // Initialize or re-initialize provider if config changed (simplified for now)
-  if (!activeProvider || activeProvider.name !== config.provider.name) {
-    if (activeProvider) {
-      await activeProvider.stop();
-    }
-    activeProvider = getAgentProvider(config.provider.name, {
-      systemPrompt: PROVAR_SYSTEM_PROMPT,
-      workspaceDir: WORKSPACE_DIR,
-    });
-    activeSession = null;
-  }
+  const providerName = config.provider.name as "gemini-cli" | "copilot-cli";
 
-  if (!activeProvider) {
-    return {
-      message: `AI Provider "${config.provider.name}" is not supported. Please check your project settings.`,
-    };
+  // Initialize or re-initialize provider if config changed
+  if (!activeClient || activeProviderName !== providerName) {
+    if (activeClient) {
+      await activeClient.close();
+    }
+    try {
+      activeClient = createClient(providerName, {
+        workspaceDir: WORKSPACE_DIR,
+      });
+      activeProviderName = providerName;
+      activeSession = null;
+    } catch (err: any) {
+      return {
+        message: `AI Provider "${providerName}" is not supported. Please check your project settings. Error: ${err.message}`,
+      };
+    }
   }
 
   try {
     if (!activeSession) {
-      activeSession = await activeProvider.createSession({
-        sessionPrompt: SESSION_PROMPT,
-      });
+      activeSession = await activeClient.session();
+
+      // Seed the session with the system prompt and session rules
+      let seedPrompt = PROVAR_SYSTEM_PROMPT;
+      if (SESSION_PROMPT) {
+        seedPrompt += `\n\n${SESSION_PROMPT}`;
+      }
+
+      for await (const _ of activeSession.prompt([
+        { type: "text", text: seedPrompt },
+      ])) {
+        // Consume seed prompt stream
+      }
     }
 
     let finalPrompt = prompt;
@@ -116,7 +125,7 @@ export const assistEditor = async ({
 
     const aiText = chunks.join("");
 
-    // Extract action if present in the text (keeping legacy behavior)
+    // Extract action if present in the text
     let action: any = undefined;
     const actionMatch = aiText.match(/\{[\s\S]*"action"[\s\S]*\}/);
     if (actionMatch) {
@@ -139,7 +148,7 @@ export const assistEditor = async ({
     };
   } catch (e: any) {
     console.error("[AI Assistant] Error calling AI Provider:", e);
-    const errorMsg = `Failed to communicate with the AI Assistant (${config.provider.name}): ${e.message || "Unknown error"}`;
+    const errorMsg = `Failed to communicate with the AI Assistant (${providerName}): ${e.message || "Unknown error"}`;
     onChunk?.(errorMsg, "error");
     return {
       message: errorMsg,

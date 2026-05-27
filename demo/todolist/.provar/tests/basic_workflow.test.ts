@@ -1,57 +1,32 @@
-// date: 2026-05-23T18:30:38.022Z
-// hash: c8234a6ccf2f714eb3ce36247ac9e08c87e84c1f4f5fe57258e8a28654f1bf98
-import { test, action, expect, TestAPI } from "@libs/executor";
+// hash: 108bafa1ca286f53a9988f509b245db0c7cdf044d4d99fc8542c0e691e9cb686
+import type { TestAPI } from "@libs/executor";
 
-export const metadata = {
-  name: "basic_workflow",
-  info: "Simple login and task creation workflow"
-};
-
-const action_action_init1 = action({
-  id: "action_init1",
-  title: "open app",
-  execute: async (api: TestAPI) => {
-    await api.page.goto(api.var.BASE_URL);
-  }
-});
-
-const action_action_logi1 = action({
-  id: "action_logi1",
-  title: "login",
-  execute: async (api: TestAPI) => {
+export const tasks = {
+  ["action_init1"]: async (api: TestAPI) => {
+    await api.page.goto('http://localhost:6001');
+    await api.expect(api.page.locator('body')).toContainText('Login to Todo Demo');
+  },
+  ["action_logi1"]: async (api: TestAPI) => {
     await api.page.getByPlaceholder('Username').fill('testuser');
     await api.page.getByRole('button', { name: 'Login / Register' }).click();
-  }
-});
-
-const action_action_clis1 = action({
-  id: "action_clis1",
-  title: "create list",
-  execute: async (api: TestAPI) => {
+    await api.expect(api.page.locator('header')).toContainText('Logged in as testuser');
+  },
+  ["action_clis1"]: async (api: TestAPI) => {
     await api.page.getByPlaceholder('New List...').fill('Shopping');
     await api.page.getByRole('button', { name: 'Add List' }).click();
-  }
-});
-
-const action_action_atask = action({
-  id: "action_atask",
-  title: "add task",
-  execute: async (api: TestAPI) => {
+    await api.expect(api.page.locator('.list-nav')).toContainText('Shopping');
+  },
+  ["action_atask"]: async (api: TestAPI) => {
     await api.page.getByPlaceholder('What needs to be done?').fill('Buy Milk');
     await api.page.getByRole('button', { name: 'Add Task' }).click();
-  }
-});
+    await api.expect(api.page.locator('.task-list')).toContainText('Buy Milk');
+  },
+  ["action_compt"]: async (api: TestAPI) => {
+    await api.page.locator('.task-card', { hasText: 'Buy Milk' }).getByRole('checkbox').click();
+    await api.expect(api.page.locator('.task-card', { hasText: 'Buy Milk' }).locator('.task-text')).toHaveClass(/completed/);
+  },
+};
 
-const action_action_compt = action({
-  id: "action_compt",
-  title: "complete task",
-  execute: async (api: TestAPI) => {
-    const task = api.page.locator('.task-row', { hasText: 'Buy Milk' });
-    await task.getByRole('checkbox').click();
-    await expect(task.locator('.task-text')).toHaveClass(/completed/);
-  }
-});
-
-export const tests = [
-  test([action_action_init1, action_action_logi1, action_action_clis1, action_action_atask, action_action_compt]),
+export const paths = [
+  ["action_init1", "action_logi1", "action_clis1", "action_atask", "action_compt"],
 ];

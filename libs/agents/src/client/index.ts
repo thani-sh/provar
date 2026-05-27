@@ -3,26 +3,28 @@ import * as acp from "@agentclientprotocol/sdk";
 import { FSCapability } from "./capabilities/fs";
 import { PermissionHandler } from "./permissionHandler";
 import { OutputAdapter } from "./outputAdapter";
+import type { Client, Session, Attachment } from "../types";
+import { ACPSession } from "../session";
 
 export interface ACPClientOptions {
   workspaceDir: string;
 }
 
-export class ACPClient implements acp.Client {
-  private process: Subprocess | null = null;
-  private connection: acp.ClientSideConnection | null = null;
-  private sessionBuffers = new Map<string, string>();
-  private sessionLocks = new Map<string, Promise<void>>();
-  private fs: FSCapability;
-  private permissionHandler: PermissionHandler;
-  private activeStreams = new Map<
+export abstract class ACPClient implements Client {
+  protected process: Subprocess | null = null;
+  protected connection: acp.ClientSideConnection | null = null;
+  protected sessionBuffers = new Map<string, string>();
+  protected sessionLocks = new Map<string, Promise<void>>();
+  protected fs: FSCapability;
+  protected permissionHandler: PermissionHandler;
+  protected activeStreams = new Map<
     string,
-    { push: (chunk: acp.ContentBlock) => void; close: () => void }
+    { push: (chunk: Attachment) => void; close: () => void }
   >();
 
   constructor(
-    private command: string[],
-    private options: ACPClientOptions,
+    protected command: string[],
+    protected options: ACPClientOptions,
   ) {
     this.fs = new FSCapability({ workspaceDir: options.workspaceDir });
     this.permissionHandler = new PermissionHandler({
@@ -55,14 +57,16 @@ export class ACPClient implements acp.Client {
 
     const outputAdapter = new OutputAdapter(this.process);
 
-    // Casting to unknown then to expected types due to Bun/ACP SDK type mismatch
-    // Bun's stdin/stdout streams are compatible at runtime but types differ slightly
+    // Dynamic type casting due to Bun/ACP Stream compatibility differences
     const stream = acp.ndJsonStream(
       outputAdapter as unknown as WritableStream,
       this.process.stdout as unknown as ReadableStream,
     );
 
-    this.connection = new acp.ClientSideConnection((_agent) => this, stream);
+    this.connection = new acp.ClientSideConnection(
+      (_agent) => this as any,
+      stream,
+    );
 
     await this.connection.initialize({
       protocolVersion: acp.PROTOCOL_VERSION,
@@ -79,7 +83,7 @@ export class ACPClient implements acp.Client {
     });
   }
 
-  private cleanup() {
+  protected cleanup() {
     this.process = null;
     this.connection = null;
     this.sessionBuffers.clear();
@@ -129,7 +133,10 @@ export class ACPClient implements acp.Client {
     }
   }
 
-  async createSession(): Promise<string> {
+  async session(): Promise<Session> {
+    if (!this.isRunning) {
+      await this.start();
+    }
     if (!this.connection) {
       throw new Error("Client not started or process crashed");
     }
@@ -138,30 +145,18 @@ export class ACPClient implements acp.Client {
       mcpServers: [],
     });
     this.sessionBuffers.set(result.sessionId, "");
-    return result.sessionId;
-  }
-
-  async loadSession(sessionId: string): Promise<void> {
-    if (!this.connection) {
-      throw new Error("Client not started or process crashed");
-    }
-    await this.connection.loadSession({
-      sessionId,
-      cwd: this.options.workspaceDir,
-      mcpServers: [],
-    });
-    this.sessionBuffers.set(sessionId, "");
+    return new ACPSession(result.sessionId, this);
   }
 
   async *promptStream(
     sessionId: string,
-    prompt: acp.ContentBlock[],
-  ): AsyncGenerator<acp.ContentBlock, void> {
+    prompt: Attachment[],
+  ): AsyncGenerator<Attachment, void> {
     if (!this.connection) {
       throw new Error("Client not started or process crashed");
     }
 
-    const queue: acp.ContentBlock[] = [];
+    const queue: Attachment[] = [];
     let isDone = false;
     let resolveNext: (() => void) | null = null;
 
@@ -176,12 +171,29 @@ export class ACPClient implements acp.Client {
       },
     });
 
-    // Start command execution inside the lock to ensure sequence
+    // Translate protocol-agnostic payload to acp.ContentBlock
+    const acpPrompt: acp.ContentBlock[] = prompt.map((block) => {
+      if (block.type === "text") {
+        return { type: "text", text: block.text };
+      } else if (block.type === "code") {
+        return {
+          type: "text",
+          text: `\`\`\`${block.language || ""}\n${block.code}\n\`\`\``,
+        };
+      } else {
+        return {
+          type: "image",
+          data: block.data,
+          mimeType: block.mimeType,
+        };
+      }
+    });
+
     const currentLock = this.sessionLocks.get(sessionId) || Promise.resolve();
     const nextLock = currentLock.then(async () => {
       this.sessionBuffers.set(sessionId, "");
       try {
-        await this.connection!.prompt({ sessionId, prompt });
+        await this.connection!.prompt({ sessionId, prompt: acpPrompt });
       } finally {
         this.activeStreams.get(sessionId)?.close();
         this.activeStreams.delete(sessionId);
@@ -189,7 +201,6 @@ export class ACPClient implements acp.Client {
     });
     this.sessionLocks.set(sessionId, nextLock);
 
-    // Consume the generator queue as elements become available
     while (true) {
       if (queue.length > 0) {
         yield queue.shift()!;
@@ -202,7 +213,6 @@ export class ACPClient implements acp.Client {
       }
     }
 
-    // Ensure we wait for the lock to completely clear
     await nextLock;
   }
 
@@ -225,10 +235,16 @@ export class ACPClient implements acp.Client {
     }
   }
 
-  async stop() {
+  async close() {
     if (this.process) {
       this.process.kill();
     }
     this.cleanup();
+  }
+}
+
+export class GeminiCLIClient extends ACPClient {
+  constructor(options: ACPClientOptions) {
+    super(["gemini", "--acp"], options);
   }
 }

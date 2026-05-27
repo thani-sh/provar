@@ -1,19 +1,14 @@
-import * as acp from "@agentclientprotocol/sdk";
-
-export type Attachment = acp.ContentBlock;
+export type Attachment =
+  | { type: "text"; text: string }
+  | { type: "code"; code: string; language?: string }
+  | { type: "image"; data: string; mimeType: string };
 
 export interface Session {
   id: string;
   prompt(stuff: Attachment[]): AsyncGenerator<Attachment, void>;
 }
 
-export interface AgentProvider {
-  name: string;
-  start(): Promise<void>;
-  createSession(params: { sessionPrompt?: string }): Promise<Session>;
-  prompt(
-    sessionId: string,
-    stuff: Attachment[],
-  ): AsyncGenerator<Attachment, void>;
-  stop(): Promise<void>;
+export interface Client {
+  session(): Promise<Session>;
+  close(): Promise<void>;
 }

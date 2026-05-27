@@ -1,30 +1,15 @@
-import type { AgentProvider } from "./types";
-import { GeminiCLIProvider } from "./providers/gemini-cli";
+import type { Client } from "./types";
+import { GeminiCLIClient } from "./client";
 
-const providers = new Map<string, AgentProvider>();
-
-const getProviderKey = (name: string, workspaceDir: string) =>
-  `${name}:${workspaceDir}`;
-
-export const getAgentProvider = (
-  name: string,
-  params: { systemPrompt: string; workspaceDir: string },
-): AgentProvider | null => {
-  const key = getProviderKey(name, params.workspaceDir);
-
-  if (providers.has(key)) {
-    return providers.get(key)!;
+export function createClient(
+  provider: "gemini-cli" | "copilot-cli",
+  options: { workspaceDir: string },
+): Client {
+  if (provider === "gemini-cli") {
+    return new GeminiCLIClient({ workspaceDir: options.workspaceDir });
   }
-
-  if (name === "gemini-cli") {
-    const provider = new GeminiCLIProvider(params);
-    providers.set(key, provider);
-    return provider;
+  if (provider === "copilot-cli") {
+    throw new Error(`Provider 'copilot-cli' is not yet implemented.`);
   }
-
-  return null;
-};
-
-export const getAvailableProviders = (): string[] => {
-  return ["gemini-cli"];
-};
+  throw new Error(`Unsupported provider: ${provider}`);
+}
