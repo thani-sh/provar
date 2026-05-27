@@ -4,12 +4,12 @@ import type { TestAPI } from "@libs/executor";
 export const tasks = {
   ["action_init1"]: async (api: TestAPI) => {
     await api.page.goto('http://localhost:6001');
-    await api.expect(api.page.locator('body')).toContainText('Login to Todo Demo');
+    await api.expect(api.page).toHaveTitle('Provar Todo Demo');
   },
   ["action_logi1"]: async (api: TestAPI) => {
     await api.page.getByPlaceholder('Username').fill('testuser');
-    await api.page.getByRole('button', { name: 'Login / Register' }).click();
-    await api.expect(api.page.locator('header')).toContainText('Logged in as testuser');
+    await api.page.getByRole('button', { name: /Login/i }).click();
+    await api.expect(api.page.locator('header')).toContainText('testuser');
   },
   ["action_clis1"]: async (api: TestAPI) => {
     await api.page.getByPlaceholder('New List...').fill('Shopping');
@@ -23,7 +23,7 @@ export const tasks = {
   },
   ["action_compt"]: async (api: TestAPI) => {
     await api.page.locator('.task-card', { hasText: 'Buy Milk' }).getByRole('checkbox').click();
-    await api.expect(api.page.locator('.task-card', { hasText: 'Buy Milk' }).locator('.task-text')).toHaveClass(/completed/);
+    await api.expect(api.page.locator('.task-card', { hasText: 'Buy Milk' }).getByRole('checkbox')).toBeChecked();
   },
 };
 

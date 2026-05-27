@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
-import type { Task } from "@libs/domain";
+import vm from "node:vm";
+import type { Task, Path } from "@libs/domain";
 import { loadProject } from "@libs/loader";
 import { execute } from "@libs/executor";
 import type { GroundingContext } from "@libs/executor";
@@ -86,6 +87,27 @@ export async function defaultGenerator(
   return translateNodeToCode(nodeId, node);
 }
 
+// Compiles a string of Javascript/TypeScript task function into an executable in-memory function
+function compileCodeToFunction(codeStr: string, tasksObj: any): (api: any) => Promise<void> {
+  let cleanCode = codeStr
+    .replace(/\(api:\s*TestAPI\)/g, "(api)")
+    .trim();
+
+  const wrappedCode = `(${cleanCode})`;
+  const sandbox = {
+    console,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    Promise,
+    Buffer,
+    tasks: tasksObj,
+  };
+  const context = vm.createContext(sandbox);
+  return vm.runInContext(wrappedCode, context);
+}
+
 // Spawns Playwright test execution on the prefix path to acquire grounding DOM and screenshot context
 async function runGroundingSandbox(
   targetFilePath: string,
@@ -96,64 +118,10 @@ async function runGroundingSandbox(
   compiledActionsCache: Map<string, { code: string; title: string }>,
   upToActionId: string,
 ): Promise<{ error: any; context: GroundingContext | null }> {
-  const tempYamlPath = path.join(
-    path.dirname(targetFilePath),
-    `__grounding_${nodeId}.test.yml`,
-  );
-  const tempTsPath = path.join(
-    path.dirname(targetFilePath),
-    `__grounding_${nodeId}.test.ts`,
-  );
-
-  // 1. Generate YAML structure
-  let nodesYml = "";
-  let startNode = prefixNodeIds[0] || nodeId;
-
-  const allNodeIds = [...prefixNodeIds, nodeId];
-  allNodeIds.forEach((nid, index) => {
-    let nextStr = "";
-    if (index < allNodeIds.length - 1) {
-      nextStr = `\n      next: ${allNodeIds[index + 1]}`;
-    }
-    const t = nid === nodeId ? node : { title: "prefix", info: "" };
-    nodesYml += `    ${nid}:\n      title: ${JSON.stringify(t.title)}\n      info: ${JSON.stringify(t.info)}${nextStr}\n`;
-  });
-
-  const yamlContent =
-    `name: grounding\n` +
-    `graph:\n` +
-    `  info: grounding\n` +
-    `  start: ${startNode}\n` +
-    `  nodes:\n` +
-    nodesYml;
-
-  // 2. Generate TS structure
-  let tasksBody = `export const tasks = {\n`;
-  prefixNodeIds.forEach((pid) => {
-    const cached = compiledActionsCache.get(pid);
-    if (cached) {
-      tasksBody += `  [${JSON.stringify(pid)}]: ${cached.code},\n`;
-    }
-  });
-  tasksBody += `  [${JSON.stringify(nodeId)}]: async (api: TestAPI) => {\n${currentCodeBody}\n  },\n`;
-  tasksBody += `};\n`;
-
-  const pathList = allNodeIds.map((nid) => JSON.stringify(nid)).join(", ");
-  const pathsBody = `export const paths = [\n  [${pathList}],\n];\n`;
-
-  const tsContent =
-    `import type { TestAPI } from "@libs/executor";\n\n` +
-    tasksBody +
-    `\n` +
-    pathsBody;
-
   let executionError: any = null;
   let groundingContext: GroundingContext | null = null;
 
   try {
-    fs.writeFileSync(tempYamlPath, yamlContent, "utf-8");
-    fs.writeFileSync(tempTsPath, tsContent, "utf-8");
-
     // Load project configuration variables
     let variables = {};
     try {
@@ -163,12 +131,36 @@ async function runGroundingSandbox(
       // Ignore
     }
 
-    const tempProject = await loadProject(tempTsPath);
-    const execFile = await tempProject.readFile(tempYamlPath);
-    const primaryPath = execFile.paths[0];
-    if (!primaryPath) {
-      throw new Error("No linear paths resolved in temporary spec graph.");
-    }
+    // Build tasks mapping for sandbox context
+    const sandboxTasks: Record<string, (api: any) => Promise<void>> = {};
+    const allNodeIds = [...prefixNodeIds, nodeId];
+
+    // Compile prefix nodes in order
+    prefixNodeIds.forEach((pid) => {
+      const cached = compiledActionsCache.get(pid);
+      if (cached) {
+        sandboxTasks[pid] = compileCodeToFunction(cached.code, sandboxTasks);
+      }
+    });
+
+    // Compile the current target node code
+    const currentCodeWrapped = `async (api: TestAPI) => {\n${currentCodeBody}\n}`;
+    sandboxTasks[nodeId] = compileCodeToFunction(currentCodeWrapped, sandboxTasks);
+
+    // Construct linear in-memory execution Path
+    const tasksList: Task[] = allNodeIds.map((nid) => {
+      const t = nid === nodeId ? node : { title: "prefix", info: "" };
+      const executableTask: Task = {
+        id: nid,
+        title: t.title,
+        info: t.info || "",
+        next: [],
+      };
+      (executableTask as any).execute = sandboxTasks[nid];
+      return executableTask;
+    });
+
+    const primaryPath: Path = { tasks: tasksList };
 
     const runner = await execute(primaryPath, {
       upToActionId,
@@ -178,7 +170,6 @@ async function runGroundingSandbox(
 
     for await (const event of runner.events()) {
       if (event.type === "task-failed" && event.taskId === upToActionId) {
-        // Retrieve error if target task failed
         executionError = event.error;
       }
     }
@@ -204,11 +195,6 @@ async function runGroundingSandbox(
     }
   } catch (err: any) {
     executionError = err;
-  } finally {
-    try {
-      if (fs.existsSync(tempYamlPath)) fs.unlinkSync(tempYamlPath);
-      if (fs.existsSync(tempTsPath)) fs.unlinkSync(tempTsPath);
-    } catch (e) {}
   }
 
   return {
