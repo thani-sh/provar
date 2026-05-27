@@ -1,5 +1,7 @@
 # Agent Instructions
 
+Project status: early development (breaking changes are acceptable)
+
 ## Tooling
 
 - **MUST use Bun** (`bun install`, `bun run`, etc.) for package management.
