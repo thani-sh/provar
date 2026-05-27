@@ -151,7 +151,13 @@ async function runGroundingSandbox(
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-          screenshot = buf.toString("base64");
+          
+          const screenshotsDir = path.resolve(process.cwd(), ".provar/screenshots");
+          fs.mkdirSync(screenshotsDir, { recursive: true });
+          const fileName = `compile-${nodeId}-${Date.now()}.png`;
+          const filePath = path.join(screenshotsDir, fileName);
+          fs.writeFileSync(filePath, buf);
+          screenshot = filePath;
         } catch (e) {}
         groundingContext = { pageContent, screenshot };
       } catch (e) {}
@@ -232,7 +238,13 @@ export async function groundAndGenerateAction(
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-          screenshot = buf.toString("base64");
+          
+          const screenshotsDir = path.resolve(process.cwd(), ".provar/screenshots");
+          fs.mkdirSync(screenshotsDir, { recursive: true });
+          const fileName = `compile-${nodeId}-${Date.now()}.png`;
+          const filePath = path.join(screenshotsDir, fileName);
+          fs.writeFileSync(filePath, buf);
+          screenshot = filePath;
         } catch (e) {}
         context = { pageContent, screenshot };
       }
@@ -279,11 +291,20 @@ export async function groundAndGenerateAction(
     });
   }
   if (context?.screenshot) {
-    blocks.push({
-      type: "image",
-      data: context.screenshot,
-      mimeType: "image/png",
-    });
+    let base64Data = "";
+    try {
+      base64Data = fs.readFileSync(context.screenshot).toString("base64");
+    } catch (e) {
+      console.warn(`[Compiler Warning] Failed to read screenshot from disk:`, e);
+    }
+    
+    if (base64Data) {
+      blocks.push({
+        type: "image",
+        data: base64Data,
+        mimeType: "image/png",
+      });
+    }
   }
 
   let responseText = "";
@@ -463,11 +484,19 @@ export async function groundAndGenerateAction(
             });
           }
           if (testResult.context.screenshot) {
-            feedbackBlocks.push({
-              type: "image",
-              data: testResult.context.screenshot,
-              mimeType: "image/png",
-            });
+            let base64Data = "";
+            try {
+              base64Data = fs.readFileSync(testResult.context.screenshot).toString("base64");
+            } catch (e) {
+              console.warn(`[Compiler Warning] Failed to read self-healing screenshot from disk:`, e);
+            }
+            if (base64Data) {
+              feedbackBlocks.push({
+                type: "image",
+                data: base64Data,
+                mimeType: "image/png",
+              });
+            }
           }
         }
 
