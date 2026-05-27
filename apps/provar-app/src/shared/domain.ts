@@ -12,6 +12,12 @@ export type Assertion = z.infer<typeof assertionSchema>;
 
 export const assertionIdSchema = z.string().regex(/^assert_[a-z0-9]{5}$/);
 
+export const taskConfigSchema = z.object({
+  visualCompare: z.boolean().optional(),
+});
+
+export type TaskConfig = z.infer<typeof taskConfigSchema>;
+
 /**
  * Type definition for a test node.
  */
@@ -20,6 +26,7 @@ export type TestNode = {
   info: string;
   next?: string | string[];
   asserts?: Record<string, Assertion>;
+  config?: TaskConfig;
   graph?: Graph;
   // Augmented properties for the editor
   hasGeneratedCode?: boolean;
@@ -36,6 +43,7 @@ export const testNodeSchema: z.ZodType<TestNode> = z.lazy(() =>
     info: z.string(),
     next: z.union([z.string(), z.array(z.string())]).optional(),
     asserts: z.record(assertionIdSchema, assertionSchema).optional(),
+    config: taskConfigSchema.optional(),
     graph: graphSchema.optional(),
   }),
 );

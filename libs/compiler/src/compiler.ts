@@ -7,16 +7,12 @@ import { createClient } from "@libs/agents";
 import type { Session, Attachment, Client } from "@libs/agents";
 import type { GroundingContext, TestAPI } from "@libs/executor";
 
-import { defaultGenerator, groundAndGenerateAction } from "./generator";
+import { groundAndGenerateAction, CompilerGroundingSession } from "./generator";
+import { CompilerPerformanceTracker, type CompilationTrace } from "./tracker";
 
 export interface CompilerOptions {
   yamlPath: string;
   outputPath?: string;
-  generator?: (
-    nodeId: string,
-    node: Task,
-    context: GroundingContext | null,
-  ) => Promise<string>;
 }
 
 export interface CompileResult {
@@ -24,19 +20,26 @@ export interface CompileResult {
   outputPath: string;
   generatedCode: string;
   pathsResolved: number;
+  trace?: CompilationTrace;
 }
 
 // Main compiler orchestrator
 export async function compile(
   options: CompilerOptions,
 ): Promise<CompileResult> {
+  const tracker = new CompilerPerformanceTracker(options.yamlPath);
+  tracker.start();
+
+  tracker.startParse();
   const content = fs.readFileSync(options.yamlPath, "utf-8");
   const fileDef = parseTestFile(content, options.yamlPath);
+  tracker.endParse();
 
   const outputPath =
     options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
 
   // Load project config to determine provider and workspace root directory
+  tracker.startSetup();
   let providerName: "gemini-cli" | "copilot-cli" = "gemini-cli";
   let workspaceDir = process.cwd();
   try {
@@ -46,18 +49,23 @@ export async function compile(
     // Ignore
   }
 
-  let client: Client | undefined;
-  let session: Session | undefined;
+  let client: Client;
+  let session: Session;
   try {
     console.log(`[Compiler] Starting agent client: ${providerName}`);
     client = createClient(providerName, { workspaceDir });
     session = await client.session();
-  } catch (err) {
-    console.warn(`[Compiler Warning] Failed to start LLM agent:`, err);
+  } catch (err: any) {
+    console.error(`[Compiler Error] Failed to start agent: ${err?.message || err}`);
+    throw new Error(`Failed to initialize agent client: ${err?.message || err}`);
   }
 
-  const generator = options.generator || defaultGenerator;
+  tracker.endSetup();
+
   const generatedActions = new Map<string, { code: string; title: string }>();
+  
+  // Initialize incremental stateful grounding session
+  const groundingSession = new CompilerGroundingSession(true);
 
   try {
     // Sequential recursive node compilation in correct path prefix context
@@ -98,10 +106,11 @@ export async function compile(
           nodeId,
           node,
           {
-            generator,
             prefixActions,
             compiledActionsCache: generatedActions,
             session,
+            groundingSession,
+            tracker,
           },
         );
 
@@ -127,6 +136,7 @@ export async function compile(
       }
     }
 
+    tracker.startWrite();
     let tasksMap = `export const tasks = {\n`;
     for (const [id, cached] of generatedActions.entries()) {
       tasksMap += `  [${JSON.stringify(id)}]: ${cached.code},\n`;
@@ -153,14 +163,25 @@ export async function compile(
     const fileContent = `// hash: ${yamlHash}\n` + bodyContent;
 
     fs.writeFileSync(outputPath, fileContent, "utf-8");
+    tracker.endWrite();
+
+    // End tracking, generate trace report, and write JSON next to output
+    tracker.end();
+    const trace = tracker.getTrace();
+    const tracePath = outputPath.replace(".test.ts", ".trace.json");
+    fs.writeFileSync(tracePath, JSON.stringify(trace, null, 2), "utf-8");
 
     return {
       success: true,
       outputPath,
       generatedCode: fileContent,
       pathsResolved: fileDef.paths.length,
+      trace,
     };
   } finally {
+    // Make sure we close stateful session to prevent leaking processes!
+    await groundingSession.close();
+
     if (client) {
       console.log(`[Compiler] Stopping agent client...`);
       await client.close();

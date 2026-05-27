@@ -11,7 +11,7 @@ import type {
 } from "./types";
 
 export class PathRunner implements Runner {
-  private state: RunnerState = { status: "idle", errors: [] };
+  private state: RunnerState = { status: "idle", errors: [], pageMutated: false };
   private eventQueue: RunnerEvent[] = [];
   private resolveNextEvent:
     | ((value: IteratorResult<RunnerEvent>) => void)
@@ -48,6 +48,7 @@ export class PathRunner implements Runner {
       elapsed,
     };
   }
+
 
   async *events(): AsyncGenerator<RunnerEvent, void> {
     while (!this.isFinished || this.eventQueue.length > 0) {
@@ -149,12 +150,33 @@ export class PathRunner implements Runner {
 
     let runSuccess = true;
     try {
-      this.browser = await chromium.launch({
-        headless: this.options.headless !== false,
+      let page: Page;
+      if (this.options.existingPage) {
+        page = this.options.existingPage;
+        this.activePage = page;
+      } else {
+        this.browser = await chromium.launch({
+          headless: this.options.headless !== false,
+        });
+        const context = await this.browser.newContext();
+        page = await context.newPage();
+        this.activePage = page;
+      }
+
+      const mutatingMethods = [
+        "click", "fill", "type", "press", "goto", 
+        "check", "uncheck", "selectOption", "hover", "dblclick"
+      ];
+      mutatingMethods.forEach((method) => {
+        if (typeof (page as any)[method] === "function") {
+          const original = (page as any)[method].bind(page);
+          (page as any)[method] = async (...args: any[]) => {
+            const res = await original(...args);
+            this.state.pageMutated = true;
+            return res;
+          };
+        }
       });
-      const context = await this.browser.newContext();
-      const page = await context.newPage();
-      this.activePage = page;
 
       const api: TestAPI = {
         page,
@@ -162,6 +184,7 @@ export class PathRunner implements Runner {
         state: {},
         expect,
       };
+
 
       for (const task of this.path.tasks) {
         if (this.cancelSignal) {
@@ -187,18 +210,17 @@ export class PathRunner implements Runner {
           title: task.title,
         });
 
-        // Capture visual screenshot comparisons natively if flagged
-        if ((task as any).visualCompare) {
-          try {
-            const buf = await page.screenshot({ type: "png" });
-            this.pushEvent({
-              type: "visual-comparison-triggered",
-              taskId: task.id,
-              screenshotBase64: buf.toString("base64"),
-            });
-          } catch (e) {
-            // Ignore screenshot triggers failures
-          }
+        // Capture visual screenshot of the step for audit logs and AI grounding (always enabled by default)
+        try {
+          const buf = await page.screenshot({ type: "png" });
+          this.pushEvent({
+            type: "visual-comparison-triggered",
+            taskId: task.id,
+            screenshotBase64: buf.toString("base64"),
+            visualCompare: task.config?.visualCompare === true,
+          });
+        } catch (e) {
+          // Ignore screenshot capture/trigger failures
         }
 
         // Execute dynamic action bindings
@@ -241,7 +263,17 @@ export class PathRunner implements Runner {
         error: err,
       });
     } finally {
-      if (this.browser) {
+      if (this.activePage && !this.options.existingPage) {
+        try {
+          this.state.pageContent = await this.activePage.content();
+          const buf = await this.activePage.screenshot({ type: "png" });
+          this.state.pageScreenshot = buf.toString("base64");
+        } catch (e) {
+          // Ignore
+        }
+      }
+
+      if (this.browser && !this.options.existingPage) {
         await this.browser.close();
         this.browser = null;
         this.activePage = null;
@@ -266,6 +298,7 @@ export class PathRunner implements Runner {
       this.waitResolve?.(result);
     }
   }
+
 }
 
 export async function execute(

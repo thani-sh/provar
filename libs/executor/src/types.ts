@@ -18,6 +18,9 @@ export interface RunnerState {
   current?: string;
   elapsed?: number;
   errors: Array<{ taskId: string; error: Error }>;
+  pageContent?: string;
+  pageScreenshot?: string;
+  pageMutated?: boolean;
 }
 
 export type RunnerEvent =
@@ -29,6 +32,7 @@ export type RunnerEvent =
       type: "visual-comparison-triggered";
       taskId: string;
       screenshotBase64: string;
+      visualCompare?: boolean;
     }
   | { type: "run-finished"; status: RunnerState["status"] };
 
@@ -49,4 +53,7 @@ export interface ExecuteOptions {
   headless?: boolean;
   variables?: Record<string, any>;
   upToActionId?: string;
+  existingPage?: Page;
 }
+
+

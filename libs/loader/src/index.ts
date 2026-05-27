@@ -90,6 +90,11 @@ function buildTasksMap(rawNodes: Record<string, any>): Record<string, Task> {
       title: raw.title || "",
       info: raw.info || "",
       next: Array.isArray(raw.next) ? raw.next : raw.next ? [raw.next] : [],
+      config: raw.config
+        ? {
+            visualCompare: raw.config.visualCompare,
+          }
+        : undefined,
       code: raw.code,
       graph: raw.graph
         ? {

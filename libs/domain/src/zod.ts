@@ -5,6 +5,11 @@ const coerceStringToArray = z
   .union([z.string(), z.array(z.string())])
   .transform((val) => (typeof val === "string" ? [val] : val));
 
+// TaskConfig Schema
+export const schemaForTaskConfig = z.object({
+  visualCompare: z.boolean().optional(),
+});
+
 // 1. Task Schema
 export const schemaForTask: z.ZodType<Task, z.ZodTypeDef, any> = z.lazy(() =>
   z.object({
@@ -12,6 +17,7 @@ export const schemaForTask: z.ZodType<Task, z.ZodTypeDef, any> = z.lazy(() =>
     title: z.string(),
     info: z.string(),
     next: coerceStringToArray,
+    config: schemaForTaskConfig.optional(),
     code: z.string().optional(),
     graph: z.lazy(() => schemaForGraph).optional(),
   }),

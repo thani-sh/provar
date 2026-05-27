@@ -10,6 +10,8 @@ graph:
     action_logi1:
       title: login
       info: Enter username "testuser" and click Login
+      config:
+        visualCompare: true
       next: action_clis1
     action_clis1:
       title: create list

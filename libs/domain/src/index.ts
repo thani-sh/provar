@@ -1,8 +1,16 @@
+/**
+ * TaskConfig contains step-level execution configuration overrides.
+ */
+export interface TaskConfig {
+  visualCompare?: boolean;
+}
+
 export interface Task {
   id: string;
   title: string;
   info: string;
   next: string[];
+  config?: TaskConfig;
   code?: string;
   graph?: Graph;
 }
