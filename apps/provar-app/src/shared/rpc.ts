@@ -50,6 +50,22 @@ export type ProvarRPCSchema = {
           };
         };
       };
+      compileTest: {
+        params: { path: string };
+        response: { success: boolean; error?: string };
+      };
+      runTestPath: {
+        params: { path: string; pathIndex: number; upToActionId?: string; headless?: boolean };
+        response: { success: boolean; runId?: string; error?: string };
+      };
+      acceptVisualState: {
+        params: { testPath: string; pathIndex: number; actionId: string };
+        response: { success: boolean };
+      };
+      getScreenshots: {
+        params: { testPath: string; pathIndex: number; actionId: string };
+        response: { baseline?: string; current?: string };
+      };
     };
   }>;
   webview: RPCSchema<{
@@ -62,6 +78,18 @@ export type ProvarRPCSchema = {
       };
       assistantChunk: {
         params: { text: string; status: "pending" | "completed" | "error" };
+      };
+      testRunEvent: {
+        params: {
+          runId: string;
+          type: "run-started" | "task-started" | "task-finished" | "task-failed" | "visual-comparison-triggered" | "run-finished";
+          taskId?: string;
+          title?: string;
+          error?: string;
+          screenshotBase64?: string;
+          visualCompare?: boolean;
+          status?: string;
+        };
       };
     };
   }>;

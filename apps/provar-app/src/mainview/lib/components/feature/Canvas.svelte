@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from "svelte";
   import type { TestFile } from "../../../../shared/domain";
   import { InfiniteCanvas } from "../../canvas/InfiniteCanvas";
+  import { editorStore } from "../../stores/EditorStore.svelte";
 
   interface Props {
     testFile: TestFile;
@@ -27,13 +28,13 @@
     };
 
     if (testFile) {
-      infiniteCanvas.renderGraph(testFile);
+      infiniteCanvas.renderGraph(testFile, editorStore.taskStates);
     }
   });
 
   $effect(() => {
     if (testFile && infiniteCanvas) {
-      infiniteCanvas.renderGraph(testFile);
+      infiniteCanvas.renderGraph(testFile, editorStore.taskStates);
     }
   });
 

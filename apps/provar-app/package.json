@@ -13,6 +13,9 @@
   },
   "dependencies": {
     "@libs/agents": "workspace:*",
+    "@libs/compiler": "workspace:*",
+    "@libs/loader": "workspace:*",
+    "@libs/executor": "workspace:*",
     "electrobun": "1.18.1",
     "lucide-svelte": "^0.474.0",
     "pixi.js": "^8.18.1",
@@ -23,6 +26,7 @@
     "@sveltejs/vite-plugin-svelte": "^5.0.3",
     "@tailwindcss/vite": "^4.0.0",
     "@types/bun": "latest",
+    "chromium-bidi": "^0.8.0",
     "concurrently": "^9.1.0",
     "prettier": "^3.8.3",
     "prettier-plugin-svelte": "^3.5.2",

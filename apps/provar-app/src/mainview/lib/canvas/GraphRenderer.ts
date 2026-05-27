@@ -20,6 +20,7 @@ export class GraphRenderer extends PIXI.Container {
 
   constructor(
     testFile: TestFile,
+    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
     onNodeSelect: (id: string) => void,
     onAddNode: (fromId: string | null, toId: string | null) => void,
   ) {
@@ -29,19 +30,20 @@ export class GraphRenderer extends PIXI.Container {
     this.addChild(this.linksContainer);
     this.startShape = new StartShape();
     this.addChild(this.startShape);
-    this.build(testFile.graph);
+    this.build(testFile.graph, taskStates);
   }
 
-  private build(graph: Graph) {
-    this.createShapes(graph);
+  private build(graph: Graph, taskStates: Record<string, "idle" | "running" | "success" | "failed">) {
+    this.createShapes(graph, taskStates);
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
     this.drawConnections(graph, depths);
   }
 
-  private createShapes(graph: Graph) {
+  private createShapes(graph: Graph, taskStates: Record<string, "idle" | "running" | "success" | "failed">) {
     for (const [id, node] of Object.entries(graph.nodes)) {
-      const shape = new ActionShape(id, node, this.onNodeSelect);
+      const state = taskStates[id] || "idle";
+      const shape = new ActionShape(id, node, state, this.onNodeSelect);
       this.actionShapes.set(id, shape);
       this.addChild(shape);
 

@@ -255,7 +255,7 @@
         <ul class="mt-3 list-inside list-disc space-y-2 text-xs text-zinc-400">
           <li>Generate new test steps based on a description</li>
           <li>Refactor existing test flows</li>
-          <li>Add assertions to your nodes</li>
+          <li>Add validation checks to your nodes</li>
           <li>Explain how a test works</li>
         </ul>
         <p

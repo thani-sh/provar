@@ -15,8 +15,8 @@ export class ActionShape extends NodeShape {
     return 12;
   }
 
-  constructor(nodeId: string, node: TestNode, onClick: (id: string) => void) {
-    super(nodeId, node.title);
+  constructor(nodeId: string, node: TestNode, state: "idle" | "running" | "success" | "failed", onClick: (id: string) => void) {
+    super(nodeId, node.title, state);
 
     this.eventMode = "static";
     this.cursor = "pointer";
@@ -38,6 +38,42 @@ export class ActionShape extends NodeShape {
       icons.push(g);
       iconContainer.addChild(g);
     };
+
+    // Render visual execution state icons
+    if (state === "success") {
+      addIcon((g) => {
+        g.moveTo(2, 5);
+        g.lineTo(5, 8);
+        g.lineTo(9, 2);
+        g.stroke({
+          color: 0x10b981,
+          width: 2,
+          join: "round",
+          cap: "round",
+        });
+      }, 1.0);
+    } else if (state === "failed") {
+      addIcon((g) => {
+        g.moveTo(2, 2);
+        g.lineTo(8, 8);
+        g.moveTo(8, 2);
+        g.lineTo(2, 8);
+        g.stroke({
+          color: 0xef4444,
+          width: 2,
+          join: "round",
+          cap: "round",
+        });
+      }, 1.0);
+    } else if (state === "running") {
+      addIcon((g) => {
+        g.circle(5, 5, 4);
+        g.stroke({
+          color: 0x3b82f6,
+          width: 1.5,
+        });
+      }, 1.0);
+    }
 
     if (node.graph) {
       addIcon((g) => {
@@ -75,19 +111,7 @@ export class ActionShape extends NodeShape {
     // I'll skip pixel diff icon for now unless I add it to the schema.
     // if (node.visualPixelDiffEnabled) { ... }
 
-    if (node.asserts && Object.keys(node.asserts).length > 0) {
-      addIcon((g) => {
-        g.moveTo(1, 5);
-        g.lineTo(4, 8);
-        g.lineTo(9, 2);
-        g.stroke({
-          color: COLOURS.assertGreen,
-          width: 1.5,
-          join: "round",
-          cap: "round",
-        });
-      }, 0.8);
-    }
+
 
     let offsetX = 0;
     for (const icon of icons) {

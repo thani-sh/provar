@@ -6,7 +6,9 @@
     Search,
     Settings,
     Sparkles,
+    Play,
   } from "lucide-svelte";
+  import { editorStore } from "../../stores/EditorStore.svelte";
 
   let {
     files = [],
@@ -150,7 +152,7 @@
     <div
       role="button"
       tabindex="0"
-      class="mx-2 flex cursor-pointer items-center rounded py-1 pr-2 text-xs select-none hover:bg-[#21262d] {selectedFile ===
+      class="mx-2 flex cursor-pointer items-center justify-between rounded py-1 pr-2 text-xs select-none hover:bg-[#21262d] {selectedFile ===
       node.path
         ? 'bg-[#21262d] text-zinc-200'
         : 'text-zinc-400'}"
@@ -164,12 +166,31 @@
       }}
       oncontextmenu={(e) => handleContextMenu(e, node.path, "file")}
     >
-      <File
-        class="mr-2 h-3.5 w-3.5 {selectedFile === node.path
-          ? 'text-blue-400'
-          : 'text-zinc-500'}"
-      />
-      <span class="truncate">{node.name}</span>
+      <div class="flex items-center min-w-0">
+        <File
+          class="mr-2 h-3.5 w-3.5 shrink-0 {selectedFile === node.path
+            ? 'text-blue-400'
+            : 'text-zinc-500'}"
+        />
+        <span class="truncate">{node.name}</span>
+      </div>
+      
+      {#if selectedFile === node.path}
+        {#if editorStore.isRunning}
+          <div class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"></div>
+        {:else}
+          <button
+            class="ml-2 rounded p-1 text-zinc-400 hover:bg-[#30363d] hover:text-blue-400 transition-colors"
+            onclick={(e) => {
+              e.stopPropagation();
+              editorStore.runCurrentTest();
+            }}
+            title="Run Test"
+          >
+            <Play size={10} class="fill-current" />
+          </button>
+        {/if}
+      {/if}
     </div>
   {/if}
 {/snippet}

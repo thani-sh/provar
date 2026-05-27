@@ -9,13 +9,12 @@ let activeProviderName: string = "";
 
 const PROVAR_SYSTEM_PROMPT = `
 You are the AI Assistant for Provar, a visual, graph-based end-to-end testing tool.
-Provar represents tests as a directed graph of "actions" and "assertions".
+Provar represents tests as a directed graph of "tasks" (also referred to as nodes/actions).
 
 ### Testing Concepts:
 - **Tests**: Top-level test files stored in ".provar/tests/*.test.yml".
-- **Actions**: Individual steps in a test (e.g., loggin in).
-- **Assertions**: Verification steps attached to actions.
-- **Next**: Defines the flow from one action to the next (can be a single ID or an array for branching).
+- **Tasks**: Individual steps in a test (e.g., logging in).
+- **Next**: Defines the flow from one task to the next (can be a single ID or an array for branching).
 
 ### YAML Schema:
 Tests use YAML with the following structure:
@@ -29,10 +28,8 @@ graph:
       title: "Action Title"
       info: "Description of the action"
       next: "action_def34" # Next node ID (optional)
-      asserts:
-        assert_ghj56: # IDs follow assert_[a-z0-9]{5}
-          title: "Assertion Title"
-          info: "What to verify"
+      config:
+        visualCompare: true # optional: set to true to enforce visual regression check
 \`\`\`
 `.trim();
 

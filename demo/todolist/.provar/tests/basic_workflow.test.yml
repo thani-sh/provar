@@ -10,9 +10,9 @@ graph:
     action_logi1:
       title: login
       info: Enter username "testuser" and click Login
+      next: action_clis1
       config:
         visualCompare: true
-      next: action_clis1
     action_clis1:
       title: create list
       info: Enter "Shopping" in the new list input and click Add List
@@ -28,3 +28,5 @@ graph:
         assert_done1:
           title: Task Completed
           info: Verify that the task text has the "completed" class or style
+      config:
+        visualCompare: true

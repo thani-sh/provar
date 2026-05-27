@@ -1,3 +1,4 @@
+import { registerRPCHandlers } from "../api/rpc";
 import { ProvarAPI } from "../api/provar";
 import {
   addNodeToGraph,
@@ -11,17 +12,144 @@ class EditorStore {
   currentFile = $state<TestFile | null>(null);
   selectedFilePath = $state<string | null>(null);
   selectedNodeId = $state<string | null>(null);
+  
+  isRunning = $state(false);
+  isCompiling = $state(false);
+  taskStates = $state<Record<string, "idle" | "running" | "success" | "failed">>({});
+  screenshots = $state<Record<string, { baseline?: string; current?: string }>>({});
 
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
     return this.currentFile.graph.nodes[this.selectedNodeId] || null;
   });
 
+  constructor() {
+    registerRPCHandlers({
+      testRunEvent: (event) => {
+        console.log("[EditorStore] Received testRunEvent:", event.type, "taskId:", event.taskId, "isRunning before:", this.isRunning);
+        
+        if (event.type === "run-started") {
+          this.isRunning = true;
+          this.taskStates = {};
+          if (this.currentFile?.graph?.nodes) {
+            for (const id of Object.keys(this.currentFile.graph.nodes)) {
+              this.taskStates[id] = "idle";
+            }
+          }
+          console.log("[EditorStore] isRunning updated to:", this.isRunning);
+          return;
+        }
+        
+        if (event.type === "run-finished") {
+          this.isRunning = false;
+          console.log("[EditorStore] isRunning updated to:", this.isRunning);
+          return;
+        }
+        
+        if (!this.currentFile) {
+          console.warn("[EditorStore] Warning: currentFile is not loaded, skipping task state updates");
+          return;
+        }
+        
+        switch (event.type) {
+          case "task-started":
+            if (event.taskId) {
+              this.taskStates[event.taskId] = "running";
+            }
+            break;
+          case "task-finished":
+            if (event.taskId) {
+              this.taskStates[event.taskId] = "success";
+              this.loadScreenshotsForNode(event.taskId);
+            }
+            break;
+          case "task-failed":
+            if (event.taskId) {
+              this.taskStates[event.taskId] = "failed";
+              this.loadScreenshotsForNode(event.taskId);
+            }
+            break;
+          case "visual-comparison-triggered":
+            if (event.taskId) {
+              this.loadScreenshotsForNode(event.taskId);
+            }
+            break;
+        }
+      },
+    });
+  }
+
+  async compileCurrentTest() {
+    if (!this.selectedFilePath) return;
+    this.isCompiling = true;
+    try {
+      const res = await ProvarAPI.compileTest(this.selectedFilePath);
+      this.isCompiling = false;
+      return res.success;
+    } catch (e) {
+      console.error("EditorStore: Compile failed:", e);
+      this.isCompiling = false;
+      return false;
+    }
+  }
+
+  async runCurrentTest() {
+    if (!this.selectedFilePath || this.isRunning) return;
+    this.isRunning = true;
+    this.taskStates = {};
+    
+    try {
+      // Trigger execution path index 0 (first resolved path in test yml)
+      const res = await ProvarAPI.runTestPath(this.selectedFilePath, 0, undefined, true);
+      if (!res.success) {
+        this.isRunning = false;
+        alert(`Test execution failed to start: ${res.error}`);
+      }
+    } catch (e) {
+      console.error("EditorStore: Run failed:", e);
+      this.isRunning = false;
+    }
+  }
+
+  async loadScreenshotsForNode(nodeId: string) {
+    if (!this.selectedFilePath) return;
+    try {
+      const res = await ProvarAPI.getScreenshots(this.selectedFilePath, 0, nodeId);
+      this.screenshots[nodeId] = {
+        baseline: res.baseline,
+        current: res.current,
+      };
+    } catch (e) {
+      console.error("EditorStore: Failed to get screenshots:", e);
+    }
+  }
+
+  async acceptVisualStateForNode(nodeId: string) {
+    if (!this.selectedFilePath) return;
+    try {
+      const res = await ProvarAPI.acceptVisualState(this.selectedFilePath, 0, nodeId);
+      if (res.success) {
+        await this.loadScreenshotsForNode(nodeId);
+      } else {
+        alert("Failed to promote baseline screenshot.");
+      }
+    } catch (e) {
+      console.error("EditorStore: Promote baseline error:", e);
+    }
+  }
+
   async loadFile(path: string) {
     this.selectedFilePath = path;
     const res = await ProvarAPI.readFile(path);
     this.currentFile = res.content;
     this.selectedNodeId = null;
+    this.taskStates = {};
+    this.screenshots = {};
+    if (this.currentFile?.graph?.nodes) {
+      for (const id of Object.keys(this.currentFile.graph.nodes)) {
+        this.loadScreenshotsForNode(id);
+      }
+    }
   }
 
   async closeFile() {
