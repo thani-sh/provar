@@ -1,4 +1,5 @@
 class UIStore {
+  isSidebarOpen = $state(true);
   isAssistantPanelOpen = $state(false);
   isConfigPanelOpen = $state(false);
   isInputModalOpen = $state(false);
@@ -21,12 +22,18 @@ class UIStore {
     this.isInputModalOpen = true;
   }
 
+  toggleSidebar() {
+    this.isSidebarOpen = !this.isSidebarOpen;
+  }
+
   toggleAssistant() {
+    this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
     this.isAssistantPanelOpen = !this.isAssistantPanelOpen;
     this.isConfigPanelOpen = false;
   }
 
   toggleConfig() {
+    this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
     this.isConfigPanelOpen = !this.isConfigPanelOpen;
     this.isAssistantPanelOpen = false;
   }

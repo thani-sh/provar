@@ -120,6 +120,25 @@
 <div
   class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300"
 >
+  <div 
+    class="absolute top-0 left-0 right-0 h-[38px] z-10 pointer-events-none" 
+    style="-webkit-app-region: drag;"
+  ></div>
+
+  {#if workspaceStore.path && !uiStore.isSidebarOpen}
+    <button
+      onclick={() => uiStore.toggleSidebar()}
+      class="absolute top-[14px] left-[80px] z-30 flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-800/80 bg-[#161b22]/50 hover:bg-zinc-800/80 hover:text-zinc-200 transition-all duration-200 ease-in-out backdrop-blur-md text-zinc-400 pointer-events-auto shadow-lg"
+      style="-webkit-app-region: no-drag;"
+      title="Show Sidebar"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M9 3v18" />
+      </svg>
+    </button>
+  {/if}
+
   <!-- svelte-ignore a11y_interactive_supports_focus -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div

@@ -9,6 +9,7 @@
     Play,
   } from "lucide-svelte";
   import { editorStore } from "../../stores/EditorStore.svelte";
+  import { uiStore } from "../../stores/UIStore.svelte";
 
   let {
     files = [],
@@ -198,10 +199,27 @@
 {/snippet}
 
 <aside
-  class="absolute top-8 bottom-2 left-2 z-20 flex w-[260px] flex-col rounded-xl border border-zinc-800/80 bg-[#161b22]/50 shadow-2xl backdrop-blur-md"
+  class="absolute top-2 bottom-2 left-2 z-20 flex w-[260px] flex-col rounded-xl border border-zinc-800/80 bg-[#161b22]/50 shadow-2xl backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isSidebarOpen ? '-translate-x-[280px] pointer-events-none' : 'translate-x-0'}"
   oncontextmenu={(e) => handleContextMenu(e, ".provar", "folder")}
 >
-  <div class="px-3 pt-4 pb-2">
+  <div 
+    class="h-[40px] w-full flex items-center pl-[78px] shrink-0 select-none pointer-events-none"
+    style="-webkit-app-region: drag;"
+  >
+    <button
+      onclick={() => uiStore.toggleSidebar()}
+      class="flex h-7 w-7 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200 transition-colors pointer-events-auto"
+      style="-webkit-app-region: no-drag;"
+      title="Hide Sidebar"
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M9 3v18" />
+      </svg>
+    </button>
+  </div>
+
+  <div class="px-3 pt-2 pb-2">
     <div class="relative">
       <Search class="absolute top-2 right-2.5 h-3.5 w-3.5 text-zinc-500" />
       <input
