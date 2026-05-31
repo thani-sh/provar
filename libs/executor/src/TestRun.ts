@@ -14,7 +14,11 @@ import type {
 } from "./types";
 
 export class PathRunner implements Runner {
-  private state: RunnerState = { status: "idle", errors: [], pageMutated: false };
+  private state: RunnerState = {
+    status: "idle",
+    errors: [],
+    pageMutated: false,
+  };
   private eventQueue: RunnerEvent[] = [];
   private resolveNextEvent:
     | ((value: IteratorResult<RunnerEvent>) => void)
@@ -51,7 +55,6 @@ export class PathRunner implements Runner {
       elapsed,
     };
   }
-
 
   async *events(): AsyncGenerator<RunnerEvent, void> {
     while (!this.isFinished || this.eventQueue.length > 0) {
@@ -167,8 +170,16 @@ export class PathRunner implements Runner {
       }
 
       const mutatingMethods = [
-        "click", "fill", "type", "press", "goto", 
-        "check", "uncheck", "selectOption", "hover", "dblclick"
+        "click",
+        "fill",
+        "type",
+        "press",
+        "goto",
+        "check",
+        "uncheck",
+        "selectOption",
+        "hover",
+        "dblclick",
       ];
       mutatingMethods.forEach((method) => {
         if (typeof (page as any)[method] === "function") {
@@ -187,7 +198,6 @@ export class PathRunner implements Runner {
         state: {},
         expect,
       };
-
 
       for (const task of this.path.tasks) {
         if (this.cancelSignal) {
@@ -270,13 +280,16 @@ export class PathRunner implements Runner {
         try {
           this.state.pageContent = await this.activePage.content();
           const buf = await this.activePage.screenshot({ type: "png" });
-          
-          const screenshotsDir = path.resolve(process.cwd(), ".provar/screenshots");
+
+          const screenshotsDir = path.resolve(
+            process.cwd(),
+            ".provar/screenshots",
+          );
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `run-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
           const filePath = path.join(screenshotsDir, fileName);
           fs.writeFileSync(filePath, buf);
-          
+
           this.state.pageScreenshot = filePath;
         } catch (e) {
           // Ignore
@@ -308,7 +321,6 @@ export class PathRunner implements Runner {
       this.waitResolve?.(result);
     }
   }
-
 }
 
 export async function execute(

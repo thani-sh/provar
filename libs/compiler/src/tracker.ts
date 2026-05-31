@@ -72,7 +72,11 @@ export class CompilerPerformanceTracker {
     this.totalTimings[key].push(durationMs);
   }
 
-  initTask(id: string, title: string, mode: TaskTelemetry["mode"] = "STATEFUL") {
+  initTask(
+    id: string,
+    title: string,
+    mode: TaskTelemetry["mode"] = "STATEFUL",
+  ) {
     this.tasks.set(id, {
       id,
       title,
@@ -128,10 +132,18 @@ export class CompilerPerformanceTracker {
   }
 
   getTrace(): CompilationTrace {
-    const totalDurationMs = this.endTime ? this.endTime - this.startTime : performance.now() - this.startTime;
-    const setupDurationMs = this.setupEndTime ? this.setupEndTime - this.setupStartTime : 0;
-    const parseDurationMs = this.parseEndTime ? this.parseEndTime - this.parseStartTime : 0;
-    const writeDurationMs = this.writeEndTime ? this.writeEndTime - this.writeStartTime : 0;
+    const totalDurationMs = this.endTime
+      ? this.endTime - this.startTime
+      : performance.now() - this.startTime;
+    const setupDurationMs = this.setupEndTime
+      ? this.setupEndTime - this.setupStartTime
+      : 0;
+    const parseDurationMs = this.parseEndTime
+      ? this.parseEndTime - this.parseStartTime
+      : 0;
+    const writeDurationMs = this.writeEndTime
+      ? this.writeEndTime - this.writeStartTime
+      : 0;
 
     return {
       target: this.target,

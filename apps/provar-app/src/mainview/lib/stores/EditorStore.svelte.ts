@@ -12,11 +12,15 @@ class EditorStore {
   currentFile = $state<TestFile | null>(null);
   selectedFilePath = $state<string | null>(null);
   selectedNodeId = $state<string | null>(null);
-  
+
   isRunning = $state(false);
   isCompiling = $state(false);
-  taskStates = $state<Record<string, "idle" | "running" | "success" | "failed">>({});
-  screenshots = $state<Record<string, { baseline?: string; current?: string }>>({});
+  taskStates = $state<
+    Record<string, "idle" | "running" | "success" | "failed">
+  >({});
+  screenshots = $state<Record<string, { baseline?: string; current?: string }>>(
+    {},
+  );
 
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
@@ -26,8 +30,15 @@ class EditorStore {
   constructor() {
     registerRPCHandlers({
       testRunEvent: (event) => {
-        console.log("[EditorStore] Received testRunEvent:", event.type, "taskId:", event.taskId, "isRunning before:", this.isRunning);
-        
+        console.log(
+          "[EditorStore] Received testRunEvent:",
+          event.type,
+          "taskId:",
+          event.taskId,
+          "isRunning before:",
+          this.isRunning,
+        );
+
         if (event.type === "run-started") {
           this.isRunning = true;
           this.taskStates = {};
@@ -39,18 +50,20 @@ class EditorStore {
           console.log("[EditorStore] isRunning updated to:", this.isRunning);
           return;
         }
-        
+
         if (event.type === "run-finished") {
           this.isRunning = false;
           console.log("[EditorStore] isRunning updated to:", this.isRunning);
           return;
         }
-        
+
         if (!this.currentFile) {
-          console.warn("[EditorStore] Warning: currentFile is not loaded, skipping task state updates");
+          console.warn(
+            "[EditorStore] Warning: currentFile is not loaded, skipping task state updates",
+          );
           return;
         }
-        
+
         switch (event.type) {
           case "task-started":
             if (event.taskId) {
@@ -97,10 +110,15 @@ class EditorStore {
     if (!this.selectedFilePath || this.isRunning) return;
     this.isRunning = true;
     this.taskStates = {};
-    
+
     try {
       // Trigger execution path index 0 (first resolved path in test yml)
-      const res = await ProvarAPI.runTestPath(this.selectedFilePath, 0, undefined, true);
+      const res = await ProvarAPI.runTestPath(
+        this.selectedFilePath,
+        0,
+        undefined,
+        true,
+      );
       if (!res.success) {
         this.isRunning = false;
         alert(`Test execution failed to start: ${res.error}`);
@@ -114,7 +132,11 @@ class EditorStore {
   async loadScreenshotsForNode(nodeId: string) {
     if (!this.selectedFilePath) return;
     try {
-      const res = await ProvarAPI.getScreenshots(this.selectedFilePath, 0, nodeId);
+      const res = await ProvarAPI.getScreenshots(
+        this.selectedFilePath,
+        0,
+        nodeId,
+      );
       this.screenshots[nodeId] = {
         baseline: res.baseline,
         current: res.current,
@@ -127,7 +149,11 @@ class EditorStore {
   async acceptVisualStateForNode(nodeId: string) {
     if (!this.selectedFilePath) return;
     try {
-      const res = await ProvarAPI.acceptVisualState(this.selectedFilePath, 0, nodeId);
+      const res = await ProvarAPI.acceptVisualState(
+        this.selectedFilePath,
+        0,
+        nodeId,
+      );
       if (res.success) {
         await this.loadScreenshotsForNode(nodeId);
       } else {

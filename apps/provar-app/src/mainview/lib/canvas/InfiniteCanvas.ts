@@ -85,7 +85,10 @@ export class InfiniteCanvas {
     }
   }
 
-  public renderGraph(testFile: TestFile, taskStates: Record<string, "idle" | "running" | "success" | "failed"> = {}) {
+  public renderGraph(
+    testFile: TestFile,
+    taskStates: Record<string, "idle" | "running" | "success" | "failed"> = {},
+  ) {
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;
 

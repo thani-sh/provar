@@ -55,7 +55,12 @@ export type ProvarRPCSchema = {
         response: { success: boolean; error?: string };
       };
       runTestPath: {
-        params: { path: string; pathIndex: number; upToActionId?: string; headless?: boolean };
+        params: {
+          path: string;
+          pathIndex: number;
+          upToActionId?: string;
+          headless?: boolean;
+        };
         response: { success: boolean; runId?: string; error?: string };
       };
       acceptVisualState: {
@@ -82,7 +87,13 @@ export type ProvarRPCSchema = {
       testRunEvent: {
         params: {
           runId: string;
-          type: "run-started" | "task-started" | "task-finished" | "task-failed" | "visual-comparison-triggered" | "run-finished";
+          type:
+            | "run-started"
+            | "task-started"
+            | "task-finished"
+            | "task-failed"
+            | "visual-comparison-triggered"
+            | "run-finished";
           taskId?: string;
           title?: string;
           error?: string;

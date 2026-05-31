@@ -15,7 +15,10 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
         handlers.assistantChunk?.(params.params);
       },
       testRunEvent: (params) => {
-        console.log("[RPC Client] Received testRunEvent notification:", params.params);
+        console.log(
+          "[RPC Client] Received testRunEvent notification:",
+          params.params,
+        );
         handlers.testRunEvent?.(params.params);
       },
     },
@@ -33,7 +36,13 @@ type Handlers = {
   }) => void;
   testRunEvent?: (params: {
     runId: string;
-    type: "run-started" | "task-started" | "task-finished" | "task-failed" | "visual-comparison-triggered" | "run-finished";
+    type:
+      | "run-started"
+      | "task-started"
+      | "task-finished"
+      | "task-failed"
+      | "visual-comparison-triggered"
+      | "run-finished";
     taskId?: string;
     title?: string;
     error?: string;

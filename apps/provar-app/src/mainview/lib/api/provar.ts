@@ -71,32 +71,73 @@ export const ProvarAPI = {
     console.log("[RPC Client] assistEditor response:", res);
     return res;
   },
-  
+
   async compileTest(path: string) {
     console.log("[RPC Client] compileTest request:", path);
     const res = await electroview.rpc!.request.compileTest({ path });
     console.log("[RPC Client] compileTest response:", res);
     return res;
   },
-  
-  async runTestPath(path: string, pathIndex: number, upToActionId?: string, headless?: boolean) {
-    console.log("[RPC Client] runTestPath request:", path, pathIndex, upToActionId, headless);
-    const res = await electroview.rpc!.request.runTestPath({ path, pathIndex, upToActionId, headless });
+
+  async runTestPath(
+    path: string,
+    pathIndex: number,
+    upToActionId?: string,
+    headless?: boolean,
+  ) {
+    console.log(
+      "[RPC Client] runTestPath request:",
+      path,
+      pathIndex,
+      upToActionId,
+      headless,
+    );
+    const res = await electroview.rpc!.request.runTestPath({
+      path,
+      pathIndex,
+      upToActionId,
+      headless,
+    });
     console.log("[RPC Client] runTestPath response:", res);
     return res;
   },
-  
-  async acceptVisualState(testPath: string, pathIndex: number, actionId: string) {
-    console.log("[RPC Client] acceptVisualState request:", testPath, pathIndex, actionId);
-    const res = await electroview.rpc!.request.acceptVisualState({ testPath, pathIndex, actionId });
+
+  async acceptVisualState(
+    testPath: string,
+    pathIndex: number,
+    actionId: string,
+  ) {
+    console.log(
+      "[RPC Client] acceptVisualState request:",
+      testPath,
+      pathIndex,
+      actionId,
+    );
+    const res = await electroview.rpc!.request.acceptVisualState({
+      testPath,
+      pathIndex,
+      actionId,
+    });
     console.log("[RPC Client] acceptVisualState response:", res);
     return res;
   },
-  
+
   async getScreenshots(testPath: string, pathIndex: number, actionId: string) {
-    console.log("[RPC Client] getScreenshots request:", testPath, pathIndex, actionId);
-    const res = await electroview.rpc!.request.getScreenshots({ testPath, pathIndex, actionId });
-    console.log("[RPC Client] getScreenshots response (keys):", Object.keys(res));
+    console.log(
+      "[RPC Client] getScreenshots request:",
+      testPath,
+      pathIndex,
+      actionId,
+    );
+    const res = await electroview.rpc!.request.getScreenshots({
+      testPath,
+      pathIndex,
+      actionId,
+    });
+    console.log(
+      "[RPC Client] getScreenshots response (keys):",
+      Object.keys(res),
+    );
     return res;
   },
 };

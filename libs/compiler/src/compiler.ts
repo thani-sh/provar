@@ -56,14 +56,18 @@ export async function compile(
     client = createClient(providerName, { workspaceDir });
     session = await client.session();
   } catch (err: any) {
-    console.error(`[Compiler Error] Failed to start agent: ${err?.message || err}`);
-    throw new Error(`Failed to initialize agent client: ${err?.message || err}`);
+    console.error(
+      `[Compiler Error] Failed to start agent: ${err?.message || err}`,
+    );
+    throw new Error(
+      `Failed to initialize agent client: ${err?.message || err}`,
+    );
   }
 
   tracker.endSetup();
 
   const generatedActions = new Map<string, { code: string; title: string }>();
-  
+
   // Initialize incremental stateful grounding session
   const groundingSession = new CompilerGroundingSession(true);
 

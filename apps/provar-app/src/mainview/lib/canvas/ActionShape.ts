@@ -15,7 +15,12 @@ export class ActionShape extends NodeShape {
     return 12;
   }
 
-  constructor(nodeId: string, node: TestNode, state: "idle" | "running" | "success" | "failed", onClick: (id: string) => void) {
+  constructor(
+    nodeId: string,
+    node: TestNode,
+    state: "idle" | "running" | "success" | "failed",
+    onClick: (id: string) => void,
+  ) {
     super(nodeId, node.title, state);
 
     this.eventMode = "static";
@@ -110,8 +115,6 @@ export class ActionShape extends NodeShape {
     // node screenshotUrl is currently not in TestNode, but it was in the old EditorTestNode.
     // I'll skip pixel diff icon for now unless I add it to the schema.
     // if (node.visualPixelDiffEnabled) { ... }
-
-
 
     let offsetX = 0;
     for (const icon of icons) {

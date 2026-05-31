@@ -26,7 +26,11 @@ export class NodeShape extends PIXI.Container {
     return this.bg.height;
   }
 
-  constructor(nodeId: string, title: string, state: "idle" | "running" | "success" | "failed" = "idle") {
+  constructor(
+    nodeId: string,
+    title: string,
+    state: "idle" | "running" | "success" | "failed" = "idle",
+  ) {
     super();
     this.nodeId = nodeId;
 
@@ -54,7 +58,7 @@ export class NodeShape extends PIXI.Container {
 
     this.bg.roundRect(0, 0, width, height, finalRadius);
     this.bg.fill({ color: COLOURS.nodeBg });
-    
+
     let borderColor: number = COLOURS.nodeBorder;
     let strokeWidth = 1;
     if (state === "running") {
@@ -67,7 +71,7 @@ export class NodeShape extends PIXI.Container {
       borderColor = 0xef4444; // Crimson Red
       strokeWidth = 2;
     }
-    
+
     this.bg.stroke({ color: borderColor, width: strokeWidth });
 
     this.pivot.set(0, height / 2);

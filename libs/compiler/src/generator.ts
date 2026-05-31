@@ -46,13 +46,12 @@ export function cleanCode(code: string): string {
   return cleaned.trim();
 }
 
-
-
 // Compiles a string of Javascript/TypeScript task function into an executable in-memory function
-function compileCodeToFunction(codeStr: string, tasksObj: any): (api: any) => Promise<void> {
-  let cleanCode = codeStr
-    .replace(/\(api:\s*TestAPI\)/g, "(api)")
-    .trim();
+function compileCodeToFunction(
+  codeStr: string,
+  tasksObj: any,
+): (api: any) => Promise<void> {
+  let cleanCode = codeStr.replace(/\(api:\s*TestAPI\)/g, "(api)").trim();
 
   const wrappedCode = `(${cleanCode})`;
   const sandbox = {
@@ -107,7 +106,10 @@ async function runGroundingSandbox(
 
     // Compile the current target node code
     const currentCodeWrapped = `async (api: TestAPI) => {\n${currentCodeBody}\n}`;
-    sandboxTasks[nodeId] = compileCodeToFunction(currentCodeWrapped, sandboxTasks);
+    sandboxTasks[nodeId] = compileCodeToFunction(
+      currentCodeWrapped,
+      sandboxTasks,
+    );
 
     // Construct linear in-memory execution Path
     const tasksList: Task[] = allNodeIds.map((nid) => {
@@ -151,8 +153,11 @@ async function runGroundingSandbox(
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-          
-          const screenshotsDir = path.resolve(process.cwd(), ".provar/screenshots");
+
+          const screenshotsDir = path.resolve(
+            process.cwd(),
+            ".provar/screenshots",
+          );
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);
@@ -198,7 +203,11 @@ export async function groundAndGenerateAction(
   const tracker = options.tracker;
 
   if (tracker) {
-    tracker.initTask(nodeId, node.title, groundingSession ? "STATEFUL" : "SANDBOX");
+    tracker.initTask(
+      nodeId,
+      node.title,
+      groundingSession ? "STATEFUL" : "SANDBOX",
+    );
   }
   const taskStart = tracker ? tracker.startTaskTimer(nodeId) : 0;
 
@@ -213,7 +222,9 @@ export async function groundAndGenerateAction(
       if (currentUrl === "about:blank") {
         // Stateful page is fresh/unnavigated. We need to initialize it by running all prefix tasks!
         if (prefixNodeIds.length > 0) {
-          console.log(`[Stateful Session] Initializing page with prefix tasks...`);
+          console.log(
+            `[Stateful Session] Initializing page with prefix tasks...`,
+          );
           const lastPrefixId = prefixNodeIds[prefixNodeIds.length - 1]!;
           const sandboxStart = performance.now();
           const sandboxResult = await runGroundingSandbox(
@@ -224,22 +235,31 @@ export async function groundAndGenerateAction(
             "// placeholder",
             cache,
             lastPrefixId,
-            page
+            page,
           );
           if (tracker) {
-            tracker.recordTaskTiming(nodeId, "sandbox", performance.now() - sandboxStart);
+            tracker.recordTaskTiming(
+              nodeId,
+              "sandbox",
+              performance.now() - sandboxStart,
+            );
           }
           context = sandboxResult.context;
         }
       } else {
         // Page is already navigated! Just capture dynamic context directly (0 sandbox runs)
-        console.log(`[Stateful Session] Reusing active page state for ${nodeId} (0 sandbox runs)`);
+        console.log(
+          `[Stateful Session] Reusing active page state for ${nodeId} (0 sandbox runs)`,
+        );
         const pageContent = await page.content();
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-          
-          const screenshotsDir = path.resolve(process.cwd(), ".provar/screenshots");
+
+          const screenshotsDir = path.resolve(
+            process.cwd(),
+            ".provar/screenshots",
+          );
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);
@@ -267,10 +287,14 @@ export async function groundAndGenerateAction(
       prefixNodeIds,
       "// placeholder",
       cache,
-      lastPrefixId
+      lastPrefixId,
     );
     if (tracker) {
-      tracker.recordTaskTiming(nodeId, "sandbox", performance.now() - sandboxStart);
+      tracker.recordTaskTiming(
+        nodeId,
+        "sandbox",
+        performance.now() - sandboxStart,
+      );
     }
     context = sandboxResult.context;
   }
@@ -295,9 +319,12 @@ export async function groundAndGenerateAction(
     try {
       base64Data = fs.readFileSync(context.screenshot).toString("base64");
     } catch (e) {
-      console.warn(`[Compiler Warning] Failed to read screenshot from disk:`, e);
+      console.warn(
+        `[Compiler Warning] Failed to read screenshot from disk:`,
+        e,
+      );
     }
-    
+
     if (base64Data) {
       blocks.push({
         type: "image",
@@ -326,193 +353,228 @@ export async function groundAndGenerateAction(
   let currentCode = generatedBody;
 
   while (tryCount < maxTries && !success) {
-      tryCount++;
-      if (tryCount > 1 && tracker) {
-        tracker.recordTaskRetry(nodeId);
-      }
+    tryCount++;
+    if (tryCount > 1 && tracker) {
+      tracker.recordTaskRetry(nodeId);
+    }
 
-      console.log(
-        `[Self-Healing Loop] Action ${nodeId}: testing candidate try ${tryCount}...`,
-      );
+    console.log(
+      `[Self-Healing Loop] Action ${nodeId}: testing candidate try ${tryCount}...`,
+    );
 
-      // Fast-path: If stateful session is active, try executing directly on the active page!
-      if (groundingSession) {
-        let statefulMutated = false;
-        const originals = new Map<string, any>();
-        let page: Page | null = null;
-        
+    // Fast-path: If stateful session is active, try executing directly on the active page!
+    if (groundingSession) {
+      let statefulMutated = false;
+      const originals = new Map<string, any>();
+      let page: Page | null = null;
+
+      try {
+        page = await groundingSession.getPage();
+        const mutatingMethods = [
+          "click",
+          "fill",
+          "type",
+          "press",
+          "goto",
+          "check",
+          "uncheck",
+          "selectOption",
+          "hover",
+          "dblclick",
+        ];
+
+        mutatingMethods.forEach((method) => {
+          if (typeof (page as any)[method] === "function") {
+            const original = (page as any)[method].bind(page);
+            originals.set(method, original);
+            (page as any)[method] = async (...args: any[]) => {
+              const res = await original(...args);
+              statefulMutated = true;
+              return res;
+            };
+          }
+        });
+
+        const sandboxTasks: Record<string, (api: any) => Promise<void>> = {};
+
+        prefixNodeIds.forEach((pid) => {
+          const cached = cache.get(pid);
+          if (cached) {
+            sandboxTasks[pid] = compileCodeToFunction(
+              cached.code,
+              sandboxTasks,
+            );
+          }
+        });
+
+        const currentCodeWrapped = `async (api: TestAPI) => {\n${currentCode}\n}`;
+        const currentExecFn = compileCodeToFunction(
+          currentCodeWrapped,
+          sandboxTasks,
+        );
+
+        let variables = {};
         try {
-          page = await groundingSession.getPage();
-          const mutatingMethods = [
-            "click", "fill", "type", "press", "goto", 
-            "check", "uncheck", "selectOption", "hover", "dblclick"
-          ];
-          
-          mutatingMethods.forEach((method) => {
-            if (typeof (page as any)[method] === "function") {
-              const original = (page as any)[method].bind(page);
-              originals.set(method, original);
-              (page as any)[method] = async (...args: any[]) => {
-                const res = await original(...args);
-                statefulMutated = true;
-                return res;
-              };
-            }
+          const project = await loadProject(targetFilePath);
+          variables = project.variables || {};
+        } catch (e) {}
+
+        const api = {
+          page,
+          var: variables,
+          state: {},
+          expect,
+        };
+
+        const runStart = performance.now();
+        try {
+          await currentExecFn(api as any);
+        } finally {
+          // Restore original page methods
+          originals.forEach((orig, method) => {
+            (page as any)[method] = orig;
           });
-
-          const sandboxTasks: Record<string, (api: any) => Promise<void>> = {};
-
-          prefixNodeIds.forEach((pid) => {
-            const cached = cache.get(pid);
-            if (cached) {
-              sandboxTasks[pid] = compileCodeToFunction(cached.code, sandboxTasks);
-            }
-          });
-
-          const currentCodeWrapped = `async (api: TestAPI) => {\n${currentCode}\n}`;
-          const currentExecFn = compileCodeToFunction(currentCodeWrapped, sandboxTasks);
-
-          let variables = {};
-          try {
-            const project = await loadProject(targetFilePath);
-            variables = project.variables || {};
-          } catch (e) {}
-
-          const api = {
-            page,
-            var: variables,
-            state: {},
-            expect,
-          };
-
-          const runStart = performance.now();
-          try {
-            await currentExecFn(api as any);
-          } finally {
-            // Restore original page methods
-            originals.forEach((orig, method) => {
-              (page as any)[method] = orig;
-            });
-          }
-          
-          if (tracker) {
-            tracker.recordTaskTiming(nodeId, "sandbox", performance.now() - runStart);
-          }
-
-          success = true;
-          finalBody = currentCode;
-          console.log(
-            `⚡ [Stateful Fast-Path] Action ${nodeId} executed successfully directly on active page!`,
-          );
-          break;
-        } catch (err: any) {
-          // Restore original page methods if catch occurred before finally block executed (e.g. during initialization)
-          if (page) {
-            originals.forEach((orig, method) => {
-              (page as any)[method] = orig;
-            });
-          }
-
-          console.log(
-            `⚠️ [Stateful Fast-Path Fail] Direct execution failed for ${nodeId}: ${err.message || err}`,
-          );
-          
-          if (statefulMutated) {
-            console.log(`  [Stateful Session] Actions were dispatched/performed on the page. Discarding active page state.`);
-            await groundingSession.close();
-            if (tracker) {
-              tracker.setTaskMode(nodeId, "FALLBACK");
-            }
-          } else {
-            console.log(`  [Stateful Session] No page actions were dispatched/performed. Reusing active page state for healing loop!`);
-          }
         }
-      }
 
-      // Safe-path: Full sandbox execution verify and self-heal
-      const sandboxStart = performance.now();
-      const testResult = await runGroundingSandbox(
-        targetFilePath,
-        nodeId,
-        node,
-        prefixNodeIds,
-        currentCode,
-        cache,
-        nodeId
-      );
-      if (tracker) {
-        tracker.recordTaskTiming(nodeId, "sandbox", performance.now() - sandboxStart);
-      }
+        if (tracker) {
+          tracker.recordTaskTiming(
+            nodeId,
+            "sandbox",
+            performance.now() - runStart,
+          );
+        }
 
-      if (!testResult.error) {
         success = true;
         finalBody = currentCode;
         console.log(
-          `[Self-Healing Loop] Action ${nodeId} successfully compiled and executed on try ${tryCount}!`,
+          `⚡ [Stateful Fast-Path] Action ${nodeId} executed successfully directly on active page!`,
         );
         break;
-      } else {
-        console.error(
-          `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Action ${nodeId}: ${testResult.error?.message || testResult.error}`,
+      } catch (err: any) {
+        // Restore original page methods if catch occurred before finally block executed (e.g. during initialization)
+        if (page) {
+          originals.forEach((orig, method) => {
+            (page as any)[method] = orig;
+          });
+        }
+
+        console.log(
+          `⚠️ [Stateful Fast-Path Fail] Direct execution failed for ${nodeId}: ${err.message || err}`,
         );
-        if (tryCount >= maxTries) {
-          console.warn(
-            `  ⚠️ [Self-Healing Loop] Max retries reached for Action ${nodeId}. Using last generated code.`,
+
+        if (statefulMutated) {
+          console.log(
+            `  [Stateful Session] Actions were dispatched/performed on the page. Discarding active page state.`,
           );
+          await groundingSession.close();
           if (tracker) {
-            tracker.setTaskStatus(nodeId, "FAILED");
+            tracker.setTaskMode(nodeId, "FALLBACK");
           }
-          finalBody = currentCode;
-          break;
-        }
-
-        if (tracker) {
-          tracker.setTaskStatus(nodeId, "HEALED");
-        }
-
-        const feedbackPrompt = `The generated Playwright code failed execution during grounding checks.\nHere is the code you generated:\n\`\`\`typescript\n${currentCode}\n\`\`\`\n\nIt threw the following error:\n${testResult.error?.message || testResult.error}\n\nPlease analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block. Ensure you address the selector failure or assertion failure correctly. Remember to use api.expect for assertions instead of the global expect or importing it. ONLY output the raw code block.`;
-
-        const feedbackBlocks: Attachment[] = [
-          { type: "text", text: feedbackPrompt },
-        ];
-
-        if (testResult.context) {
-          if (testResult.context.pageContent) {
-            feedbackBlocks.push({
-              type: "text",
-              text: `--- CURRENT DOM STATE AT FAILURE ---\n${testResult.context.pageContent}`,
-            });
-          }
-          if (testResult.context.screenshot) {
-            let base64Data = "";
-            try {
-              base64Data = fs.readFileSync(testResult.context.screenshot).toString("base64");
-            } catch (e) {
-              console.warn(`[Compiler Warning] Failed to read self-healing screenshot from disk:`, e);
-            }
-            if (base64Data) {
-              feedbackBlocks.push({
-                type: "image",
-                data: base64Data,
-                mimeType: "image/png",
-              });
-            }
-          }
-        }
-
-        const feedbackStart = performance.now();
-        let responseText = "";
-        for await (const chunk of session.prompt(feedbackBlocks)) {
-          if (chunk.type === "text" && chunk.text) {
-            responseText += chunk.text;
-          }
-        }
-        currentCode = cleanCode(responseText);
-        if (tracker) {
-          tracker.recordTaskTiming(nodeId, "agent", performance.now() - feedbackStart);
+        } else {
+          console.log(
+            `  [Stateful Session] No page actions were dispatched/performed. Reusing active page state for healing loop!`,
+          );
         }
       }
     }
+
+    // Safe-path: Full sandbox execution verify and self-heal
+    const sandboxStart = performance.now();
+    const testResult = await runGroundingSandbox(
+      targetFilePath,
+      nodeId,
+      node,
+      prefixNodeIds,
+      currentCode,
+      cache,
+      nodeId,
+    );
+    if (tracker) {
+      tracker.recordTaskTiming(
+        nodeId,
+        "sandbox",
+        performance.now() - sandboxStart,
+      );
+    }
+
+    if (!testResult.error) {
+      success = true;
+      finalBody = currentCode;
+      console.log(
+        `[Self-Healing Loop] Action ${nodeId} successfully compiled and executed on try ${tryCount}!`,
+      );
+      break;
+    } else {
+      console.error(
+        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Action ${nodeId}: ${testResult.error?.message || testResult.error}`,
+      );
+      if (tryCount >= maxTries) {
+        console.warn(
+          `  ⚠️ [Self-Healing Loop] Max retries reached for Action ${nodeId}. Using last generated code.`,
+        );
+        if (tracker) {
+          tracker.setTaskStatus(nodeId, "FAILED");
+        }
+        finalBody = currentCode;
+        break;
+      }
+
+      if (tracker) {
+        tracker.setTaskStatus(nodeId, "HEALED");
+      }
+
+      const feedbackPrompt = `The generated Playwright code failed execution during grounding checks.\nHere is the code you generated:\n\`\`\`typescript\n${currentCode}\n\`\`\`\n\nIt threw the following error:\n${testResult.error?.message || testResult.error}\n\nPlease analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block. Ensure you address the selector failure or assertion failure correctly. Remember to use api.expect for assertions instead of the global expect or importing it. ONLY output the raw code block.`;
+
+      const feedbackBlocks: Attachment[] = [
+        { type: "text", text: feedbackPrompt },
+      ];
+
+      if (testResult.context) {
+        if (testResult.context.pageContent) {
+          feedbackBlocks.push({
+            type: "text",
+            text: `--- CURRENT DOM STATE AT FAILURE ---\n${testResult.context.pageContent}`,
+          });
+        }
+        if (testResult.context.screenshot) {
+          let base64Data = "";
+          try {
+            base64Data = fs
+              .readFileSync(testResult.context.screenshot)
+              .toString("base64");
+          } catch (e) {
+            console.warn(
+              `[Compiler Warning] Failed to read self-healing screenshot from disk:`,
+              e,
+            );
+          }
+          if (base64Data) {
+            feedbackBlocks.push({
+              type: "image",
+              data: base64Data,
+              mimeType: "image/png",
+            });
+          }
+        }
+      }
+
+      const feedbackStart = performance.now();
+      let responseText = "";
+      for await (const chunk of session.prompt(feedbackBlocks)) {
+        if (chunk.type === "text" && chunk.text) {
+          responseText += chunk.text;
+        }
+      }
+      currentCode = cleanCode(responseText);
+      if (tracker) {
+        tracker.recordTaskTiming(
+          nodeId,
+          "agent",
+          performance.now() - feedbackStart,
+        );
+      }
+    }
+  }
 
   if (tracker) {
     tracker.endTaskTimer(nodeId, taskStart);

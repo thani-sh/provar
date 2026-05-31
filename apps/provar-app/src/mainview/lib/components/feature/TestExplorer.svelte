@@ -166,7 +166,7 @@
       }}
       oncontextmenu={(e) => handleContextMenu(e, node.path, "file")}
     >
-      <div class="flex items-center min-w-0">
+      <div class="flex min-w-0 items-center">
         <File
           class="mr-2 h-3.5 w-3.5 shrink-0 {selectedFile === node.path
             ? 'text-blue-400'
@@ -174,13 +174,15 @@
         />
         <span class="truncate">{node.name}</span>
       </div>
-      
+
       {#if selectedFile === node.path}
         {#if editorStore.isRunning}
-          <div class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"></div>
+          <div
+            class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
+          ></div>
         {:else}
           <button
-            class="ml-2 rounded p-1 text-zinc-400 hover:bg-[#30363d] hover:text-blue-400 transition-colors"
+            class="ml-2 rounded p-1 text-zinc-400 transition-colors hover:bg-[#30363d] hover:text-blue-400"
             onclick={(e) => {
               e.stopPropagation();
               editorStore.runCurrentTest();

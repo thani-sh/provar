@@ -33,14 +33,20 @@ export class GraphRenderer extends PIXI.Container {
     this.build(testFile.graph, taskStates);
   }
 
-  private build(graph: Graph, taskStates: Record<string, "idle" | "running" | "success" | "failed">) {
+  private build(
+    graph: Graph,
+    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+  ) {
     this.createShapes(graph, taskStates);
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
     this.drawConnections(graph, depths);
   }
 
-  private createShapes(graph: Graph, taskStates: Record<string, "idle" | "running" | "success" | "failed">) {
+  private createShapes(
+    graph: Graph,
+    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+  ) {
     for (const [id, node] of Object.entries(graph.nodes)) {
       const state = taskStates[id] || "idle";
       const shape = new ActionShape(id, node, state, this.onNodeSelect);
