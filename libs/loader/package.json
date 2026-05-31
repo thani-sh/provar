@@ -14,12 +14,12 @@
   "dependencies": {
     "@libs/domain": "workspace:*",
     "@libs/executor": "workspace:*",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
     "prettier": "^3.8.3",
-    "typescript": "^6"
+    "typescript": "^6.0.3"
   }
 }
