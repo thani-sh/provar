@@ -398,28 +398,64 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
     requests: {
-      getConfig: () => getCommands().getConfig.execute({}),
-      getWorkspace: async () => ({ path: WORKSPACE_DIR }),
-      saveConfig: (params) => getCommands().saveConfig.execute(params),
-      listFiles: () => getCommands().listFiles.execute({}),
-      readFile: (params) => getCommands().readFile.execute(params),
+      getConfig: async () => {
+        console.log("[RPC Server] getConfig request");
+        const res = await getCommands().getConfig.execute({});
+        console.log("[RPC Server] getConfig response:", res);
+        return res;
+      },
+      getWorkspace: async () => {
+        console.log("[RPC Server] getWorkspace request");
+        const res = { path: WORKSPACE_DIR };
+        console.log("[RPC Server] getWorkspace response:", res);
+        return res;
+      },
+      saveConfig: async (params) => {
+        console.log("[RPC Server] saveConfig request:", params);
+        const res = await getCommands().saveConfig.execute(params);
+        console.log("[RPC Server] saveConfig response:", res);
+        return res;
+      },
+      listFiles: async () => {
+        console.log("[RPC Server] listFiles request");
+        const res = await getCommands().listFiles.execute({});
+        console.log(
+          "[RPC Server] listFiles response test count:",
+          res.tests.length,
+        );
+        return res;
+      },
+      readFile: async (params) => {
+        console.log("[RPC Server] readFile request:", params);
+        const res = await getCommands().readFile.execute(params);
+        console.log("[RPC Server] readFile response success:", !!res.content);
+        return res;
+      },
       writeFile: async (params) => {
+        console.log("[RPC Server] writeFile request:", params);
         const res = await getCommands().writeFile.execute(params);
+        console.log("[RPC Server] writeFile response:", res);
         triggerWorkspaceChanged();
         return res;
       },
       createFile: async (params) => {
+        console.log("[RPC Server] createFile request:", params);
         const res = await getCommands().createFile.execute(params);
+        console.log("[RPC Server] createFile response:", res);
         triggerWorkspaceChanged();
         return res;
       },
       createDirectory: async (params) => {
+        console.log("[RPC Server] createDirectory request:", params);
         const res = await getCommands().createDirectory.execute(params);
+        console.log("[RPC Server] createDirectory response:", res);
         triggerWorkspaceChanged();
         return res;
       },
       deletePath: async (params) => {
+        console.log("[RPC Server] deletePath request:", params);
         const res = await getCommands().deletePath.execute(params);
+        console.log("[RPC Server] deletePath response:", res);
         triggerWorkspaceChanged();
         return res;
       },
@@ -428,6 +464,7 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       acceptVisualState,
       getScreenshots,
       assistEditor: async (params: { prompt: string; path?: string }) => {
+        console.log("[RPC Server] assistEditor request:", params);
         mainWindow.webview.rpc?.send.assistantChunk({
           params: {
             text: "AI Assistant is currently offline.",
