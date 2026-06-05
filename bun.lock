@@ -121,6 +121,7 @@
         "@libs/domain": "workspace:*",
         "@libs/executor": "workspace:*",
         "@libs/loader": "workspace:*",
+        "@libs/settings": "workspace:*",
         "js-yaml": "^4.1.1",
         "playwright": "^1.60.0",
       },
@@ -147,6 +148,7 @@
       "name": "@libs/executor",
       "version": "1.0.0",
       "dependencies": {
+        "@libs/domain": "workspace:*",
         "@playwright/test": "^1.60.0",
         "playwright": "^1.60.0",
       },

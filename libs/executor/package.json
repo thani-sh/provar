@@ -12,6 +12,7 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
+    "@libs/domain": "workspace:*",
     "@playwright/test": "^1.60.0",
     "playwright": "^1.60.0"
   },

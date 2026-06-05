@@ -5,6 +5,7 @@ import type { Task, File } from "@libs/domain";
 import { parseTestFile, loadProject } from "@libs/loader";
 import { createClient } from "@libs/agents";
 import type { Session, Attachment, Client } from "@libs/agents";
+import { loadSettings } from "@libs/settings";
 import type { GroundingContext, TestAPI } from "@libs/executor";
 
 import { groundAndGenerateTask, CompilerGroundingSession } from "./generator";
@@ -52,8 +53,9 @@ export async function compile(
   let client: Client;
   let session: Session;
   try {
-    console.log(`[Compiler] Starting agent client: ${providerName}`);
-    client = createClient(providerName, { workspaceDir });
+    const settings = loadSettings();
+    console.log(`[Compiler] Starting agent client with provider: ${settings.models.defaultProvider}`);
+    client = createClient(settings.models);
     session = await client.session();
   } catch (err: any) {
     console.error(

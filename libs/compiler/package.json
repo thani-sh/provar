@@ -16,6 +16,7 @@
     "@libs/domain": "workspace:*",
     "@libs/executor": "workspace:*",
     "@libs/loader": "workspace:*",
+    "@libs/settings": "workspace:*",
     "js-yaml": "^4.1.1",
     "playwright": "^1.60.0"
   },
