@@ -16,6 +16,7 @@
   import InputModal from "./lib/components/ui/InputModal.svelte";
   import NodeSidePanel from "./lib/components/feature/NodeSidePanel.svelte";
   import TestExplorer from "./lib/components/feature/TestExplorer.svelte";
+  import ConfirmModal from "./lib/components/ui/ConfirmModal.svelte";
 
   // Assistant State (keeping local as it's view-specific and transient)
   let assistantMessages = $state<AssistantMessage[]>([]);
@@ -290,5 +291,16 @@
   <ConfigModal
     show={workspaceStore.isConfigModalOpen}
     onConfirm={(cfg) => workspaceStore.saveConfig(cfg)}
+  />
+
+  <ConfirmModal
+    show={uiStore.isConfirmModalOpen}
+    title={uiStore.confirmModalProps.title}
+    message={uiStore.confirmModalProps.message}
+    onConfirm={() => {
+      uiStore.confirmModalProps.onConfirm();
+      uiStore.isConfirmModalOpen = false;
+    }}
+    onCancel={() => (uiStore.isConfirmModalOpen = false)}
   />
 </div>

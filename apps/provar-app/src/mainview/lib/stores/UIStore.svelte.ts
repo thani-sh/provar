@@ -6,6 +6,7 @@ class UIStore {
   isAssistantPanelOpen = $state(false);
   isConfigPanelOpen = $state(false);
   isInputModalOpen = $state(false);
+  isConfirmModalOpen = $state(false);
 
   lastOpenSidebar = $state<"assistant" | "config" | "node">("config");
 
@@ -15,6 +16,21 @@ class UIStore {
     type: "file" as "file" | "folder",
     parentPath: "",
   });
+
+  confirmModalProps = $state({
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  openConfirmModal(title: string, message: string, onConfirm: () => void) {
+    this.confirmModalProps = {
+      title,
+      message,
+      onConfirm,
+    };
+    this.isConfirmModalOpen = true;
+  }
 
   openInputModal(type: "file" | "folder", parentPath: string) {
     this.inputModalProps = {

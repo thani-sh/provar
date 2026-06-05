@@ -7,6 +7,7 @@ import {
 } from "../utils/graph";
 import type { TestFile, TestNode } from "@libs/domain/zod";
 import { workspaceStore } from "./WorkspaceStore.svelte";
+import { uiStore } from "./UIStore.svelte";
 
 class EditorStore {
   currentFile = $state<TestFile | null>(null);
@@ -212,20 +213,20 @@ class EditorStore {
   }
 
   async deleteNode(id: string) {
-    if (
-      !this.currentFile ||
-      !confirm(
-        "Are you sure you want to delete this node and all its descendants?",
-      )
-    )
-      return;
+    if (!this.currentFile) return;
 
-    this.currentFile = deleteNodeFromGraph(
-      $state.snapshot(this.currentFile),
-      id,
+    uiStore.openConfirmModal(
+      "Delete Task Node",
+      "Are you sure you want to delete this node and all its descendants?",
+      async () => {
+        this.currentFile = deleteNodeFromGraph(
+          $state.snapshot(this.currentFile),
+          id,
+        );
+        this.selectedNodeId = null;
+        await this.saveFile();
+      },
     );
-    this.selectedNodeId = null;
-    await this.saveFile();
   }
 
   async createFile(dir: string, name: string) {
@@ -249,26 +250,24 @@ class EditorStore {
     const isFolder = !path.endsWith(".yml");
     const typeLabel = path.endsWith(".test.yml") ? "test" : "folder";
 
-    console.log("[EditorStore] showing confirm dialog...");
-    const isConfirmed = confirm(
-      `Are you sure you want to delete this ${typeLabel}?`,
-    );
-    console.log("[EditorStore] confirm result:", isConfirmed);
-
-    if (isConfirmed) {
-      console.log("[EditorStore] calling ProvarAPI.deletePath:", path);
-      const res = await ProvarAPI.deletePath(path);
-      console.log("[EditorStore] ProvarAPI.deletePath result:", res);
-      if (res.success) {
-        if (
-          this.selectedFilePath === path ||
-          (isFolder && this.selectedFilePath?.startsWith(path))
-        ) {
-          this.closeFile();
+    uiStore.openConfirmModal(
+      `Delete ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`,
+      `Are you sure you want to delete this ${typeLabel}? This action cannot be undone.`,
+      async () => {
+        console.log("[EditorStore] calling ProvarAPI.deletePath:", path);
+        const res = await ProvarAPI.deletePath(path);
+        console.log("[EditorStore] ProvarAPI.deletePath result:", res);
+        if (res.success) {
+          if (
+            this.selectedFilePath === path ||
+            (isFolder && this.selectedFilePath?.startsWith(path))
+          ) {
+            this.closeFile();
+          }
+          await workspaceStore.refreshFiles();
         }
-        await workspaceStore.refreshFiles();
-      }
-    }
+      },
+    );
   }
 }
 
