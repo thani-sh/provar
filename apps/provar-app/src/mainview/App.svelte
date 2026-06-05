@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import { File } from "lucide-svelte";
+  import { File, Play } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -165,12 +165,41 @@
 
   {#if editorStore.selectedFilePath}
     <div
-      class="pointer-events-none absolute top-[6px] left-1/2 z-20 flex h-[26px] -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-800/80 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-zinc-300 shadow-sm backdrop-blur-sm transition-all duration-300 select-none"
+      class="absolute top-[6px] left-1/2 z-20 flex -translate-x-1/2 items-center gap-2"
     >
-      <File class="h-3.5 w-3.5 text-blue-400" />
-      <span class="tracking-wide"
-        >{editorStore.selectedFilePath.replace(/^\.provar\/tests\//, "")}</span
+      <button
+        onclick={() => uiStore.toggleSidebar()}
+        class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] cursor-pointer items-center gap-1.5 rounded-full border border-zinc-800/80 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-zinc-300 shadow-sm backdrop-blur-sm transition-all duration-300 select-none hover:border-zinc-700/90 hover:bg-[#21262d]/90 focus:ring-1 focus:ring-zinc-700 focus:outline-none"
+        title={uiStore.isSidebarOpen
+          ? "Hide Test Explorer"
+          : "Show Test Explorer"}
       >
+        <File class="h-3.5 w-3.5 text-blue-400" />
+        <span class="tracking-wide"
+          >{editorStore.selectedFilePath.replace(
+            /^\.provar\/tests\//,
+            "",
+          )}</span
+        >
+      </button>
+
+      {#if editorStore.isRunning}
+        <div
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] w-[26px] items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 shadow-sm backdrop-blur-sm"
+        >
+          <div
+            class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
+          ></div>
+        </div>
+      {:else}
+        <button
+          onclick={() => editorStore.runCurrentTest()}
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-green-400 focus:ring-1 focus:ring-zinc-700 focus:outline-none"
+          title="Run Test"
+        >
+          <Play size={10} class="ml-[1px] fill-current" />
+        </button>
+      {/if}
     </div>
   {/if}
 

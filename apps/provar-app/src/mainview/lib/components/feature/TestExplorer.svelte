@@ -6,7 +6,6 @@
     Search,
     Settings,
     Sparkles,
-    Play,
   } from "lucide-svelte";
   import { editorStore } from "../../stores/EditorStore.svelte";
   import { uiStore } from "../../stores/UIStore.svelte";
@@ -153,7 +152,7 @@
     <div
       role="button"
       tabindex="0"
-      class="mx-2 flex cursor-pointer items-center justify-between rounded py-1 pr-2 text-xs select-none hover:bg-[#21262d] {selectedFile ===
+      class="mx-2 flex cursor-pointer items-center justify-between rounded py-1 pr-2 text-xs select-none hover:text-zinc-200 {selectedFile ===
       node.path
         ? 'bg-[#21262d] text-zinc-200'
         : 'text-zinc-400'}"
@@ -175,25 +174,6 @@
         />
         <span class="truncate">{node.name}</span>
       </div>
-
-      {#if selectedFile === node.path}
-        {#if editorStore.isRunning}
-          <div
-            class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
-          ></div>
-        {:else}
-          <button
-            class="ml-2 rounded p-1 text-zinc-400 transition-colors hover:bg-[#30363d] hover:text-blue-400"
-            onclick={(e) => {
-              e.stopPropagation();
-              editorStore.runCurrentTest();
-            }}
-            title="Run Test"
-          >
-            <Play size={10} class="fill-current" />
-          </button>
-        {/if}
-      {/if}
     </div>
   {/if}
 {/snippet}
