@@ -203,21 +203,8 @@
   oncontextmenu={(e) => handleContextMenu(e, ".provar", "folder")}
 >
   <div 
-    class="h-[38px] w-full flex items-center pl-[76px] shrink-0 select-none pointer-events-none"
-    style="-webkit-app-region: drag;"
-  >
-    <button
-      onclick={() => uiStore.toggleSidebar()}
-      class="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200 transition-colors pointer-events-auto"
-      style="-webkit-app-region: no-drag;"
-      title="Hide Sidebar"
-    >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect width="18" height="18" x="3" y="3" rx="2" />
-        <path d="M9 3v18" />
-      </svg>
-    </button>
-  </div>
+    class="h-[38px] w-full relative shrink-0 select-none pointer-events-none electrobun-webkit-app-region-drag"
+  ></div>
 
   <div class="px-3 pt-2 pb-2">
     <div class="relative">

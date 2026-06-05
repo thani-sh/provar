@@ -121,16 +121,14 @@
   class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300"
 >
   <div 
-    class="absolute top-0 left-0 right-0 h-[38px] z-10 pointer-events-none" 
-    style="-webkit-app-region: drag;"
+    class="absolute top-0 left-0 right-0 h-[38px] z-10 pointer-events-none electrobun-webkit-app-region-drag"
   ></div>
 
-  {#if workspaceStore.path && !uiStore.isSidebarOpen}
+  {#if workspaceStore.path}
     <button
       onclick={() => uiStore.toggleSidebar()}
-      class="absolute top-[7px] left-[76px] z-30 flex h-6 w-6 items-center justify-center rounded-md border border-zinc-800/80 bg-[#161b22]/50 hover:bg-zinc-800/80 hover:text-zinc-200 transition-all duration-200 ease-in-out backdrop-blur-md text-zinc-400 pointer-events-auto shadow-lg"
-      style="-webkit-app-region: no-drag;"
-      title="Show Sidebar"
+      class="absolute top-[2px] left-[65px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 hover:opacity-100 transition-opacity pointer-events-auto focus:outline-none electrobun-webkit-app-region-no-drag"
+      title={uiStore.isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
     >
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect width="18" height="18" x="3" y="3" rx="2" />
