@@ -7,6 +7,7 @@ import Electrobun, {
 } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
 import { createCommands } from "@libs/commands";
+import { createClient } from "@libs/agents";
 import { loadSettings, saveSettings } from "./lib/settings";
 import {
   setWorkspaceDir,
@@ -585,15 +586,59 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       getScreenshots,
       assistEditor: async (params: { prompt: string; path?: string }) => {
         console.log("[RPC Server] assistEditor request:", params);
-        mainWindow.webview.rpc?.send.assistantChunk({
-          params: {
-            text: "AI Assistant is currently offline.",
-            status: "completed",
-          },
-        });
-        return {
-          message: "AI Assistant is currently offline.",
-        };
+        try {
+          const settings = loadSettings();
+          const client = createClient(settings.models);
+          const session = await client.session();
+
+          (async () => {
+            try {
+              for await (const chunk of session.prompt([
+                { type: "text", text: params.prompt },
+              ])) {
+                if (chunk.type === "text") {
+                  mainWindow.webview.rpc?.send.assistantChunk({
+                    params: {
+                      text: chunk.text,
+                      status: "pending",
+                    },
+                  });
+                }
+              }
+              mainWindow.webview.rpc?.send.assistantChunk({
+                params: {
+                  text: "",
+                  status: "completed",
+                },
+              });
+            } catch (err: any) {
+              console.error("[RPC Server] assistEditor stream error:", err);
+              mainWindow.webview.rpc?.send.assistantChunk({
+                params: {
+                  text: `\nError: ${err.message}`,
+                  status: "error",
+                },
+              });
+            } finally {
+              await client.close();
+            }
+          })();
+
+          return {
+            message: "",
+          };
+        } catch (err: any) {
+          console.error("[RPC Server] assistEditor init error:", err);
+          mainWindow.webview.rpc?.send.assistantChunk({
+            params: {
+              text: `Initialization Error: ${err.message}`,
+              status: "error",
+            },
+          });
+          return {
+            message: `Initialization Error: ${err.message}`,
+          };
+        }
       },
     },
   },
