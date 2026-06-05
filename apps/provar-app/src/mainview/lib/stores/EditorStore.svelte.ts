@@ -7,6 +7,7 @@ import {
 } from "../utils/graph";
 import type { TestFile, TestNode } from "@libs/domain/zod";
 import { enumeratePaths } from "../../../shared/utils";
+import type { TaskState } from "../canvas/constants";
 import { workspaceStore } from "./WorkspaceStore.svelte";
 import { uiStore } from "./UIStore.svelte";
 
@@ -17,15 +18,44 @@ class EditorStore {
 
   isRunning = $state(false);
   isCompiling = $state(false);
-  taskStates = $state<
-    Record<string, "idle" | "running" | "success" | "failed">
-  >({});
+
+  /**
+   * taskPathStates tracks the execution result of each node per path index.
+   * Structure: { [nodeId]: { [pathIndex]: "idle" | "running" | "success" | "failed" } }
+   */
+  taskPathStates = $state<Record<string, Record<number, "idle" | "running" | "success" | "failed">>>({});
+
+  /**
+   * taskStates derives the effective display state per node by aggregating
+   * all path results. A node is "mixed" when it succeeded on some paths and
+   * failed on others.
+   */
+  taskStates = $derived.by<Record<string, TaskState>>(() => {
+    const result: Record<string, TaskState> = {};
+    for (const [nodeId, pathResults] of Object.entries(this.taskPathStates)) {
+      const states = Object.values(pathResults);
+      if (states.includes("running")) {
+        result[nodeId] = "running";
+      } else {
+        const hasSuccess = states.includes("success");
+        const hasFailed = states.includes("failed");
+        if (hasSuccess && hasFailed) result[nodeId] = "mixed";
+        else if (hasFailed) result[nodeId] = "failed";
+        else if (hasSuccess) result[nodeId] = "success";
+        else result[nodeId] = "idle";
+      }
+    }
+    return result;
+  });
   screenshots = $state<Record<string, { baseline?: string; current?: string }>>(
     {},
   );
 
   /** runFinishedResolve is set by runPath and called when run-finished fires. */
   private runFinishedResolve: (() => void) | null = null;
+
+  /** currentPathIndex tracks which path is currently being executed. */
+  private currentPathIndex = 0;
 
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
@@ -60,11 +90,13 @@ class EditorStore {
 
         if (event.type === "run-started") {
           this.isRunning = true;
-          this.taskStates = {};
+          // Reset this path's slot for all known nodes; other paths are preserved.
           if (this.currentFile?.graph?.nodes) {
+            const updated = { ...this.taskPathStates };
             for (const id of Object.keys(this.currentFile.graph.nodes)) {
-              this.taskStates[id] = "idle";
+              updated[id] = { ...(updated[id] || {}), [this.currentPathIndex]: "idle" };
             }
+            this.taskPathStates = updated;
           }
           console.log("[EditorStore] isRunning updated to:", this.isRunning);
           return;
@@ -88,18 +120,27 @@ class EditorStore {
         switch (event.type) {
           case "task-started":
             if (event.taskId) {
-              this.taskStates[event.taskId] = "running";
+              this.taskPathStates = {
+                ...this.taskPathStates,
+                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "running" },
+              };
             }
             break;
           case "task-finished":
             if (event.taskId) {
-              this.taskStates[event.taskId] = "success";
+              this.taskPathStates = {
+                ...this.taskPathStates,
+                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "success" },
+              };
               this.loadScreenshotsForNode(event.taskId);
             }
             break;
           case "task-failed":
             if (event.taskId) {
-              this.taskStates[event.taskId] = "failed";
+              this.taskPathStates = {
+                ...this.taskPathStates,
+                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "failed" },
+              };
               this.loadScreenshotsForNode(event.taskId);
             }
             break;
@@ -127,9 +168,11 @@ class EditorStore {
     }
   }
 
-  /** runAllPaths runs every path in the file sequentially. */
+  /** runAllPaths runs every path in the file sequentially, accumulating results. */
   async runAllPaths() {
     if (!this.selectedFilePath || this.isRunning) return;
+    // Clear all prior results so multi-path accumulation starts fresh.
+    this.taskPathStates = {};
     const paths = this.allPaths;
     for (let i = 0; i < paths.length; i++) {
       await this.runPath(i);
@@ -139,8 +182,8 @@ class EditorStore {
   /** runPath runs a single path by its index and resolves when execution finishes. */
   async runPath(pathIndex: number): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
+    this.currentPathIndex = pathIndex;
     this.isRunning = true;
-    this.taskStates = {};
 
     return new Promise(async (resolve) => {
       // Store resolve so the run-finished RPC event can unblock the caller.
@@ -169,26 +212,39 @@ class EditorStore {
   }
 
   /** runPathUpTo runs a path stopping execution at the given task node. */
-  async runPathUpTo(pathIndex: number, upToTaskId: string) {
+  async runPathUpTo(pathIndex: number, upToTaskId: string): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
+    this.currentPathIndex = pathIndex;
     this.isRunning = true;
-    this.taskStates = {};
 
-    try {
-      const res = await ProvarAPI.runTestPath(
-        this.selectedFilePath,
-        pathIndex,
-        upToTaskId,
-        true,
-      );
-      if (!res.success) {
+    return new Promise(async (resolve) => {
+      this.runFinishedResolve = resolve;
+
+      try {
+        const res = await ProvarAPI.runTestPath(
+          this.selectedFilePath!,
+          pathIndex,
+          upToTaskId,
+          true,
+        );
+        if (!res.success) {
+          this.isRunning = false;
+          this.runFinishedResolve = null;
+          resolve();
+          alert(`Test execution failed to start: ${res.error}`);
+        }
+      } catch (e) {
+        console.error("EditorStore: Run failed:", e);
         this.isRunning = false;
-        alert(`Test execution failed to start: ${res.error}`);
+        this.runFinishedResolve = null;
+        resolve();
       }
-    } catch (e) {
-      console.error("EditorStore: Run failed:", e);
-      this.isRunning = false;
-    }
+    });
+  }
+
+  /** clearRunStates removes all per-path execution results from the display. */
+  clearRunStates() {
+    this.taskPathStates = {};
   }
 
   async loadScreenshotsForNode(nodeId: string) {
@@ -231,7 +287,7 @@ class EditorStore {
     const res = await ProvarAPI.readFile(path);
     this.currentFile = res.content;
     this.selectedNodeId = null;
-    this.taskStates = {};
+    this.taskPathStates = {};
     this.screenshots = {};
     if (this.currentFile?.graph?.nodes) {
       for (const id of Object.keys(this.currentFile.graph.nodes)) {

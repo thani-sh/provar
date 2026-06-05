@@ -4,7 +4,7 @@ import { TaskShape } from "./TaskShape";
 import { StartShape } from "./StartShape";
 import { EndShape } from "./EndShape";
 import { ConnectorShape } from "./ConnectorShape";
-import { GRAPH_START_ID, LAYOUT, CONNECTOR } from "./constants";
+import { GRAPH_START_ID, LAYOUT, CONNECTOR, type TaskState } from "./constants";
 import { getNextNodes } from "../../../shared/utils";
 
 export class GraphRenderer extends PIXI.Container {
@@ -20,7 +20,7 @@ export class GraphRenderer extends PIXI.Container {
 
   constructor(
     testFile: TestFile,
-    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+    taskStates: Record<string, TaskState>,
     onNodeSelect: (id: string) => void,
     onAddNode: (fromId: string | null, toId: string | null) => void,
   ) {
@@ -33,7 +33,7 @@ export class GraphRenderer extends PIXI.Container {
 
   private build(
     graph: Graph,
-    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+    taskStates: Record<string, TaskState>,
   ) {
     this.createShapes(graph, taskStates);
     const depths = this.computeDepths(graph);
@@ -43,7 +43,7 @@ export class GraphRenderer extends PIXI.Container {
 
   private createShapes(
     graph: Graph,
-    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+    taskStates: Record<string, TaskState>,
   ) {
     // Derive start state: successful if the first task node succeeded.
     const startState = graph.start
@@ -231,8 +231,9 @@ export class GraphRenderer extends PIXI.Container {
       if (nextNodes.length === 0) {
         const target = this.endShapes.get(`end_${id}`);
         if (target) {
-          // Task → End: green only when the source task itself succeeded.
-          const connectorState = sourceState === "success" ? "success" : "idle";
+          // Task → End: green when source succeeded or had mixed results.
+          const connectorState =
+            sourceState === "success" || sourceState === "mixed" ? "success" : "idle";
           this.linksContainer.addChild(
             new ConnectorShape(
               shape.x + shape.width + CONNECTOR.startGap,
@@ -250,11 +251,11 @@ export class GraphRenderer extends PIXI.Container {
           const target = this.taskShapes.get(nextId);
           if (!target) continue;
 
-          // Task A → Task B: green only when A succeeded AND B was reached.
+          // Task A → Task B: green when A succeeded/mixed AND B was reached.
           // This prevents unexecuted branches from lighting up green.
           const targetState = taskStates[nextId] ?? "idle";
           const connectorState =
-            sourceState === "success" && targetState !== "idle"
+            (sourceState === "success" || sourceState === "mixed") && targetState !== "idle"
               ? "success"
               : "idle";
 

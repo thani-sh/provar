@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { COLOURS, CONNECTOR, TYPOGRAPHY } from "./constants";
+import { COLOURS, CONNECTOR, TYPOGRAPHY, type TaskState } from "./constants";
 
 export class ConnectorShape extends PIXI.Container {
   private readonly line = new PIXI.Graphics();
@@ -14,7 +14,7 @@ export class ConnectorShape extends PIXI.Container {
     endY: number,
     onAdd?: () => void,
     type: "horizontal" | "vertical" = "horizontal",
-    state: "idle" | "running" | "success" | "failed" = "idle",
+    state: TaskState = "idle",
   ) {
     super();
     this.onAdd = onAdd;

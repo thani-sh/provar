@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { COLOURS, LAYOUT, TYPOGRAPHY } from "./constants";
+import { COLOURS, LAYOUT, TYPOGRAPHY, type TaskState } from "./constants";
 
 /** NodeShape is the base visual container for graph nodes. */
 export class NodeShape extends PIXI.Container {
@@ -36,7 +36,7 @@ export class NodeShape extends PIXI.Container {
     nodeId: string,
     title: string,
     description: string = "",
-    state: "idle" | "running" | "success" | "failed" = "idle",
+    state: TaskState = "idle",
   ) {
     super();
     this.nodeId = nodeId;
@@ -156,6 +156,9 @@ export class NodeShape extends PIXI.Container {
       strokeWidth = 2;
     } else if (state === "failed") {
       borderColor = 0xef4444;
+      strokeWidth = 2;
+    } else if (state === "mixed") {
+      borderColor = COLOURS.stateMixed;
       strokeWidth = 2;
     }
     this.bg.stroke({ color: borderColor, width: strokeWidth });

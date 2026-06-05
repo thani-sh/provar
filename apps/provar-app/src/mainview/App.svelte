@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import { File, Play, ChevronDown, Layers, ArrowRightToLine } from "lucide-svelte";
+  import { File, Play, ChevronDown, Layers, ArrowRightToLine, X } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -313,6 +313,23 @@
                       ? 'Stop at selected node'
                       : 'Select a node first'}
                   </div>
+                </div>
+              </button>
+
+              <div class="mx-3 border-t border-zinc-800/60"></div>
+
+              <!-- Clear run status -->
+              <button
+                disabled={editorStore.isRunning}
+                onclick={() => { runMenuOpen = false; editorStore.clearRunStates(); }}
+                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
+                  {editorStore.isRunning
+                    ? 'cursor-not-allowed text-zinc-600'
+                    : 'cursor-pointer text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300'}"
+              >
+                <X size={12} class="shrink-0" />
+                <div>
+                  <div class="font-medium">Clear run status</div>
                 </div>
               </button>
             </div>

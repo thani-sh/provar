@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { NodeShape } from "./NodeShape";
-import { COLOURS, LAYOUT } from "./constants";
+import { COLOURS, LAYOUT, type TaskState } from "./constants";
 import { getCodeStatus } from "../../../shared/utils";
 import type { TestNode } from "@libs/domain/zod";
 
@@ -19,7 +19,7 @@ export class TaskShape extends NodeShape {
   constructor(
     nodeId: string,
     node: TestNode,
-    state: "idle" | "running" | "success" | "failed",
+    state: TaskState,
     onClick: (id: string) => void,
   ) {
     super(nodeId, node.title, node.info, state);

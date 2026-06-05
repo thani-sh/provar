@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { NodeShape } from "./NodeShape";
-import { GRAPH_START_ID } from "./constants";
+import { GRAPH_START_ID, type TaskState } from "./constants";
 
 export class StartShape extends NodeShape {
   protected override get cornerRadius() {
@@ -16,7 +16,7 @@ export class StartShape extends NodeShape {
     return 10;
   }
 
-  constructor(state: "idle" | "running" | "success" | "failed" = "idle") {
+  constructor(state: TaskState = "idle") {
     super(GRAPH_START_ID, "Start", "", state);
 
     this.eventMode = "none";

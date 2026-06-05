@@ -1,5 +1,8 @@
 export const GRAPH_START_ID = "__start__";
 
+/** TaskState represents the execution state of a node or connector. */
+export type TaskState = "idle" | "running" | "success" | "failed" | "mixed";
+
 export const COLOURS = {
   canvasBg: 0x000000,
   nodeBg: 0x1e293b,
@@ -12,6 +15,7 @@ export const COLOURS = {
   assertGreen: 0x10b981,
   primary: 0x3b82f6,
   onPrimary: 0xffffff,
+  stateMixed: 0xf97316, // orange — passes on some paths, fails on others
 } as const;
 
 export const TYPOGRAPHY = {

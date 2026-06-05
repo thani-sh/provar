@@ -1,7 +1,7 @@
 import * as PIXI from "pixi.js";
 import type { TestFile } from "@libs/domain/zod";
 import { GraphRenderer } from "./GraphRenderer";
-import { LAYOUT, COLOURS } from "./constants";
+import { LAYOUT, COLOURS, type TaskState } from "./constants";
 import { Viewport } from "./Viewport";
 
 export class InfiniteCanvas {
@@ -87,7 +87,7 @@ export class InfiniteCanvas {
 
   public renderGraph(
     testFile: TestFile,
-    taskStates: Record<string, "idle" | "running" | "success" | "failed"> = {},
+    taskStates: Record<string, TaskState> = {},
   ) {
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;

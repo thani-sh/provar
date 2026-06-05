@@ -1,5 +1,5 @@
 import { NodeShape } from "./NodeShape";
-import { COLOURS } from "./constants";
+import { COLOURS, type TaskState } from "./constants";
 
 export class EndShape extends NodeShape {
   protected override get cornerRadius() {
@@ -15,7 +15,7 @@ export class EndShape extends NodeShape {
     return 10;
   }
 
-  constructor(state: "idle" | "running" | "success" | "failed" = "idle") {
+  constructor(state: TaskState = "idle") {
     super("end", "End", "", state);
 
     // Style it slightly differently if needed, e.g., different border or text color
