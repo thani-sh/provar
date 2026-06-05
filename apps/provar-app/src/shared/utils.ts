@@ -1,4 +1,4 @@
-import type { TestNode } from "./domain";
+import type { TestNode } from "@libs/domain/zod";
 
 /**
  * Normalises the `next` field of a test node into a consistent array form.
