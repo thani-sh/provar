@@ -1,9 +1,18 @@
 import { type RPCSchema } from "electrobun/types";
 import type { TestFile, ProvarConfig } from "@libs/domain/zod";
+import type { Settings } from "../bun/lib/settings";
 
 export type ProvarRPCSchema = {
   bun: RPCSchema<{
     requests: {
+      getSettings: {
+        params: {};
+        response: { settings: Settings };
+      };
+      saveSettings: {
+        params: { settings: Partial<Settings> };
+        response: { settings: Settings };
+      };
       getConfig: {
         params: {};
         response: { config: ProvarConfig | null };

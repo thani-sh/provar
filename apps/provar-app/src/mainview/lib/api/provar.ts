@@ -1,7 +1,22 @@
 import { electroview } from "./rpc";
 import type { ProvarConfig, TestFile } from "@libs/domain/zod";
+import type { Settings } from "../../../bun/lib/settings";
 
 export const ProvarAPI = {
+  async getSettings() {
+    console.log("[RPC Client] getSettings request");
+    const res = await electroview.rpc!.request.getSettings({});
+    console.log("[RPC Client] getSettings response:", res);
+    return res;
+  },
+
+  async saveSettings(settings: Partial<Settings>) {
+    console.log("[RPC Client] saveSettings request:", settings);
+    const res = await electroview.rpc!.request.saveSettings({ settings });
+    console.log("[RPC Client] saveSettings response:", res);
+    return res;
+  },
+
   async getWorkspace() {
     console.log("[RPC Client] getWorkspace request");
     const res = await electroview.rpc!.request.getWorkspace({});

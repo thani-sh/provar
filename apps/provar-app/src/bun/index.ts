@@ -7,6 +7,7 @@ import Electrobun, {
 } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
 import { createCommands } from "@libs/commands";
+import { loadSettings, saveSettings } from "./lib/settings";
 import {
   setWorkspaceDir,
   WORKSPACE_DIR,
@@ -398,9 +399,21 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
     requests: {
+      getSettings: async () => {
+        console.log("[RPC Server] getSettings request");
+        const settings = loadSettings();
+        console.log("[RPC Server] getSettings response:", settings);
+        return { settings };
+      },
+      saveSettings: async (params) => {
+        console.log("[RPC Server] saveSettings request:", params);
+        const settings = saveSettings(params.settings);
+        console.log("[RPC Server] saveSettings response:", settings);
+        return { settings };
+      },
       getConfig: async () => {
         console.log("[RPC Server] getConfig request");
-        const res = await getCommands().getConfig.execute({});
+        const res = await getCommands().getConfig.execute();
         console.log("[RPC Server] getConfig response:", res);
         return res;
       },
@@ -418,7 +431,7 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       },
       listFiles: async () => {
         console.log("[RPC Server] listFiles request");
-        const res = await getCommands().listFiles.execute({});
+        const res = await getCommands().listFiles.execute();
         console.log(
           "[RPC Server] listFiles response test count:",
           res.tests.length,

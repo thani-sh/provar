@@ -214,13 +214,14 @@ class EditorStore {
 
   async deleteNode(id: string) {
     if (!this.currentFile) return;
+    const file = this.currentFile;
 
     uiStore.openConfirmModal(
       "Delete Task Node",
       "Are you sure you want to delete this node and all its descendants?",
       async () => {
         this.currentFile = deleteNodeFromGraph(
-          $state.snapshot(this.currentFile),
+          $state.snapshot(file),
           id,
         );
         this.selectedNodeId = null;
