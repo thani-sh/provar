@@ -191,8 +191,9 @@ export class GraphRenderer extends PIXI.Container {
     this.linksContainer.removeChildren();
 
     const firstShape = this.taskShapes.get(graph.start);
-    // The start → first task arrow is green once the first task has succeeded.
-    const startConnectorState = taskStates[graph.start] ?? "idle";
+    // Start → first task: green when the first task was actually reached.
+    const startConnectorState =
+      (taskStates[graph.start] ?? "idle") !== "idle" ? "success" : "idle";
     if (firstShape) {
       this.linksContainer.addChild(
         new ConnectorShape(
@@ -224,13 +225,14 @@ export class GraphRenderer extends PIXI.Container {
       const shape = this.taskShapes.get(id);
       if (!shape) continue;
 
-      // An arrow leaving a task is green once that task has succeeded.
-      const connectorState = taskStates[id] ?? "idle";
+      const sourceState = taskStates[id] ?? "idle";
 
       const nextNodes = getNextNodes(node);
       if (nextNodes.length === 0) {
         const target = this.endShapes.get(`end_${id}`);
         if (target) {
+          // Task → End: green only when the source task itself succeeded.
+          const connectorState = sourceState === "success" ? "success" : "idle";
           this.linksContainer.addChild(
             new ConnectorShape(
               shape.x + shape.width + CONNECTOR.startGap,
@@ -247,6 +249,14 @@ export class GraphRenderer extends PIXI.Container {
         for (const nextId of nextNodes) {
           const target = this.taskShapes.get(nextId);
           if (!target) continue;
+
+          // Task A → Task B: green only when A succeeded AND B was reached.
+          // This prevents unexecuted branches from lighting up green.
+          const targetState = taskStates[nextId] ?? "idle";
+          const connectorState =
+            sourceState === "success" && targetState !== "idle"
+              ? "success"
+              : "idle";
 
           this.linksContainer.addChild(
             new ConnectorShape(
