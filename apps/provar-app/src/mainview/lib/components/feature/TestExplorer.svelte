@@ -292,6 +292,10 @@
           <button
             class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
             onclick={() => {
+              console.log(
+                "[TestExplorer] Context menu onDelete folder clicked for path:",
+                contextMenu!.path,
+              );
               onDelete(contextMenu!.path);
               closeContextMenu();
             }}
@@ -304,6 +308,10 @@
       <button
         class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
         onclick={() => {
+          console.log(
+            "[TestExplorer] Context menu onDelete test clicked for path:",
+            contextMenu!.path,
+          );
           onDelete(contextMenu!.path);
           closeContextMenu();
         }}

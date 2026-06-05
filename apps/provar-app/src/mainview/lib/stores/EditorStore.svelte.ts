@@ -245,11 +245,20 @@ class EditorStore {
   }
 
   async deletePath(path: string) {
+    console.log("[EditorStore] deletePath called with:", path);
     const isFolder = !path.endsWith(".yml");
     const typeLabel = path.endsWith(".test.yml") ? "test" : "folder";
 
-    if (confirm(`Are you sure you want to delete this ${typeLabel}?`)) {
+    console.log("[EditorStore] showing confirm dialog...");
+    const isConfirmed = confirm(
+      `Are you sure you want to delete this ${typeLabel}?`,
+    );
+    console.log("[EditorStore] confirm result:", isConfirmed);
+
+    if (isConfirmed) {
+      console.log("[EditorStore] calling ProvarAPI.deletePath:", path);
       const res = await ProvarAPI.deletePath(path);
+      console.log("[EditorStore] ProvarAPI.deletePath result:", res);
       if (res.success) {
         if (
           this.selectedFilePath === path ||
