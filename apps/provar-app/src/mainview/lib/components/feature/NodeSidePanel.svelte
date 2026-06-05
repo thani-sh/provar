@@ -133,9 +133,7 @@
   });
 </script>
 
-<aside
-  class="absolute top-12 right-2 bottom-2 z-50 flex w-[400px] flex-col rounded-xl border border-zinc-800/80 bg-[#161b22]/50 shadow-2xl backdrop-blur-md"
->
+<div class="flex h-full w-full flex-col">
   <div class="flex flex-col border-b border-zinc-800/50 p-6">
     <input
       type="text"
@@ -313,4 +311,4 @@
       </button>
     </section>
   </div>
-</aside>
+</div>

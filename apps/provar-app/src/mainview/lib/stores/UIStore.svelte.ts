@@ -1,8 +1,13 @@
+import { editorStore } from "./EditorStore.svelte";
+
 class UIStore {
   isSidebarOpen = $state(true);
+  isRightSidebarOpen = $state(true);
   isAssistantPanelOpen = $state(false);
   isConfigPanelOpen = $state(false);
   isInputModalOpen = $state(false);
+
+  lastOpenSidebar = $state<"assistant" | "config" | "node">("config");
 
   inputModalProps = $state({
     title: "",
@@ -26,16 +31,59 @@ class UIStore {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
+  toggleRightSidebar() {
+    this.isRightSidebarOpen = !this.isRightSidebarOpen;
+    if (this.isRightSidebarOpen) {
+      this.restoreLastSidebar();
+    }
+  }
+
+  restoreLastSidebar() {
+    this.isRightSidebarOpen = true;
+    if (this.lastOpenSidebar === "assistant") {
+      this.isAssistantPanelOpen = true;
+      this.isConfigPanelOpen = false;
+    } else if (this.lastOpenSidebar === "config") {
+      this.isConfigPanelOpen = true;
+      this.isAssistantPanelOpen = false;
+    } else if (this.lastOpenSidebar === "node") {
+      const hasSelectedNode = editorStore.selectedNodeId !== null;
+      if (hasSelectedNode) {
+        this.isAssistantPanelOpen = false;
+        this.isConfigPanelOpen = false;
+      } else {
+        // Fallback to config
+        this.lastOpenSidebar = "config";
+        this.isConfigPanelOpen = true;
+        this.isAssistantPanelOpen = false;
+      }
+    }
+  }
+
   toggleAssistant() {
     this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
-    this.isAssistantPanelOpen = !this.isAssistantPanelOpen;
-    this.isConfigPanelOpen = false;
+    if (this.isAssistantPanelOpen) {
+      this.isAssistantPanelOpen = false;
+      this.isRightSidebarOpen = false;
+    } else {
+      this.isAssistantPanelOpen = true;
+      this.isConfigPanelOpen = false;
+      this.isRightSidebarOpen = true;
+      this.lastOpenSidebar = "assistant";
+    }
   }
 
   toggleConfig() {
     this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
-    this.isConfigPanelOpen = !this.isConfigPanelOpen;
-    this.isAssistantPanelOpen = false;
+    if (this.isConfigPanelOpen) {
+      this.isConfigPanelOpen = false;
+      this.isRightSidebarOpen = false;
+    } else {
+      this.isConfigPanelOpen = true;
+      this.isAssistantPanelOpen = false;
+      this.isRightSidebarOpen = true;
+      this.lastOpenSidebar = "config";
+    }
   }
 
   closeAllPanels() {
@@ -45,3 +93,4 @@ class UIStore {
 }
 
 export const uiStore = new UIStore();
+

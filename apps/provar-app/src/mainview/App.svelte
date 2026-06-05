@@ -115,6 +115,33 @@
       assistantBusy = false;
     }
   }
+
+  // Automatically open the right sidebar when a node is selected, and close assistant/config
+  $effect(() => {
+    if (editorStore.selectedNodeId) {
+      uiStore.lastOpenSidebar = "node";
+      uiStore.isRightSidebarOpen = true;
+      uiStore.isAssistantPanelOpen = false;
+      uiStore.isConfigPanelOpen = false;
+    }
+  });
+
+  // Automatically reset the last open sidebar to config when switching files
+  $effect(() => {
+    const file = editorStore.selectedFilePath;
+    uiStore.lastOpenSidebar = "config";
+  });
+
+  // Automatically close the right sidebar if no panel is active
+  $effect(() => {
+    const hasActivePanel =
+      uiStore.isAssistantPanelOpen ||
+      uiStore.isConfigPanelOpen ||
+      (editorStore.selectedNode && editorStore.selectedNodeId);
+    if (!hasActivePanel) {
+      uiStore.isRightSidebarOpen = false;
+    }
+  });
 </script>
 
 <div
@@ -133,6 +160,19 @@
       <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect width="18" height="18" x="3" y="3" rx="2" />
         <path d="M9 3v18" />
+      </svg>
+    </button>
+  {/if}
+
+  {#if editorStore.currentFile}
+    <button
+      onclick={() => uiStore.toggleRightSidebar()}
+      class="absolute top-[2px] right-[10px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 hover:opacity-100 transition-opacity pointer-events-auto focus:outline-none electrobun-webkit-app-region-no-drag"
+      title={uiStore.isRightSidebarOpen ? "Hide Right Sidebar" : "Show Right Sidebar"}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="18" height="18" x="3" y="3" rx="2" />
+        <path d="M15 3v18" />
       </svg>
     </button>
   {/if}
@@ -184,25 +224,35 @@
     />
   {/if}
 
-  {#if uiStore.isAssistantPanelOpen}
-    <AssistantPanel
-      onSend={handleAssist}
-      selectedFile={editorStore.selectedFilePath}
-      messages={assistantMessages}
-      isBusy={assistantBusy}
-    />
-  {:else if uiStore.isConfigPanelOpen}
-    <ConfigPanel
-      config={workspaceStore.config}
-      onSave={(cfg) => workspaceStore.saveConfig(cfg)}
-    />
-  {:else if editorStore.selectedNode && editorStore.selectedNodeId}
-    <NodeSidePanel
-      node={editorStore.selectedNode}
-      nodeId={editorStore.selectedNodeId}
-      onUpdate={(id, updates) => editorStore.updateNode(id, updates)}
-      onDelete={(id) => editorStore.deleteNode(id)}
-    />
+  {#if uiStore.isAssistantPanelOpen || uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId)}
+    <aside
+      class="absolute top-0 bottom-0 right-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isRightSidebarOpen ? 'translate-x-[420px] pointer-events-none' : 'translate-x-0'}"
+    >
+      <div 
+        class="h-[38px] w-full relative shrink-0 select-none pointer-events-none electrobun-webkit-app-region-drag"
+      ></div>
+
+      {#if uiStore.isAssistantPanelOpen}
+        <AssistantPanel
+          onSend={handleAssist}
+          selectedFile={editorStore.selectedFilePath}
+          messages={assistantMessages}
+          isBusy={assistantBusy}
+        />
+      {:else if uiStore.isConfigPanelOpen}
+        <ConfigPanel
+          config={workspaceStore.config}
+          onSave={(cfg) => workspaceStore.saveConfig(cfg)}
+        />
+      {:else if editorStore.selectedNode && editorStore.selectedNodeId}
+        <NodeSidePanel
+          node={editorStore.selectedNode}
+          nodeId={editorStore.selectedNodeId}
+          onUpdate={(id, updates) => editorStore.updateNode(id, updates)}
+          onDelete={(id) => editorStore.deleteNode(id)}
+        />
+      {/if}
+    </aside>
   {/if}
 
   <InputModal
