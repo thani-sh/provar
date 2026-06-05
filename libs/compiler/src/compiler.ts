@@ -54,7 +54,9 @@ export async function compile(
   let session: Session;
   try {
     const settings = loadSettings();
-    console.log(`[Compiler] Starting agent client with provider: ${settings.models.defaultProvider}`);
+    console.log(
+      `[Compiler] Starting agent client with provider: ${settings.models.defaultProvider}`,
+    );
     client = createClient(settings.models);
     session = await client.session();
   } catch (err: any) {

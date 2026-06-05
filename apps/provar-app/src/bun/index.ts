@@ -402,9 +402,7 @@ function updateApplicationMenu() {
   const homeDir = Utils.paths.home;
 
   const recentItems = recents.map((p) => {
-    const displayPath = p.startsWith(homeDir)
-      ? p.replace(homeDir, "~")
-      : p;
+    const displayPath = p.startsWith(homeDir) ? p.replace(homeDir, "~") : p;
     return {
       label: displayPath,
       action: `open-recent:${p}`,

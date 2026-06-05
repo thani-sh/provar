@@ -41,7 +41,7 @@
 
 {#if show && settings}
   <div
-    class="fixed inset-0 z-[400] flex bg-[#161b22] text-zinc-300 select-none overflow-hidden"
+    class="fixed inset-0 z-[400] flex overflow-hidden bg-[#161b22] text-zinc-300 select-none"
   >
     <!-- Draggable region at top to support moving window in full screen overlay -->
     <div
@@ -49,20 +49,30 @@
     ></div>
 
     <!-- Sidebar Panel -->
-    <aside class="w-[200px] border-r border-zinc-800 bg-[#0e1116]/40 pt-[50px] p-6 shrink-0">
-      <h2 class="mb-4 px-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+    <aside
+      class="w-[200px] shrink-0 border-r border-zinc-800 bg-[#0e1116]/40 p-6 pt-[50px]"
+    >
+      <h2
+        class="mb-4 px-3 text-xs font-semibold tracking-wider text-zinc-500 uppercase"
+      >
         Settings
       </h2>
       <nav class="space-y-1">
         <button
           onclick={() => (activeSection = "general")}
-          class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 focus:outline-none electrobun-webkit-app-region-no-drag {activeSection === 'general' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200'}"
+          class="electrobun-webkit-app-region-no-drag w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 focus:outline-none {activeSection ===
+          'general'
+            ? 'bg-zinc-800 text-zinc-100'
+            : 'text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200'}"
         >
           General
         </button>
         <button
           onclick={() => (activeSection = "models")}
-          class="w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 focus:outline-none electrobun-webkit-app-region-no-drag {activeSection === 'models' ? 'bg-zinc-800 text-zinc-100' : 'text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200'}"
+          class="electrobun-webkit-app-region-no-drag w-full rounded-lg px-3 py-2 text-left text-sm font-medium transition-all duration-200 focus:outline-none {activeSection ===
+          'models'
+            ? 'bg-zinc-800 text-zinc-100'
+            : 'text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-200'}"
         >
           Models
         </button>
@@ -70,13 +80,17 @@
     </aside>
 
     <!-- Main Config Panel -->
-    <main class="flex flex-col flex-1 pt-[50px] px-8 pb-8 min-w-0">
+    <main class="flex min-w-0 flex-1 flex-col px-8 pt-[50px] pb-8">
       <div class="flex-1 overflow-y-auto pr-1">
         {#if activeSection === "general"}
-          <div class="space-y-6 max-w-xl">
+          <div class="max-w-xl space-y-6">
             <div>
-              <h3 class="text-base font-semibold text-zinc-100">General Settings</h3>
-              <p class="text-xs text-zinc-500 mt-1">Configure general application preferences.</p>
+              <h3 class="text-base font-semibold text-zinc-100">
+                General Settings
+              </h3>
+              <p class="mt-1 text-xs text-zinc-500">
+                Configure general application preferences.
+              </p>
             </div>
 
             <div>
@@ -90,16 +104,20 @@
                 id="placeholder-setting"
                 type="text"
                 bind:value={settings.placeholder}
-                class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                 placeholder="Enter placeholder value..."
               />
             </div>
           </div>
         {:else if activeSection === "models"}
-          <div class="space-y-6 max-w-xl">
+          <div class="max-w-xl space-y-6">
             <div>
-              <h3 class="text-base font-semibold text-zinc-100">Model Configuration</h3>
-              <p class="text-xs text-zinc-500 mt-1">Configure API credentials and model configurations.</p>
+              <h3 class="text-base font-semibold text-zinc-100">
+                Model Configuration
+              </h3>
+              <p class="mt-1 text-xs text-zinc-500">
+                Configure API credentials and model configurations.
+              </p>
             </div>
 
             <div>
@@ -112,15 +130,19 @@
               <select
                 id="default-provider"
                 bind:value={settings.models.defaultProvider}
-                class="w-full appearance-none rounded-lg border border-zinc-700/50 bg-[#21262d] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[right_1rem_center] bg-no-repeat px-4 py-2.5 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                class="electrobun-webkit-app-region-no-drag w-full appearance-none rounded-lg border border-zinc-700/50 bg-[#21262d] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[right_1rem_center] bg-no-repeat px-4 py-2.5 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
               >
-                <option value="google-generative-ai">Google Generative AI</option>
+                <option value="google-generative-ai"
+                  >Google Generative AI</option
+                >
                 <option value="openai">OpenAI</option>
               </select>
             </div>
 
-            <div class="border-t border-zinc-800 pt-4 space-y-4">
-              <h4 class="text-xs font-semibold tracking-wider text-zinc-400 uppercase">
+            <div class="space-y-4 border-t border-zinc-800 pt-4">
+              <h4
+                class="text-xs font-semibold tracking-wider text-zinc-400 uppercase"
+              >
                 Provider Parameters
               </h4>
 
@@ -137,7 +159,7 @@
                       id="openai-apikey"
                       type="text"
                       bind:value={settings.models.providers.openai.apiKey}
-                      class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       placeholder="sk-..."
                     />
                   </div>
@@ -154,7 +176,7 @@
                         id="openai-model"
                         type="text"
                         bind:value={settings.models.providers.openai.model}
-                        class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                        class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       />
                     </div>
                     <div>
@@ -168,7 +190,7 @@
                         id="openai-baseurl"
                         type="text"
                         bind:value={settings.models.providers.openai.baseUrl}
-                        class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                        class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                         placeholder="https://api.openai.com/v1"
                       />
                     </div>
@@ -186,8 +208,10 @@
                     <input
                       id="google-apikey"
                       type="text"
-                      bind:value={settings.models.providers["google-generative-ai"].apiKey}
-                      class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                      bind:value={
+                        settings.models.providers["google-generative-ai"].apiKey
+                      }
+                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                       placeholder="AIzaSy..."
                     />
                   </div>
@@ -202,8 +226,10 @@
                     <input
                       id="google-model"
                       type="text"
-                      bind:value={settings.models.providers["google-generative-ai"].model}
-                      class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none electrobun-webkit-app-region-no-drag"
+                      bind:value={
+                        settings.models.providers["google-generative-ai"].model
+                      }
+                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -214,7 +240,9 @@
       </div>
 
       <!-- Action Footer -->
-      <div class="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4 shrink-0 electrobun-webkit-app-region-no-drag">
+      <div
+        class="electrobun-webkit-app-region-no-drag mt-6 flex shrink-0 items-center justify-end gap-3 border-t border-zinc-800 pt-4"
+      >
         <button
           onclick={onClose}
           class="rounded-lg border border-zinc-800 bg-[#21262d] px-4 py-2 text-sm font-semibold text-zinc-300 transition-all hover:bg-zinc-800 focus:outline-none active:scale-[0.98]"

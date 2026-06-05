@@ -31,20 +31,14 @@ export class GraphRenderer extends PIXI.Container {
     this.build(testFile.graph, taskStates);
   }
 
-  private build(
-    graph: Graph,
-    taskStates: Record<string, TaskState>,
-  ) {
+  private build(graph: Graph, taskStates: Record<string, TaskState>) {
     this.createShapes(graph, taskStates);
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
     this.drawConnections(graph, taskStates);
   }
 
-  private createShapes(
-    graph: Graph,
-    taskStates: Record<string, TaskState>,
-  ) {
+  private createShapes(graph: Graph, taskStates: Record<string, TaskState>) {
     // Derive start state: successful if the first task node succeeded.
     const startState = graph.start
       ? (taskStates[graph.start] ?? "idle")
@@ -233,7 +227,9 @@ export class GraphRenderer extends PIXI.Container {
         if (target) {
           // Task → End: green when source succeeded or had mixed results.
           const connectorState =
-            sourceState === "success" || sourceState === "mixed" ? "success" : "idle";
+            sourceState === "success" || sourceState === "mixed"
+              ? "success"
+              : "idle";
           this.linksContainer.addChild(
             new ConnectorShape(
               shape.x + shape.width + CONNECTOR.startGap,
@@ -255,7 +251,8 @@ export class GraphRenderer extends PIXI.Container {
           // This prevents unexecuted branches from lighting up green.
           const targetState = taskStates[nextId] ?? "idle";
           const connectorState =
-            (sourceState === "success" || sourceState === "mixed") && targetState !== "idle"
+            (sourceState === "success" || sourceState === "mixed") &&
+            targetState !== "idle"
               ? "success"
               : "idle";
 

@@ -1,7 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import { File, Play, ChevronDown, Layers, ArrowRightToLine, X } from "lucide-svelte";
+  import {
+    File,
+    Play,
+    ChevronDown,
+    Layers,
+    ArrowRightToLine,
+    X,
+  } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -64,7 +71,10 @@
             homeDir = res.home || "";
           })
           .catch((err) => {
-            console.error("Failed to load settings recents on settingsChanged:", err);
+            console.error(
+              "Failed to load settings recents on settingsChanged:",
+              err,
+            );
           });
       },
     });
@@ -223,7 +233,9 @@
           ></div>
         </div>
       {:else}
-        <div class="electrobun-webkit-app-region-no-drag pointer-events-auto relative flex">
+        <div
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto relative flex"
+        >
           <!-- Split button: left = smart run, right = dropdown chevron -->
           <button
             onclick={() => {
@@ -234,7 +246,7 @@
                 editorStore.runAllPaths();
               }
             }}
-            class="flex h-[26px] cursor-pointer items-center gap-1 rounded-l-full border border-zinc-800/80 bg-[#161b22]/80 pl-2.5 pr-2 text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-green-400 focus:outline-none"
+            class="flex h-[26px] cursor-pointer items-center gap-1 rounded-l-full border border-zinc-800/80 bg-[#161b22]/80 pr-2 pl-2.5 text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-green-400 focus:outline-none"
             title={editorStore.selectedNodePathIndex !== null
               ? "Run selected path"
               : "Run all paths"}
@@ -242,7 +254,10 @@
             <Play size={10} class="fill-current" />
           </button>
           <button
-            onclick={(e) => { e.stopPropagation(); runMenuOpen = !runMenuOpen; }}
+            onclick={(e) => {
+              e.stopPropagation();
+              runMenuOpen = !runMenuOpen;
+            }}
             class="flex h-[26px] cursor-pointer items-center rounded-r-full border border-l-0 border-zinc-800/80 bg-[#161b22]/80 px-1.5 text-zinc-500 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-zinc-300 focus:outline-none"
             title="Run options"
           >
@@ -255,13 +270,18 @@
             >
               <!-- Run all paths -->
               <button
-                onclick={() => { runMenuOpen = false; editorStore.runAllPaths(); }}
+                onclick={() => {
+                  runMenuOpen = false;
+                  editorStore.runAllPaths();
+                }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-zinc-800/60"
               >
                 <Layers size={12} class="shrink-0 text-zinc-400" />
                 <div>
                   <div class="font-medium">Run all paths</div>
-                  <div class="text-zinc-500">Execute every branch sequentially</div>
+                  <div class="text-zinc-500">
+                    Execute every branch sequentially
+                  </div>
                 </div>
               </button>
 
@@ -277,41 +297,62 @@
                 }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
                   {editorStore.selectedNodePathIndex !== null
-                    ? 'text-zinc-300 hover:bg-zinc-800/60 cursor-pointer'
-                    : 'cursor-not-allowed text-zinc-600'}"
+                  ? 'cursor-pointer text-zinc-300 hover:bg-zinc-800/60'
+                  : 'cursor-not-allowed text-zinc-600'}"
               >
-                <Play size={12} class="shrink-0 {editorStore.selectedNodePathIndex !== null ? 'text-zinc-400' : 'text-zinc-700'}" />
+                <Play
+                  size={12}
+                  class="shrink-0 {editorStore.selectedNodePathIndex !== null
+                    ? 'text-zinc-400'
+                    : 'text-zinc-700'}"
+                />
                 <div>
                   <div class="font-medium">Run selected path</div>
-                  <div class="{editorStore.selectedNodePathIndex !== null ? 'text-zinc-500' : 'text-zinc-700'}">
+                  <div
+                    class={editorStore.selectedNodePathIndex !== null
+                      ? "text-zinc-500"
+                      : "text-zinc-700"}
+                  >
                     {editorStore.selectedNodePathIndex !== null
                       ? `Path ${editorStore.selectedNodePathIndex + 1} of ${editorStore.allPaths.length}`
-                      : 'Select a node first'}
+                      : "Select a node first"}
                   </div>
                 </div>
               </button>
 
               <!-- Run up to selected node -->
               <button
-                disabled={editorStore.selectedNodeId === null || editorStore.selectedNodePathIndex === null}
+                disabled={editorStore.selectedNodeId === null ||
+                  editorStore.selectedNodePathIndex === null}
                 onclick={() => {
                   runMenuOpen = false;
                   const idx = editorStore.selectedNodePathIndex;
                   const nodeId = editorStore.selectedNodeId;
-                  if (idx !== null && nodeId) editorStore.runPathUpTo(idx, nodeId);
+                  if (idx !== null && nodeId)
+                    editorStore.runPathUpTo(idx, nodeId);
                 }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
-                  {editorStore.selectedNodeId !== null && editorStore.selectedNodePathIndex !== null
-                    ? 'text-zinc-300 hover:bg-zinc-800/60 cursor-pointer'
-                    : 'cursor-not-allowed text-zinc-600'}"
+                  {editorStore.selectedNodeId !== null &&
+                editorStore.selectedNodePathIndex !== null
+                  ? 'cursor-pointer text-zinc-300 hover:bg-zinc-800/60'
+                  : 'cursor-not-allowed text-zinc-600'}"
               >
-                <ArrowRightToLine size={12} class="shrink-0 {editorStore.selectedNodeId !== null ? 'text-zinc-400' : 'text-zinc-700'}" />
+                <ArrowRightToLine
+                  size={12}
+                  class="shrink-0 {editorStore.selectedNodeId !== null
+                    ? 'text-zinc-400'
+                    : 'text-zinc-700'}"
+                />
                 <div>
                   <div class="font-medium">Run up to here</div>
-                  <div class="{editorStore.selectedNodeId !== null ? 'text-zinc-500' : 'text-zinc-700'}">
+                  <div
+                    class={editorStore.selectedNodeId !== null
+                      ? "text-zinc-500"
+                      : "text-zinc-700"}
+                  >
                     {editorStore.selectedNodeId !== null
-                      ? 'Stop at selected node'
-                      : 'Select a node first'}
+                      ? "Stop at selected node"
+                      : "Select a node first"}
                   </div>
                 </div>
               </button>
@@ -321,11 +362,14 @@
               <!-- Clear run status -->
               <button
                 disabled={editorStore.isRunning}
-                onclick={() => { runMenuOpen = false; editorStore.clearRunStates(); }}
+                onclick={() => {
+                  runMenuOpen = false;
+                  editorStore.clearRunStates();
+                }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
                   {editorStore.isRunning
-                    ? 'cursor-not-allowed text-zinc-600'
-                    : 'cursor-pointer text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300'}"
+                  ? 'cursor-not-allowed text-zinc-600'
+                  : 'cursor-pointer text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300'}"
               >
                 <X size={12} class="shrink-0" />
                 <div>
@@ -391,7 +435,10 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="absolute inset-0 touch-none overscroll-none"
-    onclick={() => { uiStore.closeAllPanels(); runMenuOpen = false; }}
+    onclick={() => {
+      uiStore.closeAllPanels();
+      runMenuOpen = false;
+    }}
     role="button"
     tabindex="-1"
   >
@@ -399,24 +446,32 @@
       <div
         class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
       >
-        <div class="w-full max-w-sm flex flex-col items-center">
+        <div class="flex w-full max-w-sm flex-col items-center">
           {#if recentWorkspaces.length > 0}
-            <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-600 mb-3">
+            <h3
+              class="mb-3 text-xs font-semibold tracking-wider text-zinc-600 uppercase"
+            >
               Recent Workspaces
             </h3>
-            <ul class="w-full space-y-2 mb-3">
+            <ul class="mb-3 w-full space-y-2">
               {#each recentWorkspaces as path}
                 <li>
                   <button
                     onclick={async () => {
                       await ProvarAPI.openWorkspace(path);
                     }}
-                    class="w-full text-left truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 hover:bg-[#21262d]/50 hover:border-zinc-700 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-200 transition-all focus:outline-none"
+                    class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
                     title={path}
                   >
-                    <span class="font-medium text-zinc-300">{path.split('/').pop()}</span>
-                    <span class="block text-[10px] text-zinc-500 mt-0.5 truncate">
-                      {homeDir && path.startsWith(homeDir) ? path.replace(homeDir, "~") : path}
+                    <span class="font-medium text-zinc-300"
+                      >{path.split("/").pop()}</span
+                    >
+                    <span
+                      class="mt-0.5 block truncate text-[10px] text-zinc-500"
+                    >
+                      {homeDir && path.startsWith(homeDir)
+                        ? path.replace(homeDir, "~")
+                        : path}
                     </span>
                   </button>
                 </li>
@@ -428,7 +483,7 @@
             onclick={async () => {
               await ProvarAPI.selectWorkspace();
             }}
-            class="w-full text-center rounded-lg border border-zinc-800/80 bg-[#161b22]/50 hover:bg-[#21262d]/50 hover:border-zinc-700 px-4 py-3.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all focus:outline-none"
+            class="w-full rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-3.5 text-center text-xs font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
           >
             Open workspace folder...
           </button>

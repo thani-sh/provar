@@ -23,7 +23,9 @@ class EditorStore {
    * taskPathStates tracks the execution result of each node per path index.
    * Structure: { [nodeId]: { [pathIndex]: "idle" | "running" | "success" | "failed" } }
    */
-  taskPathStates = $state<Record<string, Record<number, "idle" | "running" | "success" | "failed">>>({});
+  taskPathStates = $state<
+    Record<string, Record<number, "idle" | "running" | "success" | "failed">>
+  >({});
 
   /**
    * taskStates derives the effective display state per node by aggregating
@@ -94,7 +96,10 @@ class EditorStore {
           if (this.currentFile?.graph?.nodes) {
             const updated = { ...this.taskPathStates };
             for (const id of Object.keys(this.currentFile.graph.nodes)) {
-              updated[id] = { ...(updated[id] || {}), [this.currentPathIndex]: "idle" };
+              updated[id] = {
+                ...(updated[id] || {}),
+                [this.currentPathIndex]: "idle",
+              };
             }
             this.taskPathStates = updated;
           }
@@ -122,7 +127,10 @@ class EditorStore {
             if (event.taskId) {
               this.taskPathStates = {
                 ...this.taskPathStates,
-                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "running" },
+                [event.taskId]: {
+                  ...(this.taskPathStates[event.taskId] || {}),
+                  [this.currentPathIndex]: "running",
+                },
               };
             }
             break;
@@ -130,7 +138,10 @@ class EditorStore {
             if (event.taskId) {
               this.taskPathStates = {
                 ...this.taskPathStates,
-                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "success" },
+                [event.taskId]: {
+                  ...(this.taskPathStates[event.taskId] || {}),
+                  [this.currentPathIndex]: "success",
+                },
               };
               this.loadScreenshotsForNode(event.taskId);
             }
@@ -139,7 +150,10 @@ class EditorStore {
             if (event.taskId) {
               this.taskPathStates = {
                 ...this.taskPathStates,
-                [event.taskId]: { ...(this.taskPathStates[event.taskId] || {}), [this.currentPathIndex]: "failed" },
+                [event.taskId]: {
+                  ...(this.taskPathStates[event.taskId] || {}),
+                  [this.currentPathIndex]: "failed",
+                },
               };
               this.loadScreenshotsForNode(event.taskId);
             }
@@ -337,10 +351,7 @@ class EditorStore {
       "Delete Task Node",
       "Are you sure you want to delete this node and all its descendants?",
       async () => {
-        this.currentFile = deleteNodeFromGraph(
-          $state.snapshot(file),
-          id,
-        );
+        this.currentFile = deleteNodeFromGraph($state.snapshot(file), id);
         this.selectedNodeId = null;
         await this.saveFile();
       },

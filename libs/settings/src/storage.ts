@@ -41,7 +41,10 @@ export function saveSettings(settings: Partial<Settings>): Settings {
       }
     }
 
-    const merged = settingsSchema.parse({ ...(current as object), ...settings });
+    const merged = settingsSchema.parse({
+      ...(current as object),
+      ...settings,
+    });
     writeFileSync(SETTINGS_PATH, JSON.stringify(merged, null, 2), "utf-8");
     return merged;
   } catch (error) {
