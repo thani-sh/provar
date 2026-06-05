@@ -18,6 +18,7 @@
     "@libs/executor": "workspace:*",
     "@libs/domain": "workspace:*",
     "@libs/commands": "workspace:*",
+    "@libs/settings": "workspace:*",
     "electrobun": "1.18.1",
     "lucide-svelte": "^0.474.0",
     "pixi.js": "^8.18.1",

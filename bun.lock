@@ -23,6 +23,7 @@
         "@libs/domain": "workspace:*",
         "@libs/executor": "workspace:*",
         "@libs/loader": "workspace:*",
+        "@libs/settings": "workspace:*",
         "electrobun": "1.18.1",
         "lucide-svelte": "^0.474.0",
         "pixi.js": "^8.18.1",
@@ -166,6 +167,18 @@
         "typescript": "^6.0.3",
       },
     },
+    "libs/settings": {
+      "name": "@libs/settings",
+      "version": "1.0.0",
+      "dependencies": {
+        "zod": "^3.25.76",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "prettier": "^3.8.3",
+        "typescript": "^6.0.3",
+      },
+    },
   },
   "packages": {
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@0.21.1", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-ZTLH+o9QxcZDLX/9ww+W7C2iExnXFM+vD/uGFVSlR61Kzj9FaxUqBC6Rv/kwgA7qVWYUEI9c5ZNqCuO9PM4rKg=="],
@@ -205,6 +218,8 @@
     "@libs/executor": ["@libs/executor@workspace:libs/executor"],
 
     "@libs/loader": ["@libs/loader@workspace:libs/loader"],
+
+    "@libs/settings": ["@libs/settings@workspace:libs/settings"],
 
     "@malept/cross-spawn-promise": ["@malept/cross-spawn-promise@1.1.1", "", { "dependencies": { "cross-spawn": "^7.0.1" } }, "sha512-RTBGWL5FWQcg9orDOCcp4LvItNzUPcyEU9bwaeJX0rJ1IQxzucC48Y0/sQLp/g6t99IQgAlGIaesJS+gTn7tVQ=="],
 

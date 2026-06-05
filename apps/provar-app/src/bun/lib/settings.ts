@@ -1,72 +1,8 @@
-import { z } from "zod";
-import { Utils } from "electrobun/bun";
-import { join } from "path";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
-
-export const SettingsSchema = z.object({
-  placeholder: z.string().default("placeholder-value"),
-  models: z.object({
-    defaultProvider: z.enum(["openai", "google-generative-ai"]).default("google-generative-ai"),
-    providers: z.object({
-      openai: z.object({
-        apiKey: z.string().default(""),
-        model: z.string().default("gpt-4o"),
-        baseUrl: z.string().default(""),
-      }).default({}),
-      "google-generative-ai": z.object({
-        apiKey: z.string().default(""),
-        model: z.string().default("gemini-1.5-flash"),
-      }).default({}),
-    }).default({}),
-  }).default({}),
-  recentWorkspaces: z.array(z.string()).default([]),
-});
-
-export type Settings = z.infer<typeof SettingsSchema>;
-
-const getSettingsPath = () => join(Utils.paths.userData, "settings.json");
-
-export function loadSettings(): Settings {
-  const settingsPath = getSettingsPath();
-  try {
-    if (!existsSync(settingsPath)) {
-      const defaultSettings = SettingsSchema.parse({});
-      saveSettings(defaultSettings);
-      return defaultSettings;
-    }
-    const fileContent = readFileSync(settingsPath, "utf-8");
-    const parsed = JSON.parse(fileContent);
-    return SettingsSchema.parse(parsed);
-  } catch (error) {
-    console.error("Failed to load settings:", error);
-    return SettingsSchema.parse({});
-  }
-}
-
-export function saveSettings(settings: Partial<Settings>): Settings {
-  const settingsPath = getSettingsPath();
-  try {
-    mkdirSync(Utils.paths.userData, { recursive: true });
-    
-    let currentSettings = {};
-    if (existsSync(settingsPath)) {
-      try {
-        const fileContent = readFileSync(settingsPath, "utf-8");
-        currentSettings = JSON.parse(fileContent);
-      } catch (e) {
-        // ignore
-      }
-    }
-    
-    const newSettings = SettingsSchema.parse({
-      ...currentSettings,
-      ...settings,
-    });
-    
-    writeFileSync(settingsPath, JSON.stringify(newSettings, null, 2), "utf-8");
-    return newSettings;
-  } catch (error) {
-    console.error("Failed to save settings:", error);
-    throw error;
-  }
-}
+// Settings logic has moved to @libs/settings.
+// This file re-exports from there so existing app imports continue to resolve.
+export {
+  loadSettings,
+  saveSettings,
+  settingsSchema as SettingsSchema,
+  type Settings,
+} from "@libs/settings";
