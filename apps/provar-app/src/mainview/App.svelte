@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { fly } from "svelte/transition";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -224,9 +225,10 @@
     />
   {/if}
 
-  {#if uiStore.isAssistantPanelOpen || uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId)}
+  {#if uiStore.isRightSidebarOpen && (uiStore.isAssistantPanelOpen || uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId))}
     <aside
-      class="absolute top-0 bottom-0 right-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isRightSidebarOpen ? 'translate-x-[420px] pointer-events-none' : 'translate-x-0'}"
+      transition:fly={{ x: 400, duration: 200 }}
+      class="absolute top-0 bottom-0 right-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 backdrop-blur-md"
     >
       <div 
         class="h-[38px] w-full relative shrink-0 select-none pointer-events-none electrobun-webkit-app-region-drag"
