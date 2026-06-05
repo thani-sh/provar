@@ -24,6 +24,9 @@ class EditorStore {
     {},
   );
 
+  /** runFinishedResolve is set by runPath and called when run-finished fires. */
+  private runFinishedResolve: (() => void) | null = null;
+
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
     return this.currentFile.graph.nodes[this.selectedNodeId] || null;
@@ -70,6 +73,8 @@ class EditorStore {
         if (event.type === "run-finished") {
           this.isRunning = false;
           console.log("[EditorStore] isRunning updated to:", this.isRunning);
+          this.runFinishedResolve?.();
+          this.runFinishedResolve = null;
           return;
         }
 
@@ -131,27 +136,36 @@ class EditorStore {
     }
   }
 
-  /** runPath runs a single path by its index. */
-  async runPath(pathIndex: number) {
+  /** runPath runs a single path by its index and resolves when execution finishes. */
+  async runPath(pathIndex: number): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     this.isRunning = true;
     this.taskStates = {};
 
-    try {
-      const res = await ProvarAPI.runTestPath(
-        this.selectedFilePath,
-        pathIndex,
-        undefined,
-        true,
-      );
-      if (!res.success) {
+    return new Promise(async (resolve) => {
+      // Store resolve so the run-finished RPC event can unblock the caller.
+      this.runFinishedResolve = resolve;
+
+      try {
+        const res = await ProvarAPI.runTestPath(
+          this.selectedFilePath!,
+          pathIndex,
+          undefined,
+          true,
+        );
+        if (!res.success) {
+          this.isRunning = false;
+          this.runFinishedResolve = null;
+          resolve();
+          alert(`Test execution failed to start: ${res.error}`);
+        }
+      } catch (e) {
+        console.error("EditorStore: Run failed:", e);
         this.isRunning = false;
-        alert(`Test execution failed to start: ${res.error}`);
+        this.runFinishedResolve = null;
+        resolve();
       }
-    } catch (e) {
-      console.error("EditorStore: Run failed:", e);
-      this.isRunning = false;
-    }
+    });
   }
 
   /** runPathUpTo runs a path stopping execution at the given task node. */
