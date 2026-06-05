@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { TestNode } from "../../../../shared/domain";
+  import type { TestNode } from "@libs/domain/zod";
   import { Check, Image as ImageIcon, Share2, Trash2 } from "lucide-svelte";
   import { editorStore } from "../../stores/EditorStore.svelte";
 

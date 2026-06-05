@@ -5,7 +5,7 @@ import {
   updateNodeInGraph,
   deleteNodeFromGraph,
 } from "../utils/graph";
-import type { TestFile, TestNode } from "../../../shared/domain";
+import type { TestFile, TestNode } from "@libs/domain/zod";
 import { workspaceStore } from "./WorkspaceStore.svelte";
 
 class EditorStore {

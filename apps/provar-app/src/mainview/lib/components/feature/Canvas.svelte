@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
-  import type { TestFile } from "../../../../shared/domain";
+  import type { TestFile } from "@libs/domain/zod";
   import { InfiniteCanvas } from "../../canvas/InfiniteCanvas";
   import { editorStore } from "../../stores/EditorStore.svelte";
 

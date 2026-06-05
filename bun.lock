@@ -18,7 +18,9 @@
       "version": "1.0.0",
       "dependencies": {
         "@libs/agents": "workspace:*",
+        "@libs/commands": "workspace:*",
         "@libs/compiler": "workspace:*",
+        "@libs/domain": "workspace:*",
         "@libs/executor": "workspace:*",
         "@libs/loader": "workspace:*",
         "electrobun": "1.18.1",
@@ -85,6 +87,20 @@
       "version": "1.0.0",
       "dependencies": {
         "@agentclientprotocol/sdk": "^0.21.1",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "prettier": "^3.8.3",
+        "typescript": "^6.0.3",
+      },
+    },
+    "libs/commands": {
+      "name": "@libs/commands",
+      "version": "1.0.0",
+      "dependencies": {
+        "@libs/domain": "workspace:*",
+        "yaml": "^2.9.0",
+        "zod": "^3.25.76",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -225,6 +241,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@libs/agents": ["@libs/agents@workspace:libs/agents"],
+
+    "@libs/commands": ["@libs/commands@workspace:libs/commands"],
 
     "@libs/compiler": ["@libs/compiler@workspace:libs/compiler"],
 

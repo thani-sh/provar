@@ -261,10 +261,7 @@ export class PathRunner implements Runner {
           break;
         }
 
-        if (
-          this.options.upToTaskId &&
-          task.id === this.options.upToTaskId
-        ) {
+        if (this.options.upToTaskId && task.id === this.options.upToTaskId) {
           break;
         }
       }

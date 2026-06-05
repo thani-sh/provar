@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 import { NodeShape } from "./NodeShape";
 import { COLOURS, LAYOUT } from "./constants";
 import { getCodeStatus } from "../../../shared/utils";
-import type { TestNode } from "../../../shared/domain";
+import type { TestNode } from "@libs/domain/zod";
 
 export class TaskShape extends NodeShape {
   protected override get cornerRadius() {

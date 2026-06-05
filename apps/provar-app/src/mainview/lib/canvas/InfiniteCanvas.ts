@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import type { TestFile } from "../../../shared/domain";
+import type { TestFile } from "@libs/domain/zod";
 import { GraphRenderer } from "./GraphRenderer";
 import { LAYOUT, COLOURS } from "./constants";
 import { Viewport } from "./Viewport";

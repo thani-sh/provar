@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import type { TestFile, Graph } from "../../../shared/domain";
+import type { TestFile, TestFileGraph as Graph } from "@libs/domain/zod";
 import { TaskShape } from "./TaskShape";
 import { StartShape } from "./StartShape";
 import { EndShape } from "./EndShape";

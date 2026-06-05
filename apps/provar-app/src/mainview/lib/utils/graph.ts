@@ -1,4 +1,4 @@
-import type { TestFile, TestNode } from "../../../shared/domain";
+import type { TestFile, TestNode } from "@libs/domain/zod";
 import { generateNodeId } from "../../../shared/utils";
 
 export function addNodeToGraph(

@@ -6,20 +6,13 @@ import Electrobun, {
   Utils,
 } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
-import { getConfig } from "./commands/getConfig";
-import { saveConfig } from "./commands/saveConfig";
-import { listFiles } from "./commands/listFiles";
-import { readFileCommand } from "./commands/readFile";
-import { writeFileCommand } from "./commands/writeFile";
-import { createFile } from "./commands/createFile";
-import { createDirectory } from "./commands/createDirectory";
-import { deletePath } from "./commands/deletePath";
-import { assistEditor } from "./commands/assistEditor";
+import { createCommands } from "@libs/commands";
 import {
   setWorkspaceDir,
   WORKSPACE_DIR,
   onWorkspaceChanged,
   getAbsPath,
+  triggerWorkspaceChanged,
 } from "./utils";
 import { compile } from "@libs/compiler";
 import { loadProject } from "@libs/loader";
@@ -399,32 +392,52 @@ const getScreenshots = async (params: {
   }
 };
 
+const getCommands = () => createCommands({ workspaceDir: WORKSPACE_DIR });
+
 const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
     requests: {
-      getConfig,
+      getConfig: () => getCommands().getConfig.execute({}),
       getWorkspace: async () => ({ path: WORKSPACE_DIR }),
-      saveConfig,
-      listFiles,
-      readFile: readFileCommand,
-      writeFile: writeFileCommand,
-      createFile,
-      createDirectory,
-      deletePath,
+      saveConfig: (params) => getCommands().saveConfig.execute(params),
+      listFiles: () => getCommands().listFiles.execute({}),
+      readFile: (params) => getCommands().readFile.execute(params),
+      writeFile: async (params) => {
+        const res = await getCommands().writeFile.execute(params);
+        triggerWorkspaceChanged();
+        return res;
+      },
+      createFile: async (params) => {
+        const res = await getCommands().createFile.execute(params);
+        triggerWorkspaceChanged();
+        return res;
+      },
+      createDirectory: async (params) => {
+        const res = await getCommands().createDirectory.execute(params);
+        triggerWorkspaceChanged();
+        return res;
+      },
+      deletePath: async (params) => {
+        const res = await getCommands().deletePath.execute(params);
+        triggerWorkspaceChanged();
+        return res;
+      },
       compileTest,
       runTestPath,
       acceptVisualState,
       getScreenshots,
-      assistEditor: (params: { prompt: string; path?: string }) =>
-        assistEditor({
-          ...params,
-          onChunk: (text, status) => {
-            mainWindow.webview.rpc?.send.assistantChunk({
-              params: { text, status },
-            });
+      assistEditor: async (params: { prompt: string; path?: string }) => {
+        mainWindow.webview.rpc?.send.assistantChunk({
+          params: {
+            text: "AI Assistant is currently offline.",
+            status: "completed",
           },
-        }),
+        });
+        return {
+          message: "AI Assistant is currently offline.",
+        };
+      },
     },
   },
 });

@@ -1,6 +1,6 @@
 import { ProvarAPI } from "../api/provar";
 import { registerRPCHandlers } from "../api/rpc";
-import type { ProvarConfig } from "../../../shared/domain";
+import type { ProvarConfig } from "@libs/domain/zod";
 
 class WorkspaceStore {
   path = $state<string | null>(null);

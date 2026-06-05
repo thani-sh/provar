@@ -26,3 +26,6 @@ _.log
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Secrets
+.env

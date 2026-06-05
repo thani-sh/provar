@@ -93,4 +93,3 @@ class UIStore {
 }
 
 export const uiStore = new UIStore();
-

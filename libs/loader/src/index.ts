@@ -3,7 +3,7 @@ import * as path from "path";
 import crypto from "crypto";
 import yaml from "js-yaml";
 import type { Task, Graph, File, Path, Project } from "@libs/domain";
-import { schemaForFile } from "@libs/domain/zod";
+import { schemaForLoadedFile } from "@libs/domain/zod";
 import type { TestAPI } from "@libs/executor";
 
 export interface ExecutableTask extends Task {
@@ -133,7 +133,7 @@ export function parseTestFile(content: string, filePath: string): File {
     paths,
   };
 
-  return schemaForFile.parse(fileData);
+  return schemaForLoadedFile.parse(fileData);
 }
 
 export async function loadProject(

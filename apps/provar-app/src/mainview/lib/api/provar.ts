@@ -1,5 +1,5 @@
 import { electroview } from "./rpc";
-import type { ProvarConfig, TestFile } from "../../../shared/domain";
+import type { ProvarConfig, TestFile } from "@libs/domain/zod";
 
 export const ProvarAPI = {
   async getWorkspace() {
@@ -102,11 +102,7 @@ export const ProvarAPI = {
     return res;
   },
 
-  async acceptVisualState(
-    testPath: string,
-    pathIndex: number,
-    taskId: string,
-  ) {
+  async acceptVisualState(testPath: string, pathIndex: number, taskId: string) {
     console.log(
       "[RPC Client] acceptVisualState request:",
       testPath,

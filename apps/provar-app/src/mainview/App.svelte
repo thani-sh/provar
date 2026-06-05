@@ -148,17 +148,27 @@
 <div
   class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300"
 >
-  <div 
-    class="absolute top-0 left-0 right-0 h-[38px] z-10 pointer-events-none electrobun-webkit-app-region-drag"
+  <div
+    class="electrobun-webkit-app-region-drag pointer-events-none absolute top-0 right-0 left-0 z-10 h-[38px]"
   ></div>
 
   {#if workspaceStore.path}
     <button
       onclick={() => uiStore.toggleSidebar()}
-      class="absolute top-[2px] left-[65px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 hover:opacity-100 transition-opacity pointer-events-auto focus:outline-none electrobun-webkit-app-region-no-drag"
+      class="electrobun-webkit-app-region-no-drag pointer-events-auto absolute top-[2px] left-[65px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 transition-opacity hover:opacity-100 focus:outline-none"
       title={uiStore.isSidebarOpen ? "Hide Sidebar" : "Show Sidebar"}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <rect width="18" height="18" x="3" y="3" rx="2" />
         <path d="M9 3v18" />
       </svg>
@@ -168,10 +178,22 @@
   {#if editorStore.currentFile}
     <button
       onclick={() => uiStore.toggleRightSidebar()}
-      class="absolute top-[2px] right-[10px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 hover:opacity-100 transition-opacity pointer-events-auto focus:outline-none electrobun-webkit-app-region-no-drag"
-      title={uiStore.isRightSidebarOpen ? "Hide Right Sidebar" : "Show Right Sidebar"}
+      class="electrobun-webkit-app-region-no-drag pointer-events-auto absolute top-[2px] right-[10px] z-30 flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 transition-opacity hover:opacity-100 focus:outline-none"
+      title={uiStore.isRightSidebarOpen
+        ? "Hide Right Sidebar"
+        : "Show Right Sidebar"}
     >
-      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
         <rect width="18" height="18" x="3" y="3" rx="2" />
         <path d="M15 3v18" />
       </svg>
@@ -228,10 +250,10 @@
   {#if uiStore.isRightSidebarOpen && (uiStore.isAssistantPanelOpen || uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId))}
     <aside
       transition:fly={{ x: 400, duration: 200 }}
-      class="absolute top-0 bottom-0 right-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 backdrop-blur-md"
+      class="absolute top-0 right-0 bottom-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 backdrop-blur-md"
     >
-      <div 
-        class="h-[38px] w-full relative shrink-0 select-none pointer-events-none electrobun-webkit-app-region-drag"
+      <div
+        class="electrobun-webkit-app-region-drag pointer-events-none relative h-[38px] w-full shrink-0 select-none"
       ></div>
 
       {#if uiStore.isAssistantPanelOpen}
