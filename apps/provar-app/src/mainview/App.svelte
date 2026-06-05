@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
+  import { File } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -144,6 +145,15 @@
       uiStore.isRightSidebarOpen = false;
     }
   });
+
+  // Automatically hide the left sidebar when a file is opened, and show it when closed
+  $effect(() => {
+    if (editorStore.selectedFilePath) {
+      uiStore.isSidebarOpen = false;
+    } else {
+      uiStore.isSidebarOpen = true;
+    }
+  });
 </script>
 
 <div
@@ -152,6 +162,17 @@
   <div
     class="electrobun-webkit-app-region-drag pointer-events-none absolute top-0 right-0 left-0 z-10 h-[38px]"
   ></div>
+
+  {#if editorStore.selectedFilePath}
+    <div
+      class="pointer-events-none absolute top-[6px] left-1/2 z-20 flex h-[26px] -translate-x-1/2 items-center gap-1.5 rounded-full border border-zinc-800/80 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-zinc-300 shadow-sm backdrop-blur-sm transition-all duration-300 select-none"
+    >
+      <File class="h-3.5 w-3.5 text-blue-400" />
+      <span class="tracking-wide"
+        >{editorStore.selectedFilePath.replace(/^\.provar\/tests\//, "")}</span
+      >
+    </div>
+  {/if}
 
   {#if workspaceStore.path}
     <button
