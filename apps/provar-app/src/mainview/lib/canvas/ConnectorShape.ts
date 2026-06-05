@@ -14,10 +14,13 @@ export class ConnectorShape extends PIXI.Container {
     endY: number,
     onAdd?: () => void,
     type: "horizontal" | "vertical" = "horizontal",
+    state: "idle" | "running" | "success" | "failed" = "idle",
   ) {
     super();
     this.onAdd = onAdd;
 
+    const lineColor = state === "success" ? 0x10b981 : COLOURS.connector;
+    const lineAlpha = state === "success" ? 0.8 : 1.0;
     this.addChild(this.hitAreaLine);
     this.addChild(this.line);
 
@@ -58,11 +61,12 @@ export class ConnectorShape extends PIXI.Container {
     }
 
     this.line.stroke({
-      color: COLOURS.connector,
+      color: lineColor,
       width: CONNECTOR.lineWidth,
       cap: "round",
       join: "round",
     });
+    this.line.alpha = lineAlpha;
 
     // Friendly hit area
     this.hitAreaLine.moveTo(startX, startY);
@@ -104,9 +108,10 @@ export class ConnectorShape extends PIXI.Container {
     this.on("pointerout", () => {
       this.addButton.visible = false;
       this.line.stroke({
-        color: COLOURS.connector,
+        color: lineColor,
         width: CONNECTOR.lineWidth,
       });
+      this.line.alpha = lineAlpha;
     });
   }
 

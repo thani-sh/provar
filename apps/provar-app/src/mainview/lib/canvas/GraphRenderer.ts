@@ -38,7 +38,7 @@ export class GraphRenderer extends PIXI.Container {
     this.createShapes(graph, taskStates);
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
-    this.drawConnections(graph, depths);
+    this.drawConnections(graph, taskStates);
   }
 
   private createShapes(
@@ -184,10 +184,15 @@ export class GraphRenderer extends PIXI.Container {
     }
   }
 
-  private drawConnections(graph: Graph, depths: Map<string, number>) {
+  private drawConnections(
+    graph: Graph,
+    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
+  ) {
     this.linksContainer.removeChildren();
 
     const firstShape = this.taskShapes.get(graph.start);
+    // The start → first task arrow is green once the first task has succeeded.
+    const startConnectorState = taskStates[graph.start] ?? "idle";
     if (firstShape) {
       this.linksContainer.addChild(
         new ConnectorShape(
@@ -196,6 +201,8 @@ export class GraphRenderer extends PIXI.Container {
           firstShape.x - CONNECTOR.endGap,
           firstShape.y,
           () => this.onAddNode(null, graph.start),
+          "horizontal",
+          startConnectorState,
         ),
       );
     } else {
@@ -217,6 +224,9 @@ export class GraphRenderer extends PIXI.Container {
       const shape = this.taskShapes.get(id);
       if (!shape) continue;
 
+      // An arrow leaving a task is green once that task has succeeded.
+      const connectorState = taskStates[id] ?? "idle";
+
       const nextNodes = getNextNodes(node);
       if (nextNodes.length === 0) {
         const target = this.endShapes.get(`end_${id}`);
@@ -228,6 +238,8 @@ export class GraphRenderer extends PIXI.Container {
               target.x - CONNECTOR.endGap,
               target.y,
               () => this.onAddNode(id, null),
+              "horizontal",
+              connectorState,
             ),
           );
         }
@@ -243,6 +255,8 @@ export class GraphRenderer extends PIXI.Container {
               target.x - CONNECTOR.endGap,
               target.y,
               () => this.onAddNode(id, nextId),
+              "horizontal",
+              connectorState,
             ),
           );
         }
