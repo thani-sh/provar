@@ -11,7 +11,7 @@ export class GraphRenderer extends PIXI.Container {
   private readonly taskShapes = new Map<string, TaskShape>();
   private readonly endShapes = new Map<string, EndShape>();
   private readonly linksContainer = new PIXI.Container();
-  private readonly startShape: StartShape;
+  private startShape!: StartShape;
   private readonly onNodeSelect: (id: string) => void;
   private readonly onAddNode: (
     fromId: string | null,
@@ -28,8 +28,6 @@ export class GraphRenderer extends PIXI.Container {
     this.onNodeSelect = onNodeSelect;
     this.onAddNode = onAddNode;
     this.addChild(this.linksContainer);
-    this.startShape = new StartShape();
-    this.addChild(this.startShape);
     this.build(testFile.graph, taskStates);
   }
 
@@ -47,6 +45,13 @@ export class GraphRenderer extends PIXI.Container {
     graph: Graph,
     taskStates: Record<string, "idle" | "running" | "success" | "failed">,
   ) {
+    // Derive start state: successful if the first task node succeeded.
+    const startState = graph.start
+      ? (taskStates[graph.start] ?? "idle")
+      : "idle";
+    this.startShape = new StartShape(startState);
+    this.addChild(this.startShape);
+
     for (const [id, node] of Object.entries(graph.nodes)) {
       const state = taskStates[id] || "idle";
       const shape = new TaskShape(id, node, state, this.onNodeSelect);
@@ -55,7 +60,9 @@ export class GraphRenderer extends PIXI.Container {
 
       if (getNextNodes(node).length === 0) {
         const endId = `end_${id}`;
-        const endShape = new EndShape();
+        // Derive end state: successful if the last task on this branch succeeded.
+        const endState = taskStates[id] ?? "idle";
+        const endShape = new EndShape(endState);
         this.endShapes.set(endId, endShape);
         this.addChild(endShape);
       }

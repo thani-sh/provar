@@ -4,15 +4,16 @@ import { COLOURS, LAYOUT } from "./constants";
 import { getCodeStatus } from "../../../shared/utils";
 import type { TestNode } from "@libs/domain/zod";
 
+/** TaskShape renders a graph node for a single test task. */
 export class TaskShape extends NodeShape {
   protected override get cornerRadius() {
-    return -1;
+    return 8;
   }
   protected override get paddingX() {
-    return 24;
+    return 14;
   }
   protected override get paddingY() {
-    return 12;
+    return 11;
   }
 
   constructor(
@@ -21,7 +22,7 @@ export class TaskShape extends NodeShape {
     state: "idle" | "running" | "success" | "failed",
     onClick: (id: string) => void,
   ) {
-    super(nodeId, node.title, state);
+    super(nodeId, node.title, node.info, state);
 
     this.eventMode = "static";
     this.cursor = "pointer";
@@ -33,7 +34,6 @@ export class TaskShape extends NodeShape {
       onClick(nodeId);
     });
 
-    const iconContainer = new PIXI.Container();
     const icons: PIXI.Graphics[] = [];
 
     const addIcon = (draw: (g: PIXI.Graphics) => void, alpha: number = 0.5) => {
@@ -41,10 +41,10 @@ export class TaskShape extends NodeShape {
       draw(g);
       g.alpha = alpha;
       icons.push(g);
-      iconContainer.addChild(g);
+      this.iconRow.addChild(g);
     };
 
-    // Render visual execution state icons
+    // Execution state icon (success / failed / running)
     if (state === "success") {
       addIcon((g) => {
         g.moveTo(2, 5);
@@ -80,6 +80,7 @@ export class TaskShape extends NodeShape {
       }, 1.0);
     }
 
+    // Sub-graph icon
     if (node.graph) {
       addIcon((g) => {
         g.rect(1, 1, 3, 3);
@@ -95,6 +96,7 @@ export class TaskShape extends NodeShape {
       });
     }
 
+    // Code status icon
     const codeStatus = getCodeStatus(node);
     const codeColor =
       codeStatus === "upToDate" ? COLOURS.codeUpToDate : COLOURS.codeOutdated;
@@ -112,19 +114,11 @@ export class TaskShape extends NodeShape {
       g.stroke({ color: codeColor, width: 1.5, join: "round", cap: "round" });
     }, codeAlpha);
 
-    // node screenshotUrl is currently not in TestNode, but it was in the old EditorTestNode.
-    // I'll skip pixel diff icon for now unless I add it to the schema.
-    // if (node.visualPixelDiffEnabled) { ... }
-
+    // Layout icons horizontally inside the icon row
     let offsetX = 0;
     for (const icon of icons) {
       icon.x = offsetX;
       offsetX += LAYOUT.iconSize + LAYOUT.iconSpacing;
     }
-    const totalIconWidth = offsetX > 0 ? offsetX - LAYOUT.iconSpacing : 0;
-    iconContainer.x = (this.bg.width - totalIconWidth) / 2;
-    iconContainer.y = LAYOUT.iconAboveOffset;
-
-    this.addChild(iconContainer);
   }
 }

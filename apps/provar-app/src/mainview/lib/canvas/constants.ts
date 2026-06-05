@@ -23,9 +23,13 @@ export const LAYOUT = {
   horizontalGap: 96,
   verticalSpacing: 56,
   initialOffsetX: 340,
-  iconAboveOffset: -16,
   iconSpacing: 6,
   iconSize: 10,
+  // Inner node layout
+  descriptionFontSize: 11,
+  descriptionMaxLines: 2,
+  sectionGap: 6,
+  iconRowHeight: 14,
 } as const;
 
 export const CONNECTOR = {
