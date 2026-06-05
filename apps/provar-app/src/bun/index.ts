@@ -395,6 +395,93 @@ const getScreenshots = async (params: {
 
 const getCommands = () => createCommands({ workspaceDir: WORKSPACE_DIR });
 
+function updateApplicationMenu() {
+  const settings = loadSettings();
+  const recents = settings.recentWorkspaces || [];
+  const homeDir = Utils.paths.home;
+
+  const recentItems = recents.map((p) => {
+    const displayPath = p.startsWith(homeDir)
+      ? p.replace(homeDir, "~")
+      : p;
+    return {
+      label: displayPath,
+      action: `open-recent:${p}`,
+    };
+  });
+
+  if (recentItems.length === 0) {
+    recentItems.push({
+      label: "No Recent Workspaces",
+      action: "no-recents",
+      enabled: false,
+    } as any);
+  } else {
+    recentItems.push({ type: "separator" } as any);
+    recentItems.push({
+      label: "Clear Recent",
+      action: "clear-recents",
+    } as any);
+  }
+
+  ApplicationMenu.setApplicationMenu([
+    {
+      label: "Provar Editor",
+      submenu: [
+        {
+          label: "Settings...",
+          action: "settings",
+          accelerator: "cmd+,",
+        },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "Open...",
+          action: "open",
+          accelerator: "o",
+        },
+        {
+          label: "Open Recent",
+          submenu: recentItems,
+        },
+        { type: "separator" },
+        { role: "quit" },
+      ],
+    },
+  ]);
+}
+
+async function openWorkspace(workspacePath: string) {
+  if (!workspacePath) return;
+
+  setWorkspaceDir(workspacePath);
+  mainWindow.webview.rpc?.send.workspaceSelected({
+    params: { path: workspacePath },
+  });
+
+  try {
+    const settings = loadSettings();
+    const recents = settings.recentWorkspaces || [];
+    const updatedRecents = [
+      workspacePath,
+      ...recents.filter((p) => p !== workspacePath),
+    ].slice(0, 3);
+
+    saveSettings({
+      recentWorkspaces: updatedRecents,
+    });
+
+    updateApplicationMenu();
+  } catch (e) {
+    console.error("Failed to update recent workspaces settings:", e);
+  }
+}
+
 const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
@@ -403,13 +490,33 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
         console.log("[RPC Server] getSettings request");
         const settings = loadSettings();
         console.log("[RPC Server] getSettings response:", settings);
-        return { settings };
+        return { settings, home: Utils.paths.home };
       },
       saveSettings: async (params) => {
         console.log("[RPC Server] saveSettings request:", params);
         const settings = saveSettings(params.settings);
         console.log("[RPC Server] saveSettings response:", settings);
         return { settings };
+      },
+      openWorkspace: async (params) => {
+        console.log("[RPC Server] openWorkspace request:", params);
+        await openWorkspace(params.path);
+        return { success: true };
+      },
+      selectWorkspace: async () => {
+        console.log("[RPC Server] selectWorkspace request");
+        const chosenPaths = await Utils.openFileDialog({
+          canChooseFiles: false,
+          canChooseDirectory: true,
+          allowsMultipleSelection: false,
+        });
+
+        if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
+          const newWorkspace = chosenPaths[0];
+          await openWorkspace(newWorkspace);
+          return { success: true, path: newWorkspace };
+        }
+        return { success: false };
       },
       getConfig: async () => {
         console.log("[RPC Server] getConfig request");
@@ -513,26 +620,15 @@ onWorkspaceChanged(() => {
 });
 
 if (WORKSPACE_DIR) {
-  setWorkspaceDir(WORKSPACE_DIR);
+  openWorkspace(WORKSPACE_DIR);
+} else {
+  updateApplicationMenu();
 }
 
-ApplicationMenu.setApplicationMenu([
-  {
-    label: "File",
-    submenu: [
-      {
-        label: "Open...",
-        action: "open",
-        accelerator: "o",
-      },
-      { type: "separator" },
-      { role: "quit" },
-    ],
-  },
-]);
-
 Electrobun.events.on("application-menu-clicked", async (e) => {
-  if (e.data.action === "open") {
+  if (e.data.action === "settings") {
+    mainWindow.webview.rpc?.send.openSettings({ params: {} });
+  } else if (e.data.action === "open") {
     const chosenPaths = await Utils.openFileDialog({
       canChooseFiles: false,
       canChooseDirectory: true,
@@ -541,10 +637,18 @@ Electrobun.events.on("application-menu-clicked", async (e) => {
 
     if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
       const newWorkspace = chosenPaths[0];
-      setWorkspaceDir(newWorkspace);
-      mainWindow.webview.rpc?.send.workspaceSelected({
-        params: { path: newWorkspace },
-      });
+      await openWorkspace(newWorkspace);
+    }
+  } else if (e.data.action.startsWith("open-recent:")) {
+    const path = e.data.action.substring("open-recent:".length);
+    await openWorkspace(path);
+  } else if (e.data.action === "clear-recents") {
+    try {
+      saveSettings({ recentWorkspaces: [] });
+      updateApplicationMenu();
+      mainWindow.webview.rpc?.send.settingsChanged({ params: {} });
+    } catch (e) {
+      console.error("Failed to clear recent workspaces settings:", e);
     }
   }
 });

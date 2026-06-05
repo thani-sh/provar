@@ -4,8 +4,22 @@ import { join } from "path";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
 
 export const SettingsSchema = z.object({
-  theme: z.enum(["light", "dark"]).default("dark"),
   placeholder: z.string().default("placeholder-value"),
+  models: z.object({
+    defaultProvider: z.enum(["openai", "google-generative-ai"]).default("google-generative-ai"),
+    providers: z.object({
+      openai: z.object({
+        apiKey: z.string().default(""),
+        model: z.string().default("gpt-4o"),
+        baseUrl: z.string().default(""),
+      }).default({}),
+      "google-generative-ai": z.object({
+        apiKey: z.string().default(""),
+        model: z.string().default("gemini-1.5-flash"),
+      }).default({}),
+    }).default({}),
+  }).default({}),
+  recentWorkspaces: z.array(z.string()).default([]),
 });
 
 export type Settings = z.infer<typeof SettingsSchema>;

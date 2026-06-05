@@ -21,6 +21,12 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
         );
         handlers.testRunEvent?.(params.params);
       },
+      openSettings: () => {
+        handlers.openSettings?.();
+      },
+      settingsChanged: () => {
+        handlers.settingsChanged?.();
+      },
     },
   },
 });
@@ -50,6 +56,8 @@ type Handlers = {
     visualCompare?: boolean;
     status?: string;
   }) => void;
+  openSettings?: () => void;
+  settingsChanged?: () => void;
 };
 
 const handlers: Handlers = {};

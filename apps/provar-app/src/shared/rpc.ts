@@ -7,11 +7,19 @@ export type ProvarRPCSchema = {
     requests: {
       getSettings: {
         params: {};
-        response: { settings: Settings };
+        response: { settings: Settings; home: string };
       };
       saveSettings: {
         params: { settings: Partial<Settings> };
         response: { settings: Settings };
+      };
+      openWorkspace: {
+        params: { path: string };
+        response: { success: boolean };
+      };
+      selectWorkspace: {
+        params: {};
+        response: { success: boolean; path?: string };
       };
       getConfig: {
         params: {};
@@ -110,6 +118,12 @@ export type ProvarRPCSchema = {
           visualCompare?: boolean;
           status?: string;
         };
+      };
+      openSettings: {
+        params: {};
+      };
+      settingsChanged: {
+        params: {};
       };
     };
   }>;

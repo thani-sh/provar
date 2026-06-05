@@ -7,6 +7,7 @@ class UIStore {
   isConfigPanelOpen = $state(false);
   isInputModalOpen = $state(false);
   isConfirmModalOpen = $state(false);
+  isSettingsModalOpen = $state(false);
 
   lastOpenSidebar = $state<"assistant" | "config" | "node">("config");
 

@@ -18,11 +18,28 @@
   import NodeSidePanel from "./lib/components/feature/NodeSidePanel.svelte";
   import TestExplorer from "./lib/components/feature/TestExplorer.svelte";
   import ConfirmModal from "./lib/components/ui/ConfirmModal.svelte";
+  import SettingsModal from "./lib/components/ui/SettingsModal.svelte";
 
   // Assistant State (keeping local as it's view-specific and transient)
   let assistantMessages = $state<AssistantMessage[]>([]);
   let assistantBusy = $state(false);
   let activeAssistantMsgId = $state<string | null>(null);
+
+  let recentWorkspaces = $state<string[]>([]);
+  let homeDir = $state("");
+
+  $effect(() => {
+    if (!workspaceStore.path) {
+      ProvarAPI.getSettings()
+        .then((res) => {
+          recentWorkspaces = res.settings.recentWorkspaces || [];
+          homeDir = res.home || "";
+        })
+        .catch((err) => {
+          console.error("Failed to load settings recents:", err);
+        });
+    }
+  });
 
   onMount(() => {
     workspaceStore.initialize();
@@ -35,6 +52,19 @@
             ? { ...msg, content: msg.content + text, status }
             : msg,
         );
+      },
+      openSettings: () => {
+        uiStore.isSettingsModalOpen = true;
+      },
+      settingsChanged: () => {
+        ProvarAPI.getSettings()
+          .then((res) => {
+            recentWorkspaces = res.settings.recentWorkspaces || [];
+            homeDir = res.home || "";
+          })
+          .catch((err) => {
+            console.error("Failed to load settings recents on settingsChanged:", err);
+          });
       },
     });
 
@@ -263,13 +293,39 @@
       <div
         class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
       >
-        <p class="text-xl">Open a workspace to get started</p>
-        <div class="flex items-center space-x-2 text-sm text-zinc-600">
-          <kbd
-            class="rounded border border-zinc-700 bg-zinc-800 px-2 py-1 font-mono"
-            >Cmd/Ctrl + O</kbd
+        <div class="w-full max-w-sm flex flex-col items-center">
+          {#if recentWorkspaces.length > 0}
+            <h3 class="text-xs font-semibold uppercase tracking-wider text-zinc-600 mb-3">
+              Recent Workspaces
+            </h3>
+            <ul class="w-full space-y-2 mb-3">
+              {#each recentWorkspaces as path}
+                <li>
+                  <button
+                    onclick={async () => {
+                      await ProvarAPI.openWorkspace(path);
+                    }}
+                    class="w-full text-left truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 hover:bg-[#21262d]/50 hover:border-zinc-700 px-4 py-2.5 text-xs text-zinc-400 hover:text-zinc-200 transition-all focus:outline-none"
+                    title={path}
+                  >
+                    <span class="font-medium text-zinc-300">{path.split('/').pop()}</span>
+                    <span class="block text-[10px] text-zinc-500 mt-0.5 truncate">
+                      {homeDir && path.startsWith(homeDir) ? path.replace(homeDir, "~") : path}
+                    </span>
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+
+          <button
+            onclick={async () => {
+              await ProvarAPI.selectWorkspace();
+            }}
+            class="w-full text-center rounded-lg border border-zinc-800/80 bg-[#161b22]/50 hover:bg-[#21262d]/50 hover:border-zinc-700 px-4 py-3.5 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-all focus:outline-none"
           >
-          <span>to open a folder</span>
+            Open workspace folder...
+          </button>
         </div>
       </div>
     {:else if editorStore.currentFile}
@@ -352,5 +408,10 @@
       uiStore.isConfirmModalOpen = false;
     }}
     onCancel={() => (uiStore.isConfirmModalOpen = false)}
+  />
+
+  <SettingsModal
+    show={uiStore.isSettingsModalOpen}
+    onClose={() => (uiStore.isSettingsModalOpen = false)}
   />
 </div>

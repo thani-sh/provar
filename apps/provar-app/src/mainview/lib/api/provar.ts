@@ -17,6 +17,20 @@ export const ProvarAPI = {
     return res;
   },
 
+  async openWorkspace(path: string) {
+    console.log("[RPC Client] openWorkspace request:", path);
+    const res = await electroview.rpc!.request.openWorkspace({ path });
+    console.log("[RPC Client] openWorkspace response:", res);
+    return res;
+  },
+
+  async selectWorkspace() {
+    console.log("[RPC Client] selectWorkspace request");
+    const res = await electroview.rpc!.request.selectWorkspace({});
+    console.log("[RPC Client] selectWorkspace response:", res);
+    return res;
+  },
+
   async getWorkspace() {
     console.log("[RPC Client] getWorkspace request");
     const res = await electroview.rpc!.request.getWorkspace({});
