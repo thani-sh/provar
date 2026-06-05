@@ -19,9 +19,12 @@
     "@libs/domain": "workspace:*",
     "@libs/commands": "workspace:*",
     "@libs/settings": "workspace:*",
+    "@playwright/test": "^1.60.0",
     "electrobun": "1.18.1",
     "lucide-svelte": "^0.474.0",
     "pixi.js": "^8.18.1",
+    "playwright": "^1.60.0",
+    "playwright-core": "^1.60.0",
     "yaml": "^2.9.0",
     "zod": "^3.25.76"
   },
