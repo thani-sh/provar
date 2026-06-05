@@ -17,11 +17,9 @@ This guide describes the core implementation standards, repository rules, and co
 
 ### 2. Version Control & Git Workflow
 
-- **Branch Naming:**
-  - **ALWAYS** use hyphens `-`. Do not use underscores `_` or camelCase.
-  - **NEVER** commit directly to `main` or `develop` branches.
-  - **NEVER** add any prefix to the branch name (e.g., `feat/` or `fix/`).
-  - **NEVER** use uppercase letters in branch names.
+- **Branches:**
+  - **ALWAYS** use the `main` branch for development.
+
 - **Conventional Commits:**
   - **ALWAYS** add a `type` and a short `description` to the commit message.
   - **NEVER** use scopes in commit messages.
