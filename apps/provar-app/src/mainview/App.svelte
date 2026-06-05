@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly } from "svelte/transition";
-  import { File, Play } from "lucide-svelte";
+  import { File, Play, ChevronDown, Layers, ArrowRightToLine } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
   import { editorStore } from "./lib/stores/EditorStore.svelte";
@@ -27,6 +27,7 @@
 
   let recentWorkspaces = $state<string[]>([]);
   let homeDir = $state("");
+  let runMenuOpen = $state(false);
 
   $effect(() => {
     if (!workspaceStore.path) {
@@ -222,13 +223,101 @@
           ></div>
         </div>
       {:else}
-        <button
-          onclick={() => editorStore.runCurrentTest()}
-          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-green-400 focus:ring-1 focus:ring-zinc-700 focus:outline-none"
-          title="Run Test"
-        >
-          <Play size={10} class="ml-[1px] fill-current" />
-        </button>
+        <div class="electrobun-webkit-app-region-no-drag pointer-events-auto relative flex">
+          <!-- Split button: left = smart run, right = dropdown chevron -->
+          <button
+            onclick={() => {
+              const idx = editorStore.selectedNodePathIndex;
+              if (idx !== null) {
+                editorStore.runPath(idx);
+              } else {
+                editorStore.runAllPaths();
+              }
+            }}
+            class="flex h-[26px] cursor-pointer items-center gap-1 rounded-l-full border border-zinc-800/80 bg-[#161b22]/80 pl-2.5 pr-2 text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-green-400 focus:outline-none"
+            title={editorStore.selectedNodePathIndex !== null
+              ? "Run selected path"
+              : "Run all paths"}
+          >
+            <Play size={10} class="fill-current" />
+          </button>
+          <button
+            onclick={(e) => { e.stopPropagation(); runMenuOpen = !runMenuOpen; }}
+            class="flex h-[26px] cursor-pointer items-center rounded-r-full border border-l-0 border-zinc-800/80 bg-[#161b22]/80 px-1.5 text-zinc-500 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-zinc-700/90 hover:bg-[#21262d]/90 hover:text-zinc-300 focus:outline-none"
+            title="Run options"
+          >
+            <ChevronDown size={10} />
+          </button>
+
+          {#if runMenuOpen}
+            <div
+              class="absolute top-[30px] right-0 z-50 min-w-[200px] overflow-hidden rounded-lg border border-zinc-800 bg-[#161b22] shadow-xl"
+            >
+              <!-- Run all paths -->
+              <button
+                onclick={() => { runMenuOpen = false; editorStore.runAllPaths(); }}
+                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs text-zinc-300 transition-colors hover:bg-zinc-800/60"
+              >
+                <Layers size={12} class="shrink-0 text-zinc-400" />
+                <div>
+                  <div class="font-medium">Run all paths</div>
+                  <div class="text-zinc-500">Execute every branch sequentially</div>
+                </div>
+              </button>
+
+              <div class="mx-3 border-t border-zinc-800/60"></div>
+
+              <!-- Run selected path -->
+              <button
+                disabled={editorStore.selectedNodePathIndex === null}
+                onclick={() => {
+                  runMenuOpen = false;
+                  const idx = editorStore.selectedNodePathIndex;
+                  if (idx !== null) editorStore.runPath(idx);
+                }}
+                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
+                  {editorStore.selectedNodePathIndex !== null
+                    ? 'text-zinc-300 hover:bg-zinc-800/60 cursor-pointer'
+                    : 'cursor-not-allowed text-zinc-600'}"
+              >
+                <Play size={12} class="shrink-0 {editorStore.selectedNodePathIndex !== null ? 'text-zinc-400' : 'text-zinc-700'}" />
+                <div>
+                  <div class="font-medium">Run selected path</div>
+                  <div class="{editorStore.selectedNodePathIndex !== null ? 'text-zinc-500' : 'text-zinc-700'}">
+                    {editorStore.selectedNodePathIndex !== null
+                      ? `Path ${editorStore.selectedNodePathIndex + 1} of ${editorStore.allPaths.length}`
+                      : 'Select a node first'}
+                  </div>
+                </div>
+              </button>
+
+              <!-- Run up to selected node -->
+              <button
+                disabled={editorStore.selectedNodeId === null || editorStore.selectedNodePathIndex === null}
+                onclick={() => {
+                  runMenuOpen = false;
+                  const idx = editorStore.selectedNodePathIndex;
+                  const nodeId = editorStore.selectedNodeId;
+                  if (idx !== null && nodeId) editorStore.runPathUpTo(idx, nodeId);
+                }}
+                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
+                  {editorStore.selectedNodeId !== null && editorStore.selectedNodePathIndex !== null
+                    ? 'text-zinc-300 hover:bg-zinc-800/60 cursor-pointer'
+                    : 'cursor-not-allowed text-zinc-600'}"
+              >
+                <ArrowRightToLine size={12} class="shrink-0 {editorStore.selectedNodeId !== null ? 'text-zinc-400' : 'text-zinc-700'}" />
+                <div>
+                  <div class="font-medium">Run up to here</div>
+                  <div class="{editorStore.selectedNodeId !== null ? 'text-zinc-500' : 'text-zinc-700'}">
+                    {editorStore.selectedNodeId !== null
+                      ? 'Stop at selected node'
+                      : 'Select a node first'}
+                  </div>
+                </div>
+              </button>
+            </div>
+          {/if}
+        </div>
       {/if}
     </div>
   {/if}
@@ -285,7 +374,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
     class="absolute inset-0 touch-none overscroll-none"
-    onclick={() => uiStore.closeAllPanels()}
+    onclick={() => { uiStore.closeAllPanels(); runMenuOpen = false; }}
     role="button"
     tabindex="-1"
   >

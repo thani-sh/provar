@@ -1,4 +1,4 @@
-import type { TestNode } from "@libs/domain/zod";
+import type { TestNode, TestFileGraph } from "@libs/domain/zod";
 
 /**
  * Normalises the `next` field of a test node into a consistent array form.
@@ -6,6 +6,35 @@ import type { TestNode } from "@libs/domain/zod";
 export function getNextNodes(node: Pick<TestNode, "next">): string[] {
   if (!node.next) return [];
   return Array.isArray(node.next) ? node.next : [node.next];
+}
+
+/**
+ * enumeratePaths returns every root-to-leaf execution path through the graph
+ * as an ordered array of node IDs. Each entry in the returned array is one
+ * distinct, linearly-executable path.
+ */
+export function enumeratePaths(graph: TestFileGraph): string[][] {
+  const paths: string[][] = [];
+
+  const walk = (id: string, current: string[]) => {
+    const node = graph.nodes[id];
+    if (!node) return;
+    const next = getNextNodes(node);
+    const path = [...current, id];
+    if (next.length === 0) {
+      paths.push(path);
+    } else {
+      for (const nextId of next) {
+        walk(nextId, path);
+      }
+    }
+  };
+
+  if (graph.start && graph.nodes[graph.start]) {
+    walk(graph.start, []);
+  }
+
+  return paths;
 }
 
 /**

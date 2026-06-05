@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { TestNode } from "@libs/domain/zod";
-  import { Check, Image as ImageIcon, Share2, Trash2 } from "lucide-svelte";
+  import { Check, Image as ImageIcon, Share2, Trash2, Play, ArrowRightToLine } from "lucide-svelte";
   import { editorStore } from "../../stores/EditorStore.svelte";
 
   let {
@@ -150,6 +150,51 @@
   </div>
 
   <div class="flex-1 space-y-8 overflow-y-auto p-6">
+    <section>
+      <h3
+        class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"
+      >
+        Run
+      </h3>
+      <div class="flex gap-2">
+        <button
+          disabled={editorStore.isRunning || editorStore.selectedNodePathIndex === null}
+          onclick={() => {
+            const idx = editorStore.selectedNodePathIndex;
+            if (idx !== null) editorStore.runPath(idx);
+          }}
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-colors
+            {editorStore.isRunning || editorStore.selectedNodePathIndex === null
+              ? 'cursor-not-allowed border-zinc-800/50 text-zinc-600'
+              : 'cursor-pointer border-zinc-700/60 text-zinc-300 hover:border-green-500/40 hover:bg-green-500/10 hover:text-green-400'}"
+          title="Run the full path containing this node"
+        >
+          <Play size={11} class="fill-current" />
+          Run path
+        </button>
+        <button
+          disabled={editorStore.isRunning || editorStore.selectedNodePathIndex === null}
+          onclick={() => {
+            const idx = editorStore.selectedNodePathIndex;
+            if (idx !== null) editorStore.runPathUpTo(idx, nodeId);
+          }}
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-colors
+            {editorStore.isRunning || editorStore.selectedNodePathIndex === null
+              ? 'cursor-not-allowed border-zinc-800/50 text-zinc-600'
+              : 'cursor-pointer border-zinc-700/60 text-zinc-300 hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400'}"
+          title="Run the path and stop at this node"
+        >
+          <ArrowRightToLine size={11} />
+          Run up to here
+        </button>
+      </div>
+      {#if editorStore.allPaths.length > 1 && editorStore.selectedNodePathIndex !== null}
+        <p class="mt-2 text-[10px] text-zinc-600">
+          Path {editorStore.selectedNodePathIndex + 1} of {editorStore.allPaths.length}
+        </p>
+      {/if}
+    </section>
+
     <section>
       <h3
         class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"

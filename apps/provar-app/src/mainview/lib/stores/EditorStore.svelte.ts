@@ -6,6 +6,7 @@ import {
   deleteNodeFromGraph,
 } from "../utils/graph";
 import type { TestFile, TestNode } from "@libs/domain/zod";
+import { enumeratePaths } from "../../../shared/utils";
 import { workspaceStore } from "./WorkspaceStore.svelte";
 import { uiStore } from "./UIStore.svelte";
 
@@ -26,6 +27,20 @@ class EditorStore {
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
     return this.currentFile.graph.nodes[this.selectedNodeId] || null;
+  });
+
+  /** selectedNodePathIndex is the index of the path containing selectedNodeId, or null. */
+  selectedNodePathIndex = $derived.by(() => {
+    if (!this.currentFile || !this.selectedNodeId) return null;
+    const paths = enumeratePaths(this.currentFile.graph);
+    const idx = paths.findIndex((p) => p.includes(this.selectedNodeId!));
+    return idx === -1 ? null : idx;
+  });
+
+  /** allPaths returns the enumerated execution paths for the current file. */
+  allPaths = $derived.by(() => {
+    if (!this.currentFile) return [];
+    return enumeratePaths(this.currentFile.graph);
   });
 
   constructor() {
@@ -107,17 +122,49 @@ class EditorStore {
     }
   }
 
-  async runCurrentTest() {
+  /** runAllPaths runs every path in the file sequentially. */
+  async runAllPaths() {
+    if (!this.selectedFilePath || this.isRunning) return;
+    const paths = this.allPaths;
+    for (let i = 0; i < paths.length; i++) {
+      await this.runPath(i);
+    }
+  }
+
+  /** runPath runs a single path by its index. */
+  async runPath(pathIndex: number) {
     if (!this.selectedFilePath || this.isRunning) return;
     this.isRunning = true;
     this.taskStates = {};
 
     try {
-      // Trigger execution path index 0 (first resolved path in test yml)
       const res = await ProvarAPI.runTestPath(
         this.selectedFilePath,
-        0,
+        pathIndex,
         undefined,
+        true,
+      );
+      if (!res.success) {
+        this.isRunning = false;
+        alert(`Test execution failed to start: ${res.error}`);
+      }
+    } catch (e) {
+      console.error("EditorStore: Run failed:", e);
+      this.isRunning = false;
+    }
+  }
+
+  /** runPathUpTo runs a path stopping execution at the given task node. */
+  async runPathUpTo(pathIndex: number, upToTaskId: string) {
+    if (!this.selectedFilePath || this.isRunning) return;
+    this.isRunning = true;
+    this.taskStates = {};
+
+    try {
+      const res = await ProvarAPI.runTestPath(
+        this.selectedFilePath,
+        pathIndex,
+        upToTaskId,
         true,
       );
       if (!res.success) {
