@@ -7,7 +7,7 @@ import { createClient } from "@libs/agents";
 import type { Session, Attachment, Client } from "@libs/agents";
 import type { GroundingContext, TestAPI } from "@libs/executor";
 
-import { groundAndGenerateAction, CompilerGroundingSession } from "./generator";
+import { groundAndGenerateTask, CompilerGroundingSession } from "./generator";
 import { CompilerPerformanceTracker, type CompilationTrace } from "./tracker";
 
 export interface CompilerOptions {
@@ -66,7 +66,7 @@ export async function compile(
 
   tracker.endSetup();
 
-  const generatedActions = new Map<string, { code: string; title: string }>();
+  const generatedTasks = new Map<string, { code: string; title: string }>();
 
   // Initialize incremental stateful grounding session
   const groundingSession = new CompilerGroundingSession(true);
@@ -76,9 +76,9 @@ export async function compile(
     async function compileNodeRecursively(
       nodeId: string,
       node: Task,
-      prefixActions: string[],
+      prefixTasks: string[],
     ) {
-      if (generatedActions.has(nodeId)) {
+      if (generatedTasks.has(nodeId)) {
         return;
       }
 
@@ -87,7 +87,7 @@ export async function compile(
         const innerPaths = node.graph.paths;
         const primaryPath = innerPaths[0]?.tasks || [];
 
-        let subPrefix = [...prefixActions];
+        let subPrefix = [...prefixTasks];
         for (const subTask of primaryPath) {
           await compileNodeRecursively(subTask.id, subTask, subPrefix);
           subPrefix.push(subTask.id);
@@ -100,38 +100,38 @@ export async function compile(
         }
         executeBlock += `  }`;
 
-        generatedActions.set(nodeId, {
+        generatedTasks.set(nodeId, {
           code: executeBlock,
           title: node.title,
         });
       } else {
-        const actionBody = await groundAndGenerateAction(
+        const taskBody = await groundAndGenerateTask(
           options.yamlPath,
           nodeId,
           node,
           {
-            prefixActions,
-            compiledActionsCache: generatedActions,
+            prefixTasks,
+            compiledTasksCache: generatedTasks,
             session,
             groundingSession,
             tracker,
           },
         );
 
-        const formattedBody = actionBody
+        const formattedBody = taskBody
           .split("\n")
           .map((l) => `    ${l}`)
           .join("\n");
         const executeBlock = `async (api: TestAPI) => {\n${formattedBody}\n  }`;
 
-        generatedActions.set(nodeId, {
+        generatedTasks.set(nodeId, {
           code: executeBlock,
           title: node.title,
         });
       }
     }
 
-    // Iterate over paths and recursively compile action nodes chronologically
+    // Iterate over paths and recursively compile task nodes chronologically
     for (const resolvedPath of fileDef.paths) {
       const prefix: string[] = [];
       for (const task of resolvedPath.tasks) {
@@ -142,7 +142,7 @@ export async function compile(
 
     tracker.startWrite();
     let tasksMap = `export const tasks = {\n`;
-    for (const [id, cached] of generatedActions.entries()) {
+    for (const [id, cached] of generatedTasks.entries()) {
       tasksMap += `  [${JSON.stringify(id)}]: ${cached.code},\n`;
     }
     tasksMap += `};\n`;

@@ -52,6 +52,6 @@ export interface Runner {
 export interface ExecuteOptions {
   headless?: boolean;
   variables?: Record<string, any>;
-  upToActionId?: string;
+  upToTaskId?: string;
   existingPage?: Page;
 }

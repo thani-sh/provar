@@ -29,11 +29,11 @@ console.log(`Successfully compiled! Output saved to: ${result.outputPath}`);
 The compiler uses a feedback loop to dynamically correct AI code generation:
 
 ```typescript
-import { groundAndGenerateAction } from "@libs/compiler";
+import { groundAndGenerateTask } from "@libs/compiler";
 
-const generatedCode = await groundAndGenerateAction(
+const generatedCode = await groundAndGenerateTask(
   "./tests/temp.test.ts",
-  "action-checkout-btn",
+  "task-checkout-btn",
   { title: "Click Checkout Button", info: "Find the primary green checkout button and click it" },
   {
     generateCode: async (prompt, context) => {

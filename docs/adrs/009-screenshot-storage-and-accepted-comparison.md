@@ -4,7 +4,7 @@
 
 In Provar, tests are defined as visual graphs (`002`) and compiled into isolated, linear execution paths representing distinct user journeys (`007`). These resolved paths are executed using Playwright (`001`).
 
-During test execution, we need to capture the visual state of the web application after each action is executed. Capturing screenshots is crucial for:
+During test execution, we need to capture the visual state of the web application after each task is executed. Capturing screenshots is crucial for:
 - **Visual Regression Testing**: Detecting unexpected UI changes and visual regressions.
 - **Debugging & Audit Trails**: Reviewing exactly what the application looked like during a test failure or success.
 - **Contextual Grounding**: Providing real-time visual and DOM state to the AI code generation and repair pipelines (`003`).
@@ -45,17 +45,17 @@ We will partition the `.provar/screenshots/` folder into four distinct directori
 Because a single test graph can contain nested sub-graphs (`006`), subfolders under `tests/`, and multiple resolved branching paths (`007`), we will structure the screenshots hierarchically to avoid collisions and preserve readability:
 
 ```
-.provar/screenshots/<state>/<relative-test-path>/<path-name-slug>/<step-index>_<action-id>.png
+.provar/screenshots/<state>/<relative-test-path>/<path-name-slug>/<step-index>_<task-id>.png
 ```
 
 #### Parameters:
 - **`<state>`**: `accepted`, `masks`, `current`, or `diff`.
 - **`<relative-test-path>`**: The relative folder hierarchy and file name of the test definition file under `.provar/tests/` (excluding the `.test.yml` extension).
   - *Example*: For `.provar/tests/auth/login.test.yml`, this maps to `auth/login`.
-- **`<path-name-slug>`**: Constructed by joining the action IDs in order (excluding any `action_` prefix) separated by hyphens. This provides a highly deterministic, stable directory name that remains consistent even if dynamic test/path names are changed or generated differently.
-  - *Example*: For a path executing actions with IDs `action_v2b3n` and `action_k1l2m`, this maps to `v2b3n-k1l2m`.
-- **`<step-index>`**: A 3-digit zero-padded index indicating the chronological execution order of the action within the path (e.g., `001`, `002`, `003`). This ensures alphabetical file sorting matches actual execution order.
-- **`<action-id>`**: The unique 5-character string ID of the action node from the graph.
+- **`<path-name-slug>`**: Constructed by joining the task IDs in order (excluding any `task_` prefix) separated by hyphens. This provides a highly deterministic, stable directory name that remains consistent even if dynamic test/path names are changed or generated differently.
+  - *Example*: For a path executing tasks with IDs `task_v2b3n` and `task_k1l2m`, this maps to `v2b3n-k1l2m`.
+- **`<step-index>`**: A 3-digit zero-padded index indicating the chronological execution order of the task within the path (e.g., `001`, `002`, `003`). This ensures alphabetical file sorting matches actual execution order.
+- **`<task-id>`**: The unique 5-character string ID of the task node from the graph.
   - *Example*: `v2b3n`.
 
 #### Example Structure:
@@ -88,9 +88,9 @@ Because a single test graph can contain nested sub-graphs (`006`), subfolders un
 
 ### 3. Comparison and Approval Workflow
 
-1. **Test Execution**: The Playwright-based test executor executes the actions in a path. After each action completes, it takes a screenshot and saves it in `.provar/screenshots/current/...`.
+1. **Test Execution**: The Playwright-based test executor executes the tasks in a path. After each task completes, it takes a screenshot and saves it in `.provar/screenshots/current/...`.
 2. **Visual Comparison**:
-   - The executor inspects the action node's metadata for the `visualCompare` flag (which compiles down from the visual graph definition as described in `PDR 009`).
+   - The executor inspects the task node's metadata for the `visualCompare` flag (which compiles down from the visual graph definition as described in `PDR 009`).
    - If `visualCompare` is explicitly set to `false`, **the visual comparison and assertion phase is entirely skipped** for this step. The screenshot is kept under `current/` for audit logs and AI grounding, but visual differences will never fail the test execution.
    - If `visualCompare` is `true` (or is omitted, defaulting to `true`):
      - The executor checks if a corresponding screenshot exists in `accepted/`.
@@ -111,11 +111,11 @@ Because a single test graph can contain nested sub-graphs (`006`), subfolders un
 - **Zero-Collision Organization**: Fully namespace-isolating by file directory, resolved path slug, and step index guarantees that branching paths never collide or overwrite each other's visual states.
 - **Efficient Disk and Version History**: Ignoring `current` and `diff` directories prevents large amounts of transient execution assets from polluting the user's Git repository.
 - **Dynamic Content Handling**: Support for black-and-white masking enables robust visual tests that do not fail on dynamic content such as dates, user-generated content, or high-variance loading indicators.
-- **Streamlined Desktop UI integration**: Provar Editor can easily locate and stream screenshots using direct file path matching based on the active test, path, and action ID.
+- **Streamlined Desktop UI integration**: Provar Editor can easily locate and stream screenshots using direct file path matching based on the active test, path, and task ID.
 
 ## References
 
-- Extends **001 - Use Playwright Execution Engine** (Playwright captures the post-action screenshots).
+- Extends **001 - Use Playwright Execution Engine** (Playwright captures the post-task screenshots).
 - Extends **006 - Git-Native Storage Conventions** (Defines `.provar` as the single source of truth and establishes the file system layout).
 - Extends **007 - Automated Path Resolution for Branching** (Organizes screenshot collections by resolved linear test path).
 - Complements **008 - Use Electrobun for Desktop Application** (Enables local-first rendering, diffing, and accepted state/mask approval in the Provar Editor interface).

@@ -68,7 +68,7 @@ const activeRunners = new Map<string, any>();
 const runTestPath = async (params: {
   path: string;
   pathIndex: number;
-  upToActionId?: string;
+  upToTaskId?: string;
   headless?: boolean;
 }) => {
   const absPath = getAbsPath(params.path);
@@ -130,7 +130,7 @@ const runTestPath = async (params: {
     const runner = await execute(selectedPath, {
       headless: params.headless !== false,
       variables: project.variables,
-      upToActionId: params.upToActionId,
+      upToTaskId: params.upToTaskId,
     });
 
     activeRunners.set(runId, runner);
@@ -142,7 +142,7 @@ const runTestPath = async (params: {
         .relative(testsDir, absPath)
         .replace(".test.yml", "");
       const pathNameSlug = selectedPath.tasks
-        .map((t) => t.id.replace(/^action_/, ""))
+        .map((t) => t.id.replace(/^task_/, ""))
         .join("-");
 
       for await (const event of runner.events()) {
@@ -156,7 +156,7 @@ const runTestPath = async (params: {
               (t) => t.id === event.taskId,
             );
             const stepIndexStr = String(taskIndex + 1).padStart(3, "0");
-            const actionId = event.taskId.replace(/^action_/, "");
+            const taskId = event.taskId.replace(/^task_/, "");
 
             const currentDir = path.join(
               WORKSPACE_DIR,
@@ -169,7 +169,7 @@ const runTestPath = async (params: {
             fs.mkdirSync(currentDir, { recursive: true });
             const currentFilePath = path.join(
               currentDir,
-              `${stepIndexStr}_${actionId}.png`,
+              `${stepIndexStr}_${taskId}.png`,
             );
             fs.writeFileSync(
               currentFilePath,
@@ -228,7 +228,7 @@ const runTestPath = async (params: {
 const acceptVisualState = async (params: {
   testPath: string;
   pathIndex: number;
-  actionId: string;
+  taskId: string;
 }) => {
   const absPath = getAbsPath(params.testPath);
   console.log("[RPC Server] acceptVisualState request:", {
@@ -251,26 +251,26 @@ const acceptVisualState = async (params: {
       .relative(testsDir, absPath)
       .replace(".test.yml", "");
     const pathNameSlug = selectedPath.tasks
-      .map((t) => t.id.replace(/^action_/, ""))
+      .map((t) => t.id.replace(/^task_/, ""))
       .join("-");
 
     const taskIndex = selectedPath.tasks.findIndex(
-      (t) => t.id === params.actionId,
+      (t) => t.id === params.taskId,
     );
     if (taskIndex === -1) {
       console.error(
-        "[RPC Server] acceptVisualState error: action not found in path:",
-        params.actionId,
+        "[RPC Server] acceptVisualState error: task not found in path:",
+        params.taskId,
       );
       return {
         success: false,
-        error: `Action ${params.actionId} not found in path`,
+        error: `Task ${params.taskId} not found in path`,
       };
     }
     const stepIndexStr = String(taskIndex + 1).padStart(3, "0");
-    const shortActionId = params.actionId.replace(/^action_/, "");
+    const shortTaskId = params.taskId.replace(/^task_/, "");
 
-    const screenshotFile = `${stepIndexStr}_${shortActionId}.png`;
+    const screenshotFile = `${stepIndexStr}_${shortTaskId}.png`;
     const currentFilePath = path.join(
       WORKSPACE_DIR,
       ".provar",
@@ -316,7 +316,7 @@ const acceptVisualState = async (params: {
 const getScreenshots = async (params: {
   testPath: string;
   pathIndex: number;
-  actionId: string;
+  taskId: string;
 }) => {
   const absPath = getAbsPath(params.testPath);
   console.log("[RPC Server] getScreenshots request:", {
@@ -340,24 +340,24 @@ const getScreenshots = async (params: {
       .relative(testsDir, absPath)
       .replace(".test.yml", "");
     const pathNameSlug = selectedPath.tasks
-      .map((t) => t.id.replace(/^action_/, ""))
+      .map((t) => t.id.replace(/^task_/, ""))
       .join("-");
 
     const taskIndex = selectedPath.tasks.findIndex(
-      (t) => t.id === params.actionId,
+      (t) => t.id === params.taskId,
     );
     if (taskIndex === -1) {
       console.warn(
-        "[RPC Server] getScreenshots warning: action not found in path:",
-        params.actionId,
+        "[RPC Server] getScreenshots warning: task not found in path:",
+        params.taskId,
       );
       return {};
     }
 
     const stepIndexStr = String(taskIndex + 1).padStart(3, "0");
-    const shortActionId = params.actionId.replace(/^action_/, "");
+    const shortTaskId = params.taskId.replace(/^task_/, "");
 
-    const screenshotFile = `${stepIndexStr}_${shortActionId}.png`;
+    const screenshotFile = `${stepIndexStr}_${shortTaskId}.png`;
     const currentFilePath = path.join(
       WORKSPACE_DIR,
       ".provar",

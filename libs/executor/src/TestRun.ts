@@ -236,7 +236,7 @@ export class PathRunner implements Runner {
           // Ignore screenshot capture/trigger failures
         }
 
-        // Execute dynamic action bindings
+        // Execute dynamic task bindings
         try {
           const executableTask = task as Task & {
             execute: (api: TestAPI) => Promise<void>;
@@ -262,8 +262,8 @@ export class PathRunner implements Runner {
         }
 
         if (
-          this.options.upToActionId &&
-          task.id === this.options.upToActionId
+          this.options.upToTaskId &&
+          task.id === this.options.upToTaskId
         ) {
           break;
         }

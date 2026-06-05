@@ -285,7 +285,7 @@
                 Contains Sub-Graph
               </h3>
               <p class="mt-0.5 text-xs text-zinc-400">
-                This action acts as a container for detailed steps.
+                This task acts as a container for detailed steps.
               </p>
             </div>
           </div>
@@ -302,7 +302,7 @@
       <h3
         class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"
       >
-        Actions
+        Task Controls
       </h3>
       <button
         onclick={() => onDelete(nodeId)}

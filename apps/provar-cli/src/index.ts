@@ -104,7 +104,7 @@ function renderTraceReport(trace: any) {
     `  | Playwright Sandbox Executions     | ${totalSandboxDurationMs.toFixed(1).padStart(12)} ms (${sandboxPct.padStart(5)}%)      |`,
   );
   console.log(
-    `  | Agent Action Code Generation      | ${totalAgentDurationMs.toFixed(1).padStart(12)} ms (${agentPct.padStart(5)}%)      |`,
+    `  | Agent Task Code Generation      | ${totalAgentDurationMs.toFixed(1).padStart(12)} ms (${agentPct.padStart(5)}%)      |`,
   );
   console.log(
     `  | File Serialization & Disk Writes  | ${trace.writeDurationMs.toFixed(1).padStart(12)} ms (${writePct.padStart(5)}%)      |`,
@@ -181,7 +181,7 @@ async function main() {
     );
     console.log("\nOptions:");
     console.log(
-      "  --up-to <actionId>                         Execute the test only up to this action ID",
+      "  --up-to <taskId>                         Execute the test only up to this task ID",
     );
     console.log(
       "  --headless <true|false>                    Launch browser in headless mode (default: true)",
@@ -291,12 +291,12 @@ async function main() {
     }
 
     // Process additional options
-    let upToActionId: string | undefined;
+    let upToTaskId: string | undefined;
     let headless = true;
 
     for (let i = 2; i < args.length; i++) {
       if (args[i] === "--up-to") {
-        upToActionId = args[i + 1];
+        upToTaskId = args[i + 1];
         i++;
       } else if (args[i] === "--headless") {
         headless = args[i + 1] !== "false";
@@ -360,7 +360,7 @@ async function main() {
       let suiteSuccess = true;
       for (const resolvedPath of execFile.paths) {
         const runner = await execute(resolvedPath, {
-          upToActionId,
+          upToTaskId,
           headless,
           variables,
         });

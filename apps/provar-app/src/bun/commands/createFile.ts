@@ -17,10 +17,10 @@ export const createFile = async ({
       name: name,
       graph: {
         info: "New test graph",
-        start: `action_${randomId}`,
+        start: `task_${randomId}`,
         nodes: {
-          [`action_${randomId}`]: {
-            title: "Start Action",
+          [`task_${randomId}`]: {
+            title: "Start Task",
             info: "Describe the first step here",
           },
         },

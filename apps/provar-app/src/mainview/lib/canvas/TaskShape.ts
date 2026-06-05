@@ -4,7 +4,7 @@ import { COLOURS, LAYOUT } from "./constants";
 import { getCodeStatus } from "../../../shared/utils";
 import type { TestNode } from "../../../shared/domain";
 
-export class ActionShape extends NodeShape {
+export class TaskShape extends NodeShape {
   protected override get cornerRadius() {
     return -1;
   }

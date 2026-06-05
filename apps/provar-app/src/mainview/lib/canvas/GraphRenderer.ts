@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import type { TestFile, Graph } from "../../../shared/domain";
-import { ActionShape } from "./ActionShape";
+import { TaskShape } from "./TaskShape";
 import { StartShape } from "./StartShape";
 import { EndShape } from "./EndShape";
 import { ConnectorShape } from "./ConnectorShape";
@@ -8,7 +8,7 @@ import { GRAPH_START_ID, LAYOUT, CONNECTOR } from "./constants";
 import { getNextNodes } from "../../../shared/utils";
 
 export class GraphRenderer extends PIXI.Container {
-  private readonly actionShapes = new Map<string, ActionShape>();
+  private readonly taskShapes = new Map<string, TaskShape>();
   private readonly endShapes = new Map<string, EndShape>();
   private readonly linksContainer = new PIXI.Container();
   private readonly startShape: StartShape;
@@ -49,8 +49,8 @@ export class GraphRenderer extends PIXI.Container {
   ) {
     for (const [id, node] of Object.entries(graph.nodes)) {
       const state = taskStates[id] || "idle";
-      const shape = new ActionShape(id, node, state, this.onNodeSelect);
-      this.actionShapes.set(id, shape);
+      const shape = new TaskShape(id, node, state, this.onNodeSelect);
+      this.taskShapes.set(id, shape);
       this.addChild(shape);
 
       if (getNextNodes(node).length === 0) {
@@ -112,7 +112,7 @@ export class GraphRenderer extends PIXI.Container {
       let maxW = 0;
       for (const [id, depth] of depths.entries()) {
         if (depth === d && id !== GRAPH_START_ID) {
-          const shape = this.actionShapes.get(id) || this.endShapes.get(id);
+          const shape = this.taskShapes.get(id) || this.endShapes.get(id);
           const w = shape?.nodeWidth ?? 0;
           if (w > maxW) maxW = w;
         }
@@ -140,7 +140,7 @@ export class GraphRenderer extends PIXI.Container {
       } else {
         for (const [id, depth] of depths.entries()) {
           if (depth === d && id !== GRAPH_START_ID) {
-            const shape = this.actionShapes.get(id) || this.endShapes.get(id);
+            const shape = this.taskShapes.get(id) || this.endShapes.get(id);
             if (shape) items.push({ id, height: shape.nodeHeight });
           }
         }
@@ -166,7 +166,7 @@ export class GraphRenderer extends PIXI.Container {
           this.startShape.x = layerX.get(-1) ?? 0;
           this.startShape.y = centerY;
         } else {
-          const shape = this.actionShapes.get(id) || this.endShapes.get(id);
+          const shape = this.taskShapes.get(id) || this.endShapes.get(id);
           if (shape) {
             shape.x = layerX.get(d) ?? 0;
             shape.y = centerY;
@@ -180,7 +180,7 @@ export class GraphRenderer extends PIXI.Container {
   private drawConnections(graph: Graph, depths: Map<string, number>) {
     this.linksContainer.removeChildren();
 
-    const firstShape = this.actionShapes.get(graph.start);
+    const firstShape = this.taskShapes.get(graph.start);
     if (firstShape) {
       this.linksContainer.addChild(
         new ConnectorShape(
@@ -207,7 +207,7 @@ export class GraphRenderer extends PIXI.Container {
     }
 
     for (const [id, node] of Object.entries(graph.nodes)) {
-      const shape = this.actionShapes.get(id);
+      const shape = this.taskShapes.get(id);
       if (!shape) continue;
 
       const nextNodes = getNextNodes(node);
@@ -226,7 +226,7 @@ export class GraphRenderer extends PIXI.Container {
         }
       } else {
         for (const nextId of nextNodes) {
-          const target = this.actionShapes.get(nextId);
+          const target = this.taskShapes.get(nextId);
           if (!target) continue;
 
           this.linksContainer.addChild(

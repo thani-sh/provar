@@ -213,7 +213,7 @@ export async function loadProject(
       }
 
       // Check builds synchronization
-      // Read dynamic TS module to export compiled action mapping
+      // Read dynamic TS module to export compiled task mapping
       const compiledModule = await import(tsPath);
 
       const compiledTasks = compiledModule.tasks || {};

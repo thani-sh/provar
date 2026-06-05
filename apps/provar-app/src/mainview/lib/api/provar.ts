@@ -82,20 +82,20 @@ export const ProvarAPI = {
   async runTestPath(
     path: string,
     pathIndex: number,
-    upToActionId?: string,
+    upToTaskId?: string,
     headless?: boolean,
   ) {
     console.log(
       "[RPC Client] runTestPath request:",
       path,
       pathIndex,
-      upToActionId,
+      upToTaskId,
       headless,
     );
     const res = await electroview.rpc!.request.runTestPath({
       path,
       pathIndex,
-      upToActionId,
+      upToTaskId,
       headless,
     });
     console.log("[RPC Client] runTestPath response:", res);
@@ -105,34 +105,34 @@ export const ProvarAPI = {
   async acceptVisualState(
     testPath: string,
     pathIndex: number,
-    actionId: string,
+    taskId: string,
   ) {
     console.log(
       "[RPC Client] acceptVisualState request:",
       testPath,
       pathIndex,
-      actionId,
+      taskId,
     );
     const res = await electroview.rpc!.request.acceptVisualState({
       testPath,
       pathIndex,
-      actionId,
+      taskId,
     });
     console.log("[RPC Client] acceptVisualState response:", res);
     return res;
   },
 
-  async getScreenshots(testPath: string, pathIndex: number, actionId: string) {
+  async getScreenshots(testPath: string, pathIndex: number, taskId: string) {
     console.log(
       "[RPC Client] getScreenshots request:",
       testPath,
       pathIndex,
-      actionId,
+      taskId,
     );
     const res = await electroview.rpc!.request.getScreenshots({
       testPath,
       pathIndex,
-      actionId,
+      taskId,
     });
     console.log(
       "[RPC Client] getScreenshots response (keys):",

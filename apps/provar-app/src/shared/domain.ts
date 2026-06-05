@@ -22,7 +22,7 @@ export type TestNode = {
 };
 
 /**
- * Schema for an action node.
+ * Schema for a test node.
  */
 export const testNodeSchema: z.ZodType<TestNode> = z.lazy(() =>
   z.object({
@@ -34,7 +34,7 @@ export const testNodeSchema: z.ZodType<TestNode> = z.lazy(() =>
   }),
 );
 
-export const testNodeIdSchema = z.string().regex(/^action_[a-z0-9]{5}$/);
+export const testNodeIdSchema = z.string().regex(/^task_[a-z0-9]{5}$/);
 
 /**
  * Type definition for a test graph.

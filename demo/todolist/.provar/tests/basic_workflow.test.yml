@@ -1,27 +1,27 @@
 name: basic_workflow
 graph:
   info: Simple login and task creation workflow
-  start: action_init1
+  start: task_init1
   nodes:
-    action_init1:
+    task_init1:
       title: open app
       info: Navigate to the todo list application
-      next: action_logi1
-    action_logi1:
+      next: task_logi1
+    task_logi1:
       title: login
       info: Enter username "testuser" and click Login
-      next: action_clis1
+      next: task_clis1
       config:
         visualCompare: true
-    action_clis1:
+    task_clis1:
       title: create list
       info: Enter "Shopping" in the new list input and click Add List
-      next: action_atask
-    action_atask:
+      next: task_atask
+    task_atask:
       title: add task
       info: Enter "Buy Milk" in the task input and click Add Task
-      next: action_compt
-    action_compt:
+      next: task_compt
+    task_compt:
       title: complete task
       info: Click the checkbox next to "Buy Milk"
       asserts:

@@ -9,7 +9,7 @@ import type { GroundingContext } from "@libs/executor";
 import type { Session, Attachment } from "@libs/agents";
 import type { CompilerPerformanceTracker } from "./tracker";
 
-// Stateful grounding session to preserve browser state across actions
+// Stateful grounding session to preserve browser state across tasks
 export class CompilerGroundingSession {
   private browser: Browser | null = null;
   private page: Page | null = null;
@@ -75,8 +75,8 @@ async function runGroundingSandbox(
   node: Task,
   prefixNodeIds: string[],
   currentCodeBody: string,
-  compiledActionsCache: Map<string, { code: string; title: string }>,
-  upToActionId: string,
+  compiledTasksCache: Map<string, { code: string; title: string }>,
+  upToTaskId: string,
   existingPage?: Page,
 ): Promise<{ error: any; context: GroundingContext | null }> {
   let executionError: any = null;
@@ -98,7 +98,7 @@ async function runGroundingSandbox(
 
     // Compile prefix nodes in order
     prefixNodeIds.forEach((pid) => {
-      const cached = compiledActionsCache.get(pid);
+      const cached = compiledTasksCache.get(pid);
       if (cached) {
         sandboxTasks[pid] = compileCodeToFunction(cached.code, sandboxTasks);
       }
@@ -127,20 +127,20 @@ async function runGroundingSandbox(
     const primaryPath: Path = { tasks: tasksList };
 
     const runner = await execute(primaryPath, {
-      upToActionId,
+      upToTaskId,
       headless: true,
       variables,
       existingPage,
     });
 
     for await (const event of runner.events()) {
-      if (event.type === "task-failed" && event.taskId === upToActionId) {
+      if (event.type === "task-failed" && event.taskId === upToTaskId) {
         executionError = event.error;
       }
     }
 
     const state = runner.getState();
-    const errors = state.errors.filter((e) => e.taskId === upToActionId);
+    const errors = state.errors.filter((e) => e.taskId === upToTaskId);
     if (errors.length > 0) {
       executionError = errors[0]?.error;
     }
@@ -184,20 +184,20 @@ async function runGroundingSandbox(
   };
 }
 
-export async function groundAndGenerateAction(
+export async function groundAndGenerateTask(
   targetFilePath: string,
   nodeId: string,
   node: Task,
   options: {
-    prefixActions?: string[];
-    compiledActionsCache?: Map<string, { code: string; title: string }>;
+    prefixTasks?: string[];
+    compiledTasksCache?: Map<string, { code: string; title: string }>;
     session: Session;
     groundingSession?: CompilerGroundingSession;
     tracker?: CompilerPerformanceTracker;
   },
 ): Promise<string> {
-  const prefixNodeIds = options.prefixActions || [];
-  const cache = options.compiledActionsCache || new Map();
+  const prefixNodeIds = options.prefixTasks || [];
+  const cache = options.compiledTasksCache || new Map();
   const session = options.session;
   const groundingSession = options.groundingSession;
   const tracker = options.tracker;
@@ -359,7 +359,7 @@ export async function groundAndGenerateAction(
     }
 
     console.log(
-      `[Self-Healing Loop] Action ${nodeId}: testing candidate try ${tryCount}...`,
+      `[Self-Healing Loop] Task ${nodeId}: testing candidate try ${tryCount}...`,
     );
 
     // Fast-path: If stateful session is active, try executing directly on the active page!
@@ -447,7 +447,7 @@ export async function groundAndGenerateAction(
         success = true;
         finalBody = currentCode;
         console.log(
-          `⚡ [Stateful Fast-Path] Action ${nodeId} executed successfully directly on active page!`,
+          `⚡ [Stateful Fast-Path] Task ${nodeId} executed successfully directly on active page!`,
         );
         break;
       } catch (err: any) {
@@ -464,7 +464,7 @@ export async function groundAndGenerateAction(
 
         if (statefulMutated) {
           console.log(
-            `  [Stateful Session] Actions were dispatched/performed on the page. Discarding active page state.`,
+            `  [Stateful Session] Tasks were dispatched/performed on the page. Discarding active page state.`,
           );
           await groundingSession.close();
           if (tracker) {
@@ -472,7 +472,7 @@ export async function groundAndGenerateAction(
           }
         } else {
           console.log(
-            `  [Stateful Session] No page actions were dispatched/performed. Reusing active page state for healing loop!`,
+            `  [Stateful Session] No page interactions were dispatched/performed. Reusing active page state for healing loop!`,
           );
         }
       }
@@ -501,16 +501,16 @@ export async function groundAndGenerateAction(
       success = true;
       finalBody = currentCode;
       console.log(
-        `[Self-Healing Loop] Action ${nodeId} successfully compiled and executed on try ${tryCount}!`,
+        `[Self-Healing Loop] Task ${nodeId} successfully compiled and executed on try ${tryCount}!`,
       );
       break;
     } else {
       console.error(
-        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Action ${nodeId}: ${testResult.error?.message || testResult.error}`,
+        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Task ${nodeId}: ${testResult.error?.message || testResult.error}`,
       );
       if (tryCount >= maxTries) {
         console.warn(
-          `  ⚠️ [Self-Healing Loop] Max retries reached for Action ${nodeId}. Using last generated code.`,
+          `  ⚠️ [Self-Healing Loop] Max retries reached for Task ${nodeId}. Using last generated code.`,
         );
         if (tracker) {
           tracker.setTaskStatus(nodeId, "FAILED");

@@ -9,8 +9,8 @@ export function addNodeToGraph(
   const newFile = structuredClone(file);
   const newNodeId = generateNodeId();
   const newNode: TestNode = {
-    title: "New Action",
-    info: "Describe what this action does...",
+    title: "New Task",
+    info: "Describe what this task does...",
     next: toId || undefined,
   };
 

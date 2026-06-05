@@ -16,23 +16,23 @@ Forcing a global "all-or-nothing" approach to visual comparison restricts develo
 We will introduce **Granular Visual Assertions (Step-Level Control)** as a core product feature of Provar.
 
 ### 1. Step-Level Visual Diff Control
-Developers will be able to enable or disable visual comparison for any individual action node directly in the test graph definition.
+Developers will be able to enable or disable visual comparison for any individual task node directly in the test graph definition.
 
 - **`visualCompare: true` (Default)**: The executor captures a screenshot, compares it against the accepted master state (optionally applying visual masks), and throws a visual assertion failure if a significant visual deviation is found.
 - **`visualCompare: false`**: The executor still captures a screenshot of the step (saved to `.provar/screenshots/current/` for visual audit logs and AI grounding), but **completely skips the visual comparison/assertion phase**. A mismatch on this node will never fail the test path.
 
 ### 2. File Format and Compilation Representation
-This setting will be stored directly on the action node inside the YAML graph definition and compiled down to the TypeScript executable code:
+This setting will be stored directly on the task node inside the YAML graph definition and compiled down to the TypeScript executable code:
 
 #### YAML Definition:
 ```yaml
 nodes:
-  action_v2b3n:
+  task_v2b3n:
     title: "Login to account"
     info: "Navigate to login page"
     visualCompare: true # Enforced
-    next: "action_k1l2m"
-  action_k1l2m:
+    next: "task_k1l2m"
+  task_k1l2m:
     title: "View activity feed"
     info: "Check user feed"
     visualCompare: false # Screenshot taken for audit/AI, but regression diffing skipped
@@ -40,23 +40,18 @@ nodes:
 
 #### Compiled TypeScript Output:
 ```typescript
-const action_v2b3n = action({
-  id: "v2b3n",
-  title: "Login to account",
-  visualCompare: true, // explicitly passed
-  execute: async (api: TestAPI) => { ... }
-});
-
-const action_k1l2m = action({
-  id: "k1l2m",
-  title: "View activity feed",
-  visualCompare: false, // explicitly passed
-  execute: async (api: TestAPI) => { ... }
-});
+export const tasks = {
+  ["task_v2b3n"]: async (api: TestAPI) => {
+    // ...
+  },
+  ["task_k1l2m"]: async (api: TestAPI) => {
+    // ...
+  },
+};
 ```
 
 ### 3. Integrated Editing Experience
-The Provar Editor desktop application (`PDR 008`) will provide a simple toggle in the side properties panel of each action node (e.g., "Enforce Visual Regression Check") to make modifying this flag intuitive for both developers and non-technical stakeholders.
+The Provar Editor desktop application (`PDR 008`) will provide a simple toggle in the side properties panel of each task node (e.g., "Enforce Visual Regression Check") to make modifying this flag intuitive for both developers and non-technical stakeholders.
 
 ## Consequences
 

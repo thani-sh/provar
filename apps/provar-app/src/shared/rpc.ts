@@ -58,17 +58,17 @@ export type ProvarRPCSchema = {
         params: {
           path: string;
           pathIndex: number;
-          upToActionId?: string;
+          upToTaskId?: string;
           headless?: boolean;
         };
         response: { success: boolean; runId?: string; error?: string };
       };
       acceptVisualState: {
-        params: { testPath: string; pathIndex: number; actionId: string };
+        params: { testPath: string; pathIndex: number; taskId: string };
         response: { success: boolean };
       };
       getScreenshots: {
-        params: { testPath: string; pathIndex: number; actionId: string };
+        params: { testPath: string; pathIndex: number; taskId: string };
         response: { baseline?: string; current?: string };
       };
     };

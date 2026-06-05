@@ -6,54 +6,41 @@ A shared library providing the core Playwright-backed browser automation framewo
 
 - **Playwright Backed:** Reliable, high-performance browser automation built on Playwright.
 - **Event-Driven Execution:** Streams real-time test execution events using an asynchronous generator.
-- **State Encapsulation:** Safe state isolation and variable scoping across actions.
+- **State Encapsulation:** Safe state isolation and variable scoping across tasks.
 - **Partial Execution:** Supports pausing or stopping at specific steps for live AI grounding.
 
 ## Usage
 
 ### 1. Declaring Tests (`.test.ts`)
 
-Test files are purely declarative. They specify individual actions and the overall suite pathways:
+Test files are compiled to a set of task functions and paths:
 
 ```typescript
-import { test, action, expect, TestAPI } from "@libs/executor";
+import type { TestAPI } from "@libs/executor";
 
-export const metadata = {
-  name: "User Login",
-  info: "Verifies standard auth flow"
+export const tasks = {
+  ["task_1"]: async (api: TestAPI) => {
+    await api.page.goto(api.var.BASE_URL);
+  },
+  ["task_2"]: async (api: TestAPI) => {
+    const heading = api.page.locator("h1");
+    await api.expect(heading).toBeVisible();
+  },
 };
 
-const openPage = action({
-  id: "act-1",
-  title: "Navigate to landing",
-  execute: async (api: TestAPI) => {
-    await api.page.goto(api.var.BASE_URL);
-  }
-});
-
-const assertLoaded = action({
-  id: "act-2",
-  title: "Verify hero header",
-  execute: async (api: TestAPI) => {
-    const heading = api.page.locator("h1");
-    await expect(heading).toBeVisible();
-  }
-});
-
-export const tests = [
-  test([openPage, assertLoaded])
+export const paths = [
+  ["task_1", "task_2"],
 ];
 ```
 
 ### 2. Running Tests Programmatically
 
-Import the library to execute `.test.ts` suites and monitor step-by-step progress using the asynchronous generator:
+Import the library to execute resolved paths and monitor step-by-step progress using the asynchronous generator:
 
 ```typescript
-import { runTest } from "@libs/executor";
+import { execute } from "@libs/executor";
 
-const runner = runTest({
-  testFilePath: "./tests/login.test.ts",
+const runner = await execute(selectedPath, {
   headless: true,
   variables: {
     BASE_URL: "http://localhost:6001"
@@ -72,12 +59,11 @@ console.log("Final state:", state.status);
 
 ### 3. Partial Execution
 
-For AI grounding or self-correction, run tests up to a specific action:
+For AI grounding or self-correction, run tests up to a specific task:
 
 ```typescript
-const runner = runTest({
-  testFilePath: "./tests/login.test.ts",
-  upToActionId: "act-1", // Stop after act-1 finishes
+const runner = await execute(selectedPath, {
+  upToTaskId: "task_1", // Stop after task_1 finishes
   headless: true
 });
 ```
