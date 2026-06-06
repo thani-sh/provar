@@ -61,7 +61,10 @@ const compileTest = async (params: { path: string }) => {
   const absPath = getAbsPath(params.path);
   console.log("[RPC Server] compileTest request for:", absPath);
   try {
-    const res = await compile({ yamlPath: absPath, agentConfig: getAgentConfig() });
+    const res = await compile({
+      yamlPath: absPath,
+      agentConfig: getAgentConfig(),
+    });
     console.log("[RPC Server] compileTest response success:", res.success);
     return { success: res.success };
   } catch (err: any) {
@@ -104,7 +107,10 @@ const runTestPath = async (params: {
 
     if (needCompile) {
       console.log(`[Auto-Compile] Compiling out of sync test: ${absPath}`);
-      const compileRes = await compile({ yamlPath: absPath, agentConfig: getAgentConfig() });
+      const compileRes = await compile({
+        yamlPath: absPath,
+        agentConfig: getAgentConfig(),
+      });
       if (!compileRes.success) {
         throw new Error(
           "Auto-compilation failed. Please compile manually to check errors.",

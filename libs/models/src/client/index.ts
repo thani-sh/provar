@@ -2,8 +2,13 @@ import { streamText, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import type { ModelMessage, LanguageModel } from "ai";
-import type { Client, Session, Attachment, Message, AgentClientConfig } from "../types";
-
+import type {
+  Client,
+  Session,
+  Attachment,
+  Message,
+  AgentClientConfig,
+} from "../types";
 
 function mapAttachment(a: Attachment) {
   if (a.type === "text") {

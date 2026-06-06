@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import vm from "node:vm";
+import os from "os";
 import type { Page } from "playwright";
 import type { Task, Path } from "@libs/domain";
 import { loadProject } from "../loader";
@@ -154,9 +155,7 @@ async function runGroundingSandbox(
         try {
           const buf = await page.screenshot({ type: "png" });
 
-          const screenshotsDir = project
-            ? path.join(project.path, "screenshots")
-            : path.resolve(process.cwd(), ".provar/screenshots");
+          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);
@@ -265,9 +264,7 @@ export async function groundAndGenerateTask(
         try {
           const buf = await page.screenshot({ type: "png" });
 
-          const screenshotsDir = project
-            ? path.join(project.path, "screenshots")
-            : path.resolve(process.cwd(), ".provar/screenshots");
+          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);

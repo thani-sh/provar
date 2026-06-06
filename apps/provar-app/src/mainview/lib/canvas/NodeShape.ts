@@ -168,7 +168,11 @@ export class NodeShape extends PIXI.Container {
       strokeWidth = 1.5;
       strokeAlpha = 0.25;
     }
-    this.bg.stroke({ color: borderColor, width: strokeWidth, alpha: strokeAlpha });
+    this.bg.stroke({
+      color: borderColor,
+      width: strokeWidth,
+      alpha: strokeAlpha,
+    });
 
     // Pivot at vertical centre (used by graph layout)
     this.pivot.set(0, totalHeight / 2);

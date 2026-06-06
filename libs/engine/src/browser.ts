@@ -6,7 +6,9 @@ export interface BrowserSession {
   close: () => Promise<void>;
 }
 
-export async function launchBrowserSession(options?: { headless?: boolean }): Promise<BrowserSession> {
+export async function launchBrowserSession(options?: {
+  headless?: boolean;
+}): Promise<BrowserSession> {
   const browser = await chromium.launch({
     headless: options?.headless !== false,
   });

@@ -24,4 +24,3 @@ export interface AgentClientConfig {
   model?: string;
   baseUrl?: string;
 }
-

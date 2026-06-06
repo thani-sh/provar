@@ -46,4 +46,3 @@ export interface ExecutableFile<T = any> extends File {
   tasks: Record<string, ExecutableTask<T>>;
   code: { valid: boolean } | null;
 }
-

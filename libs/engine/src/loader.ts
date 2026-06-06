@@ -2,9 +2,16 @@ import * as fs from "fs";
 import * as path from "path";
 import crypto from "crypto";
 import yaml from "js-yaml";
-import type { Task, Graph, File, Path, Project, ExecutableTask, ExecutableFile } from "@libs/domain";
+import type {
+  Task,
+  Graph,
+  File,
+  Path,
+  Project,
+  ExecutableTask,
+  ExecutableFile,
+} from "@libs/domain";
 import { schemaForLoadedFile } from "@libs/domain/zod";
-
 
 export interface ProjectLoader {
   readFile(filePath: string): Promise<ExecutableFile>;

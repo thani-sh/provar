@@ -80,7 +80,9 @@ export class TaskShape extends NodeShape {
 
       let angle = 0;
       const ARC_SPAN = Math.PI * 1.2;
-      const cx = 5, cy = 5, r = 4;
+      const cx = 5,
+        cy = 5,
+        r = 4;
 
       const tick = () => {
         angle += 0.08;
@@ -119,12 +121,7 @@ export class TaskShape extends NodeShape {
         const rows = 3;
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            g.rect(
-              col * (cell + gap),
-              row * (cell + gap) + 0.5,
-              cell,
-              cell,
-            );
+            g.rect(col * (cell + gap), row * (cell + gap) + 0.5, cell, cell);
           }
         }
         g.fill({ color: COLOURS.assertGreen, alpha: 0.9 });

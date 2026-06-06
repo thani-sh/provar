@@ -4,7 +4,12 @@ import crypto from "crypto";
 import type { Task, File } from "@libs/domain";
 import { parseTestFile, loadProject } from "../loader";
 import { createClient } from "@libs/models";
-import type { Session, Attachment, Client, AgentClientConfig } from "@libs/models";
+import type {
+  Session,
+  Attachment,
+  Client,
+  AgentClientConfig,
+} from "@libs/models";
 import type { GroundingContext, TestAPI } from "../types";
 
 import { groundAndGenerateTask, CompilerGroundingSession } from "./generator";

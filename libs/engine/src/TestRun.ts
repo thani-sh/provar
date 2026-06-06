@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import crypto from "crypto";
+import os from "os";
 import { type Browser, type Page } from "playwright";
 import { expect } from "@playwright/test";
 import type { Path, Task } from "@libs/domain";
@@ -279,9 +280,7 @@ export class PathRunner implements Runner {
           this.state.pageContent = await this.activePage.content();
           const buf = await this.activePage.screenshot({ type: "png" });
 
-          const screenshotsDir = this.options.provarPath
-            ? path.join(this.options.provarPath, "screenshots")
-            : path.resolve(process.cwd(), ".provar/screenshots");
+          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `run-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
           const filePath = path.join(screenshotsDir, fileName);
