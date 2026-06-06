@@ -44,9 +44,8 @@ export async function compile(
   const outputPath =
     options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
 
-  // Load project config to determine provider and workspace root directory
+  // Load project to determine workspace root directory
   tracker.startSetup();
-  let providerName: "gemini-cli" | "copilot-cli" = "gemini-cli";
   let workspaceDir = process.cwd();
   try {
     const project = await loadProject(options.yamlPath);
