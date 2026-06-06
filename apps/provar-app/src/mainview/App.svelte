@@ -325,7 +325,7 @@
 
           {#if runMenuOpen}
             <div
-              class="absolute top-[30px] right-0 z-50 min-w-[200px] overflow-hidden rounded-lg border border-zinc-800 bg-[#161b22] shadow-xl"
+              class="absolute top-[30px] right-0 z-50 min-w-[140px] overflow-hidden rounded-lg border border-zinc-800 bg-[#161b22] shadow-xl"
             >
               <!-- Run all paths -->
               <button
@@ -338,81 +338,26 @@
                 <Layers size={12} class="shrink-0 text-zinc-400" />
                 <div>
                   <div class="font-medium">Run all paths</div>
-                  <div class="text-zinc-500">
-                    Execute every branch sequentially
-                  </div>
                 </div>
               </button>
 
               <div class="mx-3 border-t border-zinc-800/60"></div>
 
-              <!-- Run selected path -->
+              <!-- Force recompile -->
               <button
-                disabled={editorStore.selectedNodePathIndex === null}
+                disabled={editorStore.isCompiling || editorStore.isRunning}
                 onclick={() => {
                   runMenuOpen = false;
-                  const idx = editorStore.selectedNodePathIndex;
-                  if (idx !== null) editorStore.runPath(idx);
+                  editorStore.compileCurrentTest();
                 }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
-                  {editorStore.selectedNodePathIndex !== null
-                  ? 'cursor-pointer text-zinc-300 hover:bg-zinc-800/60'
-                  : 'cursor-not-allowed text-zinc-600'}"
+                  {editorStore.isCompiling || editorStore.isRunning
+                  ? 'cursor-not-allowed text-zinc-600'
+                  : 'cursor-pointer text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-300'}"
               >
-                <Play
-                  size={12}
-                  class="shrink-0 {editorStore.selectedNodePathIndex !== null
-                    ? 'text-zinc-400'
-                    : 'text-zinc-700'}"
-                />
+                <RefreshCw size={12} class="shrink-0" />
                 <div>
-                  <div class="font-medium">Run selected path</div>
-                  <div
-                    class={editorStore.selectedNodePathIndex !== null
-                      ? "text-zinc-500"
-                      : "text-zinc-700"}
-                  >
-                    {editorStore.selectedNodePathIndex !== null
-                      ? `Path ${editorStore.selectedNodePathIndex + 1} of ${editorStore.allPaths.length}`
-                      : "Select a node first"}
-                  </div>
-                </div>
-              </button>
-
-              <!-- Run up to selected node -->
-              <button
-                disabled={editorStore.selectedNodeId === null ||
-                  editorStore.selectedNodePathIndex === null}
-                onclick={() => {
-                  runMenuOpen = false;
-                  const idx = editorStore.selectedNodePathIndex;
-                  const nodeId = editorStore.selectedNodeId;
-                  if (idx !== null && nodeId)
-                    editorStore.runPathUpTo(idx, nodeId);
-                }}
-                class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
-                  {editorStore.selectedNodeId !== null &&
-                editorStore.selectedNodePathIndex !== null
-                  ? 'cursor-pointer text-zinc-300 hover:bg-zinc-800/60'
-                  : 'cursor-not-allowed text-zinc-600'}"
-              >
-                <ArrowRightToLine
-                  size={12}
-                  class="shrink-0 {editorStore.selectedNodeId !== null
-                    ? 'text-zinc-400'
-                    : 'text-zinc-700'}"
-                />
-                <div>
-                  <div class="font-medium">Run up to here</div>
-                  <div
-                    class={editorStore.selectedNodeId !== null
-                      ? "text-zinc-500"
-                      : "text-zinc-700"}
-                  >
-                    {editorStore.selectedNodeId !== null
-                      ? "Stop at selected node"
-                      : "Select a node first"}
-                  </div>
+                  <div class="font-medium">Regenerate</div>
                 </div>
               </button>
 
@@ -432,7 +377,7 @@
               >
                 <X size={12} class="shrink-0" />
                 <div>
-                  <div class="font-medium">Clear run status</div>
+                  <div class="font-medium">Clear status</div>
                 </div>
               </button>
             </div>

@@ -54,8 +54,13 @@ export class GraphRenderer extends PIXI.Container {
 
       if (getNextNodes(node).length === 0) {
         const endId = `end_${id}`;
-        // Derive end state: successful if the last task on this branch succeeded.
-        const endState = taskStates[id] ?? "idle";
+        // Derive end state: only highlight if the preceding task actually succeeded.
+        // A failed task never reaches End, so keep it idle in that case.
+        const precedingState = taskStates[id] ?? "idle";
+        const endState =
+          precedingState === "success" || precedingState === "mixed"
+            ? precedingState
+            : "idle";
         const endShape = new EndShape(endState);
         this.endShapes.set(endId, endShape);
         this.addChild(endShape);

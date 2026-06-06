@@ -10,8 +10,6 @@ export const COLOURS = {
   nodeText: 0xf8fafc,
   connector: 0x424754,
   iconNeutral: 0x94a3b8,
-  codeUpToDate: 0x10b981,
-  codeOutdated: 0xf59e0b,
   assertGreen: 0x10b981,
   primary: 0x3b82f6,
   onPrimary: 0xffffff,

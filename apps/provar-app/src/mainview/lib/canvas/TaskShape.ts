@@ -1,7 +1,6 @@
 import * as PIXI from "pixi.js";
 import { NodeShape } from "./NodeShape";
 import { COLOURS, LAYOUT, type TaskState } from "./constants";
-import { getCodeStatus } from "../../../shared/utils";
 import type { TestNode } from "@libs/domain/zod";
 
 /** TaskShape renders a graph node for a single test task. */
@@ -96,23 +95,27 @@ export class TaskShape extends NodeShape {
       });
     }
 
-    // Code status icon
-    const codeStatus = getCodeStatus(node);
-    const codeColor =
-      codeStatus === "upToDate" ? COLOURS.codeUpToDate : COLOURS.codeOutdated;
-    const codeAlpha = codeStatus === "upToDate" ? 0.8 : 1.0;
-
-    addIcon((g) => {
-      g.moveTo(3, 1);
-      g.lineTo(0, 5);
-      g.lineTo(3, 9);
-      g.moveTo(7, 1);
-      g.lineTo(10, 5);
-      g.lineTo(7, 9);
-      g.moveTo(6, 0);
-      g.lineTo(4, 10);
-      g.stroke({ color: codeColor, width: 1.5, join: "round", cap: "round" });
-    }, codeAlpha);
+    // Pixel-diff icon — only shown when visual comparison is enabled on this node
+    if (node.config?.visualCompare) {
+      addIcon((g) => {
+        // 3×3 grid of small squares representing a pixel/diff grid
+        const cell = 2.5;
+        const gap = 1;
+        const cols = 3;
+        const rows = 3;
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            g.rect(
+              col * (cell + gap),
+              row * (cell + gap) + 0.5,
+              cell,
+              cell,
+            );
+          }
+        }
+        g.fill({ color: COLOURS.assertGreen, alpha: 0.9 });
+      }, 1.0);
+    }
 
     // Layout icons horizontally inside the icon row
     let offsetX = 0;
