@@ -25,6 +25,7 @@ export interface Graph {
 export interface File extends Graph {
   name: string;
   path: string;
+  code?: { valid: boolean } | null;
 }
 
 export interface Path {

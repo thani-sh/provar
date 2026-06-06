@@ -10,8 +10,18 @@ export interface ExecutableTask extends Task {
   execute: (api: TestAPI) => Promise<void>;
 }
 
+/**
+ * ExecutableFile extends the base File with compiled task functions and
+ * synchronisation metadata about the paired .test.ts file.
+ */
 export interface ExecutableFile extends File {
   tasks: Record<string, ExecutableTask>;
+  /**
+   * code is null when no compiled .test.ts file exists on disk.
+   * When present, valid indicates whether the embedded hash matches the
+   * current YAML content.
+   */
+  code: { valid: boolean } | null;
 }
 
 export interface ProjectLoader {
@@ -124,6 +134,17 @@ export function parseTestFile(content: string, filePath: string): File {
   // Resolve unique linear execution paths
   const paths = buildGraphPaths(start, tasks);
 
+  // Check code status (exists/valid hash) on the project level when parsing a test file
+  const tsPath = filePath.replace(".test.yml", ".test.ts");
+  let code: { valid: boolean } | null = null;
+  if (fs.existsSync(tsPath)) {
+    const tsContent = fs.readFileSync(tsPath, "utf-8");
+    const yamlHash = crypto.createHash("sha256").update(content).digest("hex");
+    const hashMatch = tsContent.match(/^\/\/ hash: ([a-f0-9]+)/);
+    const valid = !!(hashMatch && hashMatch[1] === yamlHash);
+    code = { valid };
+  }
+
   const fileData = {
     name,
     path: filePath,
@@ -131,6 +152,7 @@ export function parseTestFile(content: string, filePath: string): File {
     start,
     tasks,
     paths,
+    code,
   };
 
   return schemaForLoadedFile.parse(fileData);
@@ -180,11 +202,7 @@ export async function loadProject(
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         scan(fullPath);
-      } else if (
-        entry.isFile() &&
-        entry.name.endsWith(".test.yml") &&
-        !entry.name.startsWith("__grounding_")
-      ) {
+      } else if (entry.isFile() && entry.name.endsWith(".test.yml")) {
         const content = fs.readFileSync(fullPath, "utf-8");
         const parsed = parseTestFile(content, fullPath);
         files.push(parsed);
@@ -205,17 +223,17 @@ export async function loadProject(
       const content = fs.readFileSync(filePath, "utf-8");
       const baseFile = parseTestFile(content, filePath);
 
-      const tsPath = filePath.replace(".test.yml", ".test.ts");
-      if (!fs.existsSync(tsPath)) {
-        throw new Error(
-          `Matching compiled TypeScript file not found: ${tsPath}`,
-        );
+      if (!baseFile.code) {
+        return {
+          ...baseFile,
+          tasks: baseFile.tasks as Record<string, ExecutableTask>,
+          code: null,
+        };
       }
 
-      // Check builds synchronization
-      // Read dynamic TS module to export compiled task mapping
+      const tsPath = filePath.replace(".test.yml", ".test.ts");
+      // Read dynamic TS module to export compiled task mapping.
       const compiledModule = await import(tsPath);
-
       const compiledTasks = compiledModule.tasks || {};
 
       for (const [id, task] of Object.entries(baseFile.tasks)) {
@@ -228,7 +246,8 @@ export async function loadProject(
         (task as any).execute = execFn;
       }
 
-      // Explicitly bind execute function to tasks inside resolved paths too (Zod parsing clones objects)
+      // Explicitly bind execute function to tasks inside resolved paths too
+      // (Zod parsing clones objects so they need separate bindings).
       for (const resolvedPath of baseFile.paths) {
         for (const task of resolvedPath.tasks) {
           const execFn = compiledTasks[task.id];
@@ -238,7 +257,11 @@ export async function loadProject(
         }
       }
 
-      return baseFile as ExecutableFile;
+      return {
+        ...baseFile,
+        tasks: baseFile.tasks as Record<string, ExecutableTask>,
+        code: baseFile.code,
+      };
     },
   };
 

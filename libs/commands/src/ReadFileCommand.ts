@@ -4,6 +4,7 @@ import { z } from "zod";
 import { Command } from "./Command";
 import { getAbsPath } from "./utils";
 import { schemaForFile } from "@libs/domain/zod";
+import { loadProject } from "@libs/loader";
 
 export type ReadFileInput = {
   path: string;
@@ -28,6 +29,11 @@ export class ReadFileCommand extends Command<ReadFileInput, ReadFileOutput> {
     const contentStr = await readFile(fullPath, "utf-8");
     const parsed = yaml.parse(contentStr);
     const validated = schemaForFile.parse(parsed);
+
+    const project = await loadProject(fullPath);
+    const loadedFile = project.files.find((f) => f.path === fullPath);
+    validated.code = loadedFile ? (loadedFile.code ?? null) : null;
+
     return { content: validated };
   }
 }

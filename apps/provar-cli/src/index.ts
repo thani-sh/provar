@@ -342,13 +342,31 @@ async function main() {
       let execFile;
       try {
         const yamlPath = testFilePath.replace(".test.ts", ".test.yml");
-        const project = await loadProject(testFilePath);
+        const project = await loadProject(yamlPath);
         variables = project.variables || {};
         execFile = await project.readFile(yamlPath);
       } catch (err: any) {
         console.error(pc.red(`  ❌ Failed to load test suite: ${err.message}`));
         runSuccess = false;
         continue;
+      }
+
+      if (!execFile.code) {
+        console.error(
+          pc.red(
+            `  ❌ Compiled TypeScript file not found. Run 'provar compile' first.`,
+          ),
+        );
+        runSuccess = false;
+        continue;
+      }
+
+      if (!execFile.code.valid) {
+        console.warn(
+          pc.yellow(
+            `  ⚠️  Test file has changed since last compilation. Consider re-running 'provar compile'.`,
+          ),
+        );
       }
 
       if (Object.keys(variables).length > 0) {

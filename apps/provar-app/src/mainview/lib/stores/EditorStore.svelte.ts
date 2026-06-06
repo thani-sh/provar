@@ -174,6 +174,9 @@ class EditorStore {
     try {
       const res = await ProvarAPI.compileTest(this.selectedFilePath);
       this.isCompiling = false;
+      if (res.success && this.currentFile) {
+        this.currentFile.code = { valid: true };
+      }
       return res.success;
     } catch (e) {
       console.error("EditorStore: Compile failed:", e);
@@ -185,6 +188,12 @@ class EditorStore {
   /** runAllPaths runs every path in the file sequentially, accumulating results. */
   async runAllPaths() {
     if (!this.selectedFilePath || this.isRunning) return;
+    if (!this.currentFile?.code?.valid) {
+      alert(
+        "Cannot run test: compiled code is missing or invalid. Please compile first.",
+      );
+      return;
+    }
     // Clear all prior results so multi-path accumulation starts fresh.
     this.taskPathStates = {};
     const paths = this.allPaths;
@@ -196,6 +205,12 @@ class EditorStore {
   /** runPath runs a single path by its index and resolves when execution finishes. */
   async runPath(pathIndex: number): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
+    if (!this.currentFile?.code?.valid) {
+      alert(
+        "Cannot run test: compiled code is missing or invalid. Please compile first.",
+      );
+      return;
+    }
     this.currentPathIndex = pathIndex;
     this.isRunning = true;
 
@@ -228,6 +243,12 @@ class EditorStore {
   /** runPathUpTo runs a path stopping execution at the given task node. */
   async runPathUpTo(pathIndex: number, upToTaskId: string): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
+    if (!this.currentFile?.code?.valid) {
+      alert(
+        "Cannot run test: compiled code is missing or invalid. Please compile first.",
+      );
+      return;
+    }
     this.currentPathIndex = pathIndex;
     this.isRunning = true;
 

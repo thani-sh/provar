@@ -8,6 +8,8 @@
     Layers,
     ArrowRightToLine,
     X,
+    Hammer,
+    RefreshCw,
   } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
   import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
@@ -254,7 +256,34 @@
         >
       </button>
 
-      {#if editorStore.isRunning}
+      {#if editorStore.isCompiling}
+        <div
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] items-center gap-1.5 rounded-full border border-zinc-800/80 bg-[#161b22]/80 px-3 py-1 text-xs text-zinc-400 shadow-sm backdrop-blur-sm"
+        >
+          <div
+            class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
+          ></div>
+          <span>Compiling...</span>
+        </div>
+      {:else if !editorStore.currentFile?.code}
+        <button
+          onclick={() => editorStore.compileCurrentTest()}
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] cursor-pointer items-center gap-1.5 rounded-full border border-zinc-800/80 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-zinc-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-blue-500/80 hover:bg-[#21262d]/90 hover:text-blue-400 focus:outline-none"
+          title="Compiled TypeScript file not found. Click to compile."
+        >
+          <Hammer size={11} class="shrink-0" />
+          <span>Compile</span>
+        </button>
+      {:else if !editorStore.currentFile.code.valid}
+        <button
+          onclick={() => editorStore.compileCurrentTest()}
+          class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] cursor-pointer items-center gap-1.5 rounded-full border border-amber-900/50 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-amber-500 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-amber-500/80 hover:bg-[#21262d]/90 hover:text-amber-400 focus:outline-none"
+          title="Test file changed since last compilation. Click to recompile."
+        >
+          <RefreshCw size={11} class="shrink-0" />
+          <span>Recompile</span>
+        </button>
+      {:else if editorStore.isRunning}
         <div
           class="electrobun-webkit-app-region-no-drag pointer-events-auto flex h-[26px] w-[26px] items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 shadow-sm backdrop-blur-sm"
         >

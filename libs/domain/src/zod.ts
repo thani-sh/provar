@@ -65,6 +65,7 @@ export const schemaForGraph: z.ZodType<TestFileGraph, any, any> = z.lazy(() =>
 export const schemaForFile = z.object({
   name: z.string(),
   graph: schemaForGraph,
+  code: z.object({ valid: z.boolean() }).nullable().optional(),
 });
 
 export type TestFile = z.infer<typeof schemaForFile>;
@@ -123,6 +124,7 @@ export const schemaForLoadedFile: z.ZodType<File, any, any> = z.lazy(() =>
   baseLoadedGraphSchema.extend({
     name: z.string(),
     path: z.string(),
+    code: z.object({ valid: z.boolean() }).nullable().optional(),
   }),
 );
 
