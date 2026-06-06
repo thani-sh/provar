@@ -17,6 +17,8 @@ graph:
       title: create personal list
       info: Create a list named "Personal"
       next: task_amkl1
+      config:
+        visualCompare: false
     task_amkl1:
       title: add personal task
       info: Add task "Buy groceries" to Personal list

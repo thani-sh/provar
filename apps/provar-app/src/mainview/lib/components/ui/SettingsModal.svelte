@@ -43,11 +43,6 @@
   <div
     class="fixed inset-0 z-[400] flex overflow-hidden bg-[#161b22] text-zinc-300 select-none"
   >
-    <!-- Draggable region at top to support moving window in full screen overlay -->
-    <div
-      class="electrobun-webkit-app-region-drag pointer-events-none absolute top-0 right-0 left-0 h-[38px]"
-    ></div>
-
     <!-- Sidebar Panel -->
     <aside
       class="w-[200px] shrink-0 border-r border-zinc-800 bg-[#0e1116]/40 p-6 pt-[50px]"

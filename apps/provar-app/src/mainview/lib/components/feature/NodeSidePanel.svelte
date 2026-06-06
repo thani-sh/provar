@@ -141,100 +141,73 @@
 </script>
 
 <div class="flex h-full w-full flex-col">
-  <div class="flex flex-col border-b border-zinc-800/50 p-6">
-    <input
-      type="text"
-      value={node.title}
-      oninput={handleTitleChange}
-      class="mb-2 -ml-1 rounded bg-transparent px-1 text-xl font-medium text-zinc-100 outline-none focus:ring-1 focus:ring-indigo-500/50"
-    />
-    <textarea
-      value={node.info}
-      oninput={handleInfoChange}
-      rows="3"
-      class="-ml-1 resize-none rounded bg-transparent px-1 text-sm leading-relaxed text-zinc-400 outline-none focus:ring-1 focus:ring-indigo-500/50"
-    ></textarea>
+  <div
+    class="flex items-center justify-between border-b border-zinc-800/50 px-6 pt-2.5 pb-2.5"
+  >
+    <h2 class="text-sm font-semibold text-zinc-200">Task Settings</h2>
+    <div class="flex items-center gap-1">
+      <button
+        disabled={editorStore.isRunning ||
+          editorStore.selectedNodePathIndex === null}
+        onclick={() => {
+          const idx = editorStore.selectedNodePathIndex;
+          if (idx !== null) editorStore.runPath(idx);
+        }}
+        class="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-green-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+        title="Run the full path containing this node"
+      >
+        <Play size={12} class="fill-current" />
+      </button>
+      <button
+        disabled={editorStore.isRunning ||
+          editorStore.selectedNodePathIndex === null}
+        onclick={() => {
+          const idx = editorStore.selectedNodePathIndex;
+          if (idx !== null) editorStore.runPathUpTo(idx, nodeId);
+        }}
+        class="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-[#21262d] hover:text-blue-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-zinc-500"
+        title="Run the path and stop at this node"
+      >
+        <ArrowRightToLine size={14} />
+      </button>
+    </div>
   </div>
 
-  <div class="flex-1 space-y-8 overflow-y-auto p-6">
-    <section>
-      <h3
-        class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"
-      >
-        Run
-      </h3>
-      <div class="flex gap-2">
-        <button
-          disabled={editorStore.isRunning ||
-            editorStore.selectedNodePathIndex === null}
-          onclick={() => {
-            const idx = editorStore.selectedNodePathIndex;
-            if (idx !== null) editorStore.runPath(idx);
-          }}
-          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-colors
-            {editorStore.isRunning || editorStore.selectedNodePathIndex === null
-            ? 'cursor-not-allowed border-zinc-800/50 text-zinc-600'
-            : 'cursor-pointer border-zinc-700/60 text-zinc-300 hover:border-green-500/40 hover:bg-green-500/10 hover:text-green-400'}"
-          title="Run the full path containing this node"
+  <div class="flex-1 space-y-4 overflow-y-auto p-6">
+    <section class="space-y-4">
+      <div>
+        <label
+          for="node-title"
+          class="mb-2 block text-xs font-medium tracking-wider text-zinc-500 uppercase"
         >
-          <Play size={11} class="fill-current" />
-          Run path
-        </button>
-        <button
-          disabled={editorStore.isRunning ||
-            editorStore.selectedNodePathIndex === null}
-          onclick={() => {
-            const idx = editorStore.selectedNodePathIndex;
-            if (idx !== null) editorStore.runPathUpTo(idx, nodeId);
-          }}
-          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-xs font-medium transition-colors
-            {editorStore.isRunning || editorStore.selectedNodePathIndex === null
-            ? 'cursor-not-allowed border-zinc-800/50 text-zinc-600'
-            : 'cursor-pointer border-zinc-700/60 text-zinc-300 hover:border-blue-500/40 hover:bg-blue-500/10 hover:text-blue-400'}"
-          title="Run the path and stop at this node"
-        >
-          <ArrowRightToLine size={11} />
-          Run up to here
-        </button>
-      </div>
-      {#if editorStore.allPaths.length > 1 && editorStore.selectedNodePathIndex !== null}
-        <p class="mt-2 text-[10px] text-zinc-600">
-          Path {editorStore.selectedNodePathIndex + 1} of {editorStore.allPaths
-            .length}
-        </p>
-      {/if}
-    </section>
-
-    <section>
-      <h3
-        class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"
-      >
-        Validation Controls
-      </h3>
-      <label class="flex cursor-pointer items-start gap-3 select-none">
+          Task Name
+        </label>
         <input
-          type="checkbox"
-          checked={node.config?.visualCompare ?? false}
-          onchange={(e) => {
-            const checked = (e.target as HTMLInputElement).checked;
-            onUpdate(nodeId, {
-              config: { ...node.config, visualCompare: checked },
-            });
-          }}
-          class="mt-1 rounded border-zinc-700 bg-zinc-900 text-indigo-500 focus:ring-1 focus:ring-indigo-500/50"
+          id="node-title"
+          type="text"
+          value={node.title}
+          oninput={handleTitleChange}
+          class="w-full rounded-lg border border-zinc-700/50 bg-[#0d1117] px-3.5 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         />
-        <div>
-          <span class="text-sm font-medium text-zinc-300"
-            >Enforce Visual Regression Check</span
-          >
-          <span class="mt-1 block text-xs font-normal text-zinc-500">
-            Disabled by default. If enabled, any visual deviation at this step
-            will trigger an execution failure.
-          </span>
-        </div>
-      </label>
-    </section>
+      </div>
 
+      <div>
+        <label
+          for="node-info"
+          class="mb-2 block text-xs font-medium tracking-wider text-zinc-500 uppercase"
+        >
+          Description
+        </label>
+        <textarea
+          id="node-info"
+          value={node.info}
+          oninput={handleInfoChange}
+          rows="3"
+          class="w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+          placeholder="Add a description..."
+        ></textarea>
+      </div>
+    </section>
     <section>
       <h3
         class="mb-3 flex items-center gap-2 text-sm font-medium tracking-wider text-zinc-400 uppercase"
@@ -245,13 +218,13 @@
       {#if baseline || current}
         <div class="flex flex-col gap-3">
           <div
-            class="flex items-center rounded-lg border border-zinc-800 bg-zinc-900 p-0.5"
+            class="flex items-center rounded-lg border border-zinc-800/40 bg-zinc-900/30 p-0.5 shadow-sm backdrop-blur-md"
           >
             <button
               class="flex-1 rounded-md py-1.5 text-center text-xs font-medium transition-all {viewMode ===
               'baseline'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-300'}"
+                ? 'border border-zinc-700/20 bg-[#21262d]/60 text-zinc-100 shadow-sm'
+                : 'border border-transparent text-zinc-500 hover:text-zinc-300'}"
               disabled={!baseline}
               onclick={() => (viewMode = "baseline")}
             >
@@ -260,8 +233,8 @@
             <button
               class="flex-1 rounded-md py-1.5 text-center text-xs font-medium transition-all {viewMode ===
               'current'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-300'}"
+                ? 'border border-zinc-700/20 bg-[#21262d]/60 text-zinc-100 shadow-sm'
+                : 'border border-transparent text-zinc-500 hover:text-zinc-300'}"
               disabled={!current}
               onclick={() => (viewMode = "current")}
             >
@@ -270,8 +243,8 @@
             <button
               class="flex-1 rounded-md py-1.5 text-center text-xs font-medium transition-all {viewMode ===
               'diff'
-                ? 'bg-zinc-800 text-zinc-100'
-                : 'text-zinc-500 hover:text-zinc-300'}"
+                ? 'border border-zinc-700/20 bg-[#21262d]/60 text-zinc-100 shadow-sm'
+                : 'border border-transparent text-zinc-500 hover:text-zinc-300'}"
               disabled={!diffDataUrl}
               onclick={() => (viewMode = "diff")}
             >
@@ -280,39 +253,77 @@
           </div>
 
           <div
-            class="relative flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 p-2"
+            class="relative flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950"
           >
             {#if viewMode === "baseline" && baseline}
               <img
                 src={baseline}
                 alt="Baseline UI State"
-                class="max-h-full max-w-full object-contain"
+                class="h-full w-full object-cover"
               />
             {:else if viewMode === "current" && current}
               <img
                 src={current}
                 alt="Current UI State"
-                class="max-h-full max-w-full object-contain"
+                class="h-full w-full object-cover"
               />
+              <button
+                onclick={() => editorStore.acceptVisualStateForNode(nodeId)}
+                class="absolute right-2 bottom-2 z-10 rounded-lg border border-zinc-700 bg-zinc-900/80 p-1.5 text-zinc-300 backdrop-blur-sm transition-all hover:border-green-500/40 hover:bg-green-500/20 hover:text-green-400"
+                title="Accept Visual State as Baseline"
+              >
+                <Check size={14} />
+              </button>
             {:else if viewMode === "diff" && diffDataUrl}
               <img
                 src={diffDataUrl}
                 alt="Visual Mismatch Diff"
-                class="max-h-full max-w-full object-contain"
+                class="h-full w-full object-cover"
               />
             {:else}
               <span class="text-xs text-zinc-600">Image unavailable</span>
             {/if}
           </div>
 
-          {#if current}
-            <button
-              onclick={() => editorStore.acceptVisualStateForNode(nodeId)}
-              class="w-full rounded-lg bg-indigo-600 py-2.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-500"
+          <label
+            class="mt-1 flex cursor-pointer items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/30 p-3 shadow-sm transition-all select-none hover:border-zinc-700 hover:bg-[#21262d]/20"
+          >
+            <input
+              type="checkbox"
+              checked={node.config?.visualCompare ?? false}
+              onchange={(e) => {
+                const checked = (e.target as HTMLInputElement).checked;
+                onUpdate(nodeId, {
+                  config: { ...node.config, visualCompare: checked },
+                });
+              }}
+              class="peer sr-only"
+              id="visual-compare-checkbox"
+            />
+            <div
+              class="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all duration-150 peer-focus-visible:ring-2 peer-focus-visible:ring-indigo-500/50 peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-zinc-900 {node
+                .config?.visualCompare
+                ? 'border-indigo-500/80 bg-indigo-600 text-white shadow-[0_0_8px_rgba(99,102,241,0.3)]'
+                : 'border-zinc-700 bg-zinc-900 text-transparent hover:border-zinc-600'}"
             >
-              Accept Visual State as Baseline
-            </button>
-          {/if}
+              {#if node.config?.visualCompare}
+                <svg
+                  class="h-2.5 w-2.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              {/if}
+            </div>
+            <span class="text-xs text-zinc-400">
+              Enforce Visual Regression Check
+            </span>
+          </label>
         </div>
       {:else}
         <div

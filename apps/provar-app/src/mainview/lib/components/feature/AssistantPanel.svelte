@@ -236,12 +236,9 @@
 
 <div class="flex h-full w-full flex-col">
   <div
-    class="flex items-center justify-between border-b border-zinc-800/50 p-6"
+    class="flex items-center justify-between border-b border-zinc-800/50 px-6 pt-3 pb-4"
   >
-    <div class="flex items-center gap-2">
-      <Sparkles size={20} class="text-indigo-400" />
-      <h2 class="text-xl font-medium text-zinc-100">AI Assistant</h2>
-    </div>
+    <h2 class="text-sm font-semibold text-zinc-200">AI Assistant</h2>
   </div>
 
   <div class="flex-1 space-y-6 overflow-y-auto p-6">

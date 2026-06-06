@@ -179,16 +179,12 @@
 {/snippet}
 
 <aside
-  class="absolute top-0 bottom-0 left-0 z-20 flex w-[260px] flex-col border-r border-zinc-800 bg-[#161b22]/50 backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isSidebarOpen
+  class="absolute top-0 bottom-0 left-0 z-20 flex w-[260px] flex-col border-r border-zinc-800 bg-[#161b22]/50 pt-[24px] backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isSidebarOpen
     ? 'pointer-events-none -translate-x-[280px]'
     : 'translate-x-0'}"
   oncontextmenu={(e) => handleContextMenu(e, ".provar", "folder")}
 >
-  <div
-    class="electrobun-webkit-app-region-drag pointer-events-none relative h-[38px] w-full shrink-0 select-none"
-  ></div>
-
-  <div class="px-3 pt-2 pb-2">
+  <div class="px-3 pt-3 pb-2">
     <div class="relative">
       <Search class="absolute top-2 right-2.5 h-3.5 w-3.5 text-zinc-500" />
       <input
