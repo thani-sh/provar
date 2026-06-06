@@ -1,0 +1,21 @@
+name: "Edit Profile"
+graph:
+  info: "Verifies that a logged-in user can edit their display name and bio, with both a cancel path and a save path."
+  start: "task_ep0a1"
+  nodes:
+    task_ep0a1:
+      title: "Login and open own profile"
+      info: "Navigate to the app, login with the default test account, then go to the Profile page."
+      next: "task_ep2b3"
+    task_ep2b3:
+      title: "Open the edit form"
+      info: "Click the Edit Profile button. Verify the edit form is shown with Display Name and Bio fields."
+      next:
+        - "task_ep4c5"
+        - "task_ep6d7"
+    task_ep4c5:
+      title: "Cancel editing and verify no changes"
+      info: "Update the Display Name field with a new value, then click Cancel. Verify the original display name is still shown on the profile."
+    task_ep6d7:
+      title: "Save updated display name and bio"
+      info: "Update the Display Name and Bio fields with new values, then click Save. Verify the profile now shows the updated values."

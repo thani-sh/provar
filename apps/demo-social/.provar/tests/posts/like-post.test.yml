@@ -1,0 +1,16 @@
+name: "Like and Unlike a Post"
+graph:
+  info: "Verifies that a logged-in user can toggle the like on a post and the like count updates accordingly."
+  start: "task_lk0a1"
+  nodes:
+    task_lk0a1:
+      title: "Login and go to the global feed"
+      info: "Navigate to the app, login with the default test account, then open the global feed."
+      next: "task_lk2b3"
+    task_lk2b3:
+      title: "Like a post"
+      info: "Hover over any post to reveal the action buttons, then click the like (heart) button. Verify the heart fills in and a like count appears."
+      next: "task_lk4c5"
+    task_lk4c5:
+      title: "Unlike the post"
+      info: "Click the filled heart button on the same post again. Verify the heart returns to its unfilled state and the like count disappears."

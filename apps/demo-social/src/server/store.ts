@@ -28,7 +28,8 @@ class Store {
   sessions: Map<string, string> = new Map();
 
   constructor() {
-    // No seed/placeholder data. Starts completely empty.
+    // Seed a default test user so the app is never empty on startup.
+    this.addUser("void_user", "testpass123", "Void User", "The default test account.");
   }
 
   // Auth

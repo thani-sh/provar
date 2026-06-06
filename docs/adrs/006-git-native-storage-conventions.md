@@ -80,10 +80,6 @@ graph:
     task_o5p6q:
       title: "Process payment"
       info: "Complete the payment form. This task uses a sub-graph to describe the payment steps."
-      asserts:
-        assert_s9t0u:
-          title: "Verify order confirmation"
-          info: "Ensure the 'Order Complete' message is shown to the user."
       graph:
         info: "Steps to fill out the payment details."
         start: "task_w3x4y"
@@ -107,31 +103,31 @@ When the generator encounters branches, it resolves all possible paths from the 
 import type { TestAPI } from "@libs/executor";
 
 export const tasks = {
-  ["task_login_to_account"]: async (api: TestAPI) => {
+  ["task_v2b3n"]: async (api: TestAPI) => {
     await api.page.goto(`${api.var.baseUrl}/login`);
     await api.page.fill('input[name="email"]', api.var.user.email);
     await api.page.fill('input[name="password"]', api.var.user.password);
     await api.page.click('button[type="submit"]');
   },
-  ["task_add_item_to_cart"]: async (api: TestAPI) => {
+  ["task_k1l2m"]: async (api: TestAPI) => {
     await api.page.goto(`${api.var.baseUrl}/product/test-item`);
     await api.page.click('button:has-text("Add to Cart")');
   },
-  ["task_add_discount_code"]: async (api: TestAPI) => {
+  ["task_d1c2d"]: async (api: TestAPI) => {
     await api.page.click(".cart-icon");
     await api.page.fill('input[name="promo_code"]', "TESTDISCOUNT");
     await api.page.click('button:has-text("Apply")');
   },
-  ["task_enter_credit_card"]: async (api: TestAPI) => {
+  ["task_w3x4y"]: async (api: TestAPI) => {
     await api.page.fill('input[name="cardNumber"]', "4242424242424242");
   },
-  ["task_submit_payment"]: async (api: TestAPI) => {
+  ["task_a7b8c"]: async (api: TestAPI) => {
     await api.page.click('button:has-text("Pay Now")');
   },
-  ["task_process_payment"]: async (api: TestAPI) => {
+  ["task_o5p6q"]: async (api: TestAPI) => {
     await api.page.click('button:has-text("Checkout")');
-    await tasks["task_enter_credit_card"](api);
-    await tasks["task_submit_payment"](api);
+    await tasks["task_w3x4y"](api);
+    await tasks["task_a7b8c"](api);
     await api.expect(api.page.locator(".order-complete-message")).toBeVisible();
   },
 };
@@ -139,16 +135,16 @@ export const tasks = {
 export const paths = [
   // Path 1
   [
-    "task_login_to_account",
-    "task_add_item_to_cart",
-    "task_add_discount_code",
-    "task_process_payment",
+    "task_v2b3n",
+    "task_k1l2m",
+    "task_d1c2d",
+    "task_o5p6q",
   ],
   // Path 2
   [
-    "task_login_to_account",
-    "task_add_item_to_cart",
-    "task_process_payment",
+    "task_v2b3n",
+    "task_k1l2m",
+    "task_o5p6q",
   ],
 ];
 ```

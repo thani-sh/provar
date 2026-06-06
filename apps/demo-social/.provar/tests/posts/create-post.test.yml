@@ -1,0 +1,20 @@
+name: "Create and Delete Post"
+graph:
+  info: "Verifies the post composer: the 100-character limit is enforced and a valid post can be published and then deleted by its author."
+  start: "task_p0a1b"
+  nodes:
+    task_p0a1b:
+      title: "Login"
+      info: "Navigate to the app and login with the default test account."
+      next: "task_p2c3d"
+    task_p2c3d:
+      title: "Attempt to post text over the 100-character limit"
+      info: "In the post composer, type a string of 101 characters. Verify the character counter turns red and the Post button is disabled."
+      next: "task_p4e5f"
+    task_p4e5f:
+      title: "Publish a valid post"
+      info: "Clear the composer and type a short valid post. Submit it and verify the new post appears at the top of the feed."
+      next: "task_p6g7h"
+    task_p6g7h:
+      title: "Delete the post"
+      info: "Hover over the post just published to reveal the action buttons, then click Delete. Verify the post is removed from the feed."
