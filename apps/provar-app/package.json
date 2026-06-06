@@ -12,13 +12,10 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
-    "@libs/agents": "workspace:*",
-    "@libs/compiler": "workspace:*",
-    "@libs/loader": "workspace:*",
-    "@libs/executor": "workspace:*",
+    "@libs/models": "workspace:*",
+    "@libs/engine": "workspace:*",
     "@libs/domain": "workspace:*",
-    "@libs/commands": "workspace:*",
-    "@libs/settings": "workspace:*",
+    "@libs/config": "workspace:*",
     "@playwright/test": "^1.60.0",
     "electrobun": "1.18.1",
     "lucide-svelte": "^0.474.0",

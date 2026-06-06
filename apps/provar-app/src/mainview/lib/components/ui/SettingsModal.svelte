@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ProvarAPI } from "../../api/provar";
-  import type { Settings } from "@libs/settings";
+  import type { Settings } from "@libs/config";
 
   interface Props {
     show: boolean;

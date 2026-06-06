@@ -1,5 +1,5 @@
 // hash: 6bb390bed376384ee29c8ce953a2eabbb9d4962737b2a49dafacdcb5228168ae
-import type { TestAPI } from "@libs/executor";
+import type { TestAPI } from "@libs/engine";
 
 export const tasks = {
   ["task_init1"]: async (api: TestAPI) => {

@@ -12,18 +12,17 @@ We will implement a modular shared library architecture under `@libs/` and decou
 
 The codebase is split into the following specialized packages:
 
-- **`@libs/agents`**: Handles client orchestration. It defines a protocol-agnostic client factory (`createClient`) and standard interfaces (`Client`, `Session`, `Attachment`) to communicate with agent subprocess providers such as `gemini-cli` or `copilot-cli`.
+- **`@libs/models`**: Handles client orchestration. It defines a protocol-agnostic client factory (`createClient`) and standard interfaces (`Client`, `Session`, `Attachment`) to communicate with provider models.
 - **`@libs/domain`**: Establishes core data structures and graph models (`Project`, `Graph`, `File`, `Path`, `Task`). All structures are validated using Zod schemas prefixed with `schemaFor` and exported from `@libs/domain/zod`. Pre-processing transparently coerces singular task links (`next`) into arrays.
-- **`@libs/loader`**: Manages project workspace crawling and loading (`loadProject`). It merges declarative YAML metadata with compiled TS functions to expose dynamic executable wrappers (`ExecutableTask`, `ExecutableFile`).
-- **`@libs/executor`**: Drives test execution via Playwright. Spawns and controls runs using `execute(path: Path)`. It exposes a real-time event-driven controller (`Runner`, `RunnerState`, `RunnerEvent`) and injects context (`TestAPI`) into executing tasks.
+- **`@libs/engine`**: Unified workspace loading, compilation, and browser execution engine. It crawls workspaces, parses YAML, generates task interaction code via AI models, and executes tests step-by-step using Playwright.
 
 ### 2. Decoupled Code Generation
 
-The `@libs/compiler` produces a clean, runtime-decoupled `.test.ts` file. It serves strictly as a flat repository of compiled tasks and linear execution paths:
+The `@libs/engine` produces a clean, runtime-decoupled `.test.ts` file. It serves strictly as a flat repository of compiled tasks and linear execution paths:
 
 ```ts
 // hash: <yml-file-sha-hash>
-import type { TestAPI } from "@libs/executor";
+import type { TestAPI } from "@libs/engine";
 
 export const tasks = {
    ['<task-id-1>']: async (api: TestAPI) => {
@@ -36,7 +35,7 @@ export const paths = [
 ];
 ```
 
-At runtime, the loader reads both the declarative `.test.yml` (for structural metadata) and the `.test.ts` module (for executable functions) to construct the runnable graph.
+At runtime, the engine reads both the declarative `.test.yml` (for structural metadata) and the `.test.ts` module (for executable functions) to construct the runnable graph.
 
 ## Consequences
 

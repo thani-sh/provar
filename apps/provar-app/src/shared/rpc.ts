@@ -1,6 +1,6 @@
 import { type RPCSchema } from "electrobun/types";
 import type { TestFile, ProvarConfig } from "@libs/domain/zod";
-import type { Settings } from "@libs/settings";
+import type { Settings } from "@libs/config";
 
 export type ProvarRPCSchema = {
   bun: RPCSchema<{

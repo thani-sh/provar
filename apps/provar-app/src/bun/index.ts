@@ -6,12 +6,12 @@ import Electrobun, {
   Utils,
 } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
-import { createCommands } from "@libs/commands";
+import { createCommands } from "./commands";
 import {
   createClient,
   convertCommandsToTools,
   type Message,
-} from "@libs/agents";
+} from "@libs/models";
 import { loadSettings, saveSettings } from "./lib/settings";
 import {
   setWorkspaceDir,
@@ -20,9 +20,7 @@ import {
   getAbsPath,
   triggerWorkspaceChanged,
 } from "./utils";
-import { compile } from "@libs/compiler";
-import { loadProject } from "@libs/loader";
-import { execute } from "@libs/executor";
+import { execute, compile, loadProject } from "@libs/engine";
 import * as fs from "fs";
 import * as path from "path";
 import crypto from "crypto";
@@ -46,12 +44,24 @@ async function getMainViewUrl(): Promise<string> {
   return "views://mainview/index.html";
 }
 
+function getAgentConfig() {
+  const settings = loadSettings();
+  const provider = settings.models.defaultProvider;
+  const cfg = settings.models.providers[provider];
+  return {
+    provider,
+    apiKey: cfg.apiKey,
+    model: cfg.model,
+    baseUrl: (cfg as any).baseUrl,
+  };
+}
+
 // Compilation handler
 const compileTest = async (params: { path: string }) => {
   const absPath = getAbsPath(params.path);
   console.log("[RPC Server] compileTest request for:", absPath);
   try {
-    const res = await compile({ yamlPath: absPath });
+    const res = await compile({ yamlPath: absPath, agentConfig: getAgentConfig() });
     console.log("[RPC Server] compileTest response success:", res.success);
     return { success: res.success };
   } catch (err: any) {
@@ -94,7 +104,7 @@ const runTestPath = async (params: {
 
     if (needCompile) {
       console.log(`[Auto-Compile] Compiling out of sync test: ${absPath}`);
-      const compileRes = await compile({ yamlPath: absPath });
+      const compileRes = await compile({ yamlPath: absPath, agentConfig: getAgentConfig() });
       if (!compileRes.success) {
         throw new Error(
           "Auto-compilation failed. Please compile manually to check errors.",
@@ -594,8 +604,7 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       }) => {
         console.log("[RPC Server] assistEditor request:", params);
         try {
-          const settings = loadSettings();
-          const client = createClient(settings.models);
+          const client = createClient(getAgentConfig());
 
           // Get commands for the workspace and map them to Vercel AI SDK tools
           const commands = getCommands();

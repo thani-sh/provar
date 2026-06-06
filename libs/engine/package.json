@@ -1,9 +1,10 @@
 {
-  "name": "@apps/provar-cli",
+  "name": "@libs/engine",
   "type": "module",
   "version": "1.0.0",
-  "bin": {
-    "provar": "./src/index.ts"
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
@@ -11,11 +12,15 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
+    "@libs/models": "workspace:*",
     "@libs/domain": "workspace:*",
-    "@libs/engine": "workspace:*",
-    "@libs/config": "workspace:*",
+    "ai": "^6.0.197",
+    "@ai-sdk/google": "^3.0.80",
+    "@ai-sdk/openai": "^3.0.68",
     "js-yaml": "^4.1.1",
-    "picocolors": "^1.1.1"
+    "@playwright/test": "^1.60.0",
+    "playwright": "^1.60.0",
+    "playwright-core": "^1.60.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

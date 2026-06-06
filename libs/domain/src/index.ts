@@ -37,3 +37,13 @@ export interface Project {
   variables: Record<string, string>;
   files: File[];
 }
+
+export interface ExecutableTask<T = any> extends Task {
+  execute: (api: T) => Promise<void>;
+}
+
+export interface ExecutableFile<T = any> extends File {
+  tasks: Record<string, ExecutableTask<T>>;
+  code: { valid: boolean } | null;
+}
+

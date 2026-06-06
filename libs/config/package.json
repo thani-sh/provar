@@ -1,9 +1,11 @@
 {
-  "name": "@apps/provar-cli",
+  "name": "@libs/config",
   "type": "module",
   "version": "1.0.0",
-  "bin": {
-    "provar": "./src/index.ts"
+  "description": "Shared library for managing global application settings",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
@@ -11,15 +13,10 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
-    "@libs/domain": "workspace:*",
-    "@libs/engine": "workspace:*",
-    "@libs/config": "workspace:*",
-    "js-yaml": "^4.1.1",
-    "picocolors": "^1.1.1"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/js-yaml": "^4.0.9",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3"
   }

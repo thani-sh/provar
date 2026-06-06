@@ -11,12 +11,12 @@ We need a unified, lightweight way to interact with LLM providers directly from 
 
 ## Decision
 
-We will migrate `@libs/agents` to use the Vercel AI SDK (`ai`, `@ai-sdk/openai`, and `@ai-sdk/google`) to call LLM APIs directly.
+We will migrate `@libs/models` to use the Vercel AI SDK (`ai`, `@ai-sdk/openai`, and `@ai-sdk/google`) to call LLM APIs directly.
 
 Specifically:
 
 1. We will replace `ACPClient`, `GeminiCLIClient`, and all ACP-related capability files with `AISDKClient` and `AISDKSession`.
-2. The `createClient()` function will accept `ModelSettings` (from `@libs/settings`) to initialize the appropriate provider.
+2. The `createClient()` function will accept `ModelSettings` (from `@libs/config`) to initialize the appropriate provider.
 3. `AISDKSession` will preserve conversation history by keeping an internal `ModelMessage[]` array and appending turns on each `prompt()` call.
 
 ## Consequences

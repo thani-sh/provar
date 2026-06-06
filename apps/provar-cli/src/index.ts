@@ -1,9 +1,8 @@
-import { execute } from "@libs/executor";
-import { compile } from "@libs/compiler";
+import { execute, compile, loadProject } from "@libs/engine";
 import pc from "picocolors";
 import * as path from "path";
 import * as fs from "fs";
-import { loadProject } from "@libs/loader";
+import { loadSettings } from "@libs/config";
 
 // Recursively find all files of a specific extension
 function findFilesByExtension(targetPath: string, extension: string): string[] {
@@ -244,10 +243,20 @@ async function main() {
     );
     let successCount = 0;
 
+    const settings = loadSettings();
+    const provider = settings.models.defaultProvider;
+    const cfg = settings.models.providers[provider];
+    const agentConfig = {
+      provider,
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      baseUrl: (cfg as any).baseUrl,
+    };
+
     for (const yamlPath of filesToCompile) {
       console.log(`\n⚙ Compiling: ${pc.cyan(yamlPath)}`);
       try {
-        const result = await compile({ yamlPath });
+        const result = await compile({ yamlPath, agentConfig });
 
         console.log(
           `  ${pc.green("✔")} Compiled to: ${pc.bold(result.outputPath)} (${pc.dim(result.pathsResolved + " paths")})`,
@@ -340,9 +349,10 @@ async function main() {
 
       let variables = {};
       let execFile;
+      let project;
       try {
         const yamlPath = testFilePath.replace(".test.ts", ".test.yml");
-        const project = await loadProject(yamlPath);
+        project = await loadProject(yamlPath);
         variables = project.variables || {};
         execFile = await project.readFile(yamlPath);
       } catch (err: any) {
