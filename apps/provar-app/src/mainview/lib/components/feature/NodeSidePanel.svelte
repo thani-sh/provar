@@ -362,7 +362,7 @@
       </section>
     {/if}
 
-    <section class="pb-8">
+    <section class="mt-6 border-t border-zinc-800/50 pt-6 pb-8">
       <h3
         class="mb-3 text-sm font-medium tracking-wider text-zinc-400 uppercase"
       >
