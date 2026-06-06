@@ -13,6 +13,20 @@
         "typescript": "^6",
       },
     },
+    "apps/demo-social": {
+      "name": "@apps/demo-social",
+      "version": "1.0.0",
+      "dependencies": {
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "prettier": "^3.8.3",
+      },
+    },
     "apps/provar-app": {
       "name": "@apps/provar-app",
       "version": "1.0.0",
@@ -64,22 +78,6 @@
         "@types/js-yaml": "^4.0.9",
         "prettier": "^3.8.3",
         "typescript": "^6.0.3",
-      },
-    },
-    "demo/todolist": {
-      "name": "@demo/todolist",
-      "version": "1.0.0",
-      "dependencies": {
-        "react": "^19.2.6",
-        "react-dom": "^19.2.6",
-      },
-      "devDependencies": {
-        "@playwright/test": "^1.60.0",
-        "@types/bun": "latest",
-        "@types/react": "^19.2.14",
-        "@types/react-dom": "^19.2.3",
-        "playwright": "^1.60.0",
-        "prettier": "^3.8.3",
       },
     },
     "libs/config": {
@@ -154,13 +152,13 @@
 
     "@ai-sdk/provider-utils": ["@ai-sdk/provider-utils@4.0.27", "", { "dependencies": { "@ai-sdk/provider": "3.0.10", "@standard-schema/spec": "^1.1.0", "eventsource-parser": "^3.0.8" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-ubkAJ+xODouwtmN1tYlvTPphH1hPOBfZaEQe8U7skGvFAnIRs9PPpsq57bC2+Ky/MB4yzhd6YOsxTAx9sGpazw=="],
 
+    "@apps/demo-social": ["@apps/demo-social@workspace:apps/demo-social"],
+
     "@apps/provar-app": ["@apps/provar-app@workspace:apps/provar-app"],
 
     "@apps/provar-cli": ["@apps/provar-cli@workspace:apps/provar-cli"],
 
     "@babylonjs/core": ["@babylonjs/core@7.54.3", "", {}, "sha512-P5ncXVd8GEUJLhwloP9V0oVwQYIrvZztguVeLlvd5Rx+9aQnenKjpV8auJ6SRsUlAmNZU4pFTKzwF6o2EUfhAw=="],
-
-    "@demo/todolist": ["@demo/todolist@workspace:demo/todolist"],
 
     "@emnapi/core": ["@emnapi/core@1.10.0", "", { "dependencies": { "@emnapi/wasi-threads": "1.2.1", "tslib": "^2.4.0" } }, "sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw=="],
 

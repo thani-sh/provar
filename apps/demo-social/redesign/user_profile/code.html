@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Void - Profile</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-variant": "#e2e2e2",
+                      "secondary-container": "#e3e2e2",
+                      "primary": "#000000",
+                      "tertiary-container": "#1a1c1c",
+                      "tertiary-fixed": "#e3e2e2",
+                      "on-surface": "#1a1c1c",
+                      "inverse-surface": "#2f3131",
+                      "surface-dim": "#dadada",
+                      "primary-fixed-dim": "#c6c6c6",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary-fixed": "#1a1c1c",
+                      "on-error": "#ffffff",
+                      "surface-container-highest": "#e2e2e2",
+                      "tertiary": "#000000",
+                      "on-secondary-fixed": "#1b1c1c",
+                      "error": "#ba1a1a",
+                      "on-secondary-container": "#646464",
+                      "secondary-fixed": "#e3e2e2",
+                      "primary-container": "#1b1b1b",
+                      "on-tertiary-fixed-variant": "#464747",
+                      "background": "#f9f9f9",
+                      "inverse-on-surface": "#f1f1f1",
+                      "secondary": "#5e5e5e",
+                      "outline": "#7e7576",
+                      "on-background": "#1a1c1c",
+                      "primary-fixed": "#e2e2e2",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed": "#1b1b1b",
+                      "on-primary-fixed-variant": "#474747",
+                      "on-primary": "#ffffff",
+                      "secondary-fixed-dim": "#c7c6c6",
+                      "inverse-primary": "#c6c6c6",
+                      "on-tertiary-container": "#838484",
+                      "error-container": "#ffdad6",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-high": "#e8e8e8",
+                      "surface": "#f9f9f9",
+                      "on-surface-variant": "#4c4546",
+                      "on-secondary": "#ffffff",
+                      "surface-tint": "#5e5e5e",
+                      "outline-variant": "#cfc4c5",
+                      "on-primary-container": "#848484",
+                      "surface-container-low": "#f3f3f3",
+                      "tertiary-fixed-dim": "#c7c6c6",
+                      "surface-bright": "#f9f9f9",
+                      "on-secondary-fixed-variant": "#464747",
+                      "surface-container": "#eeeeee"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "margin-base": "32px",
+                      "stack-sm": "16px",
+                      "stack-md": "32px",
+                      "gutter": "24px",
+                      "stack-lg": "64px",
+                      "container-max": "640px",
+                      "unit": "4px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Geist"
+                      ],
+                      "label-md": [
+                              "Geist"
+                      ],
+                      "label-sm": [
+                              "Geist"
+                      ],
+                      "body-md": [
+                              "Geist"
+                      ],
+                      "headline-lg": [
+                              "Geist"
+                      ],
+                      "headline-lg-mobile": [
+                              "Geist"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0.02em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "label-sm": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-lg": [
+                              "32px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.04em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-lg-mobile": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.03em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.primary');
+        }
+        /* Smooth scrolling for anchor links if any */
+        html {
+            scroll-behavior: smooth;
+        }
+        /* Custom selection color */
+        ::selection {
+            background-color: theme('colors.surface-variant');
+            color: theme('colors.primary');
+        }
+      </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col selection:bg-surface-variant selection:text-primary">
+<!-- TopNavBar (Web) -->
+<nav class="hidden md:flex flex-col w-full top-0 sticky bg-background border-b border-transparent z-40 transition-all duration-300 ease-in-out">
+<div class="flex justify-between items-center max-w-[640px] mx-auto px-margin-base py-stack-sm w-full">
+<!-- Brand -->
+<div class="font-headline-lg-mobile text-headline-lg-mobile tracking-tighter text-primary">
+                Void
+            </div>
+<!-- Navigation Links -->
+<ul class="flex items-center gap-gutter">
+<li>
+<a class="font-body-md text-body-md text-secondary opacity-50 hover:opacity-100 transition-opacity duration-300 transition-all duration-300 ease-in-out block" href="#">
+                        Home
+                    </a>
+</li>
+<li>
+<a class="font-body-md text-body-md text-primary border-b-2 border-primary pb-1 transition-all duration-300 ease-in-out block" href="#">
+                        Profile
+                    </a>
+</li>
+</ul>
+<!-- Trailing Action -->
+<button class="text-primary hover:opacity-70 transition-opacity duration-300 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">add_circle</span>
+</button>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="flex-grow w-full max-w-container-max mx-auto px-[20px] md:px-margin-base pb-[100px] md:pb-stack-lg flex flex-col">
+<!-- Profile Header -->
+<header class="pt-[120px] pb-stack-lg flex flex-col items-start">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-primary tracking-tighter">
+                Julian K.
+            </h1>
+<p class="font-body-lg text-body-lg text-secondary mt-stack-sm max-w-[80%] leading-relaxed">
+                Documenting urban decay and the spaces between intentional architecture. Observer of concrete logic.
+            </p>
+<!-- Minimalist Follow Action -->
+<button class="mt-stack-md font-label-md text-label-md text-outline px-4 py-2 border border-outline-variant rounded-full hover:border-primary hover:text-primary hover:bg-surface-variant transition-all duration-300 ease-in-out">
+                Follow
+            </button>
+</header>
+<!-- Posts Stream -->
+<section class="flex flex-col gap-stack-lg mt-stack-md">
+<!-- Post Item 1 -->
+<article class="group relative flex flex-col gap-stack-sm">
+<div class="font-body-md text-body-md text-primary leading-relaxed whitespace-pre-line">The brutalist library downtown was finally demolished today. There’s something unsettling about watching sixty years of poured concrete dissolve into dust in a single afternoon. 
+
+It wasn't pretty, but it was honest. Now we wait for the glass box that will replace it.</div>
+<footer class="flex items-center justify-between mt-unit text-secondary font-label-sm text-label-sm">
+<time datetime="2023-10-27">Oct 27</time>
+<!-- Interactive Hints (fade in on hover) -->
+<div class="flex items-center gap-gutter opacity-0 md:opacity-30 group-hover:opacity-100 transition-opacity duration-300">
+<button aria-label="Like" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<button aria-label="Share" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+</button>
+</div>
+</footer>
+</article>
+<!-- Post Item 2 -->
+<article class="group relative flex flex-col gap-stack-sm">
+<div class="font-body-md text-body-md text-primary leading-relaxed whitespace-pre-line">Found a discarded notebook on the subway. Pages 1-12 are meticulous calculations for a structural load. Page 13 is just the word "No" written hundreds of times in a spiral. 
+
+I left it on the seat.</div>
+<footer class="flex items-center justify-between mt-unit text-secondary font-label-sm text-label-sm">
+<time datetime="2023-10-22">Oct 22</time>
+<!-- Interactive Hints (fade in on hover) -->
+<div class="flex items-center gap-gutter opacity-0 md:opacity-30 group-hover:opacity-100 transition-opacity duration-300">
+<button aria-label="Like" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<button aria-label="Share" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+</button>
+</div>
+</footer>
+</article>
+<!-- Post Item 3 -->
+<article class="group relative flex flex-col gap-stack-sm">
+<div class="font-body-md text-body-md text-primary leading-relaxed whitespace-pre-line">Silence isn't the absence of noise. It's an active structural element. You have to build it in.</div>
+<footer class="flex items-center justify-between mt-unit text-secondary font-label-sm text-label-sm">
+<time datetime="2023-10-15">Oct 15</time>
+<!-- Interactive Hints (fade in on hover) -->
+<div class="flex items-center gap-gutter opacity-0 md:opacity-30 group-hover:opacity-100 transition-opacity duration-300">
+<button aria-label="Like" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+</button>
+<button aria-label="Share" class="hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[18px]">ios_share</span>
+</button>
+</div>
+</footer>
+</article>
+</section>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-gutter py-stack-sm bg-background/80 backdrop-blur-md">
+<a class="flex flex-col items-center justify-center text-secondary opacity-40 hover:opacity-100 transition-opacity duration-300 active:scale-95 transition-transform duration-300 font-label-sm text-label-sm gap-1" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+            Feed
+        </a>
+<a class="flex flex-col items-center justify-center text-secondary opacity-40 hover:opacity-100 transition-opacity duration-300 active:scale-95 transition-transform duration-300 font-label-sm text-label-sm gap-1" href="#">
+<span class="material-symbols-outlined">edit_note</span>
+            Write
+        </a>
+<a class="flex flex-col items-center justify-center text-primary scale-110 active:scale-95 transition-transform duration-300 font-label-sm text-label-sm gap-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+            Account
+        </a>
+</nav>
+</body></html>

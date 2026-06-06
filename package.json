@@ -6,8 +6,7 @@
   "description": "AI agentic tool to create end-to-end tests",
   "workspaces": [
     "apps/*",
-    "libs/*",
-    "demo/*"
+    "libs/*"
   ],
   "scripts": {
     "provar": "bun run ./apps/provar-cli/src/index.ts",
