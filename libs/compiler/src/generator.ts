@@ -6,7 +6,7 @@ import type { Task, Path } from "@libs/domain";
 import { loadProject } from "@libs/loader";
 import { execute, expect } from "@libs/executor";
 import type { GroundingContext } from "@libs/executor";
-import type { Session, Attachment } from "@libs/agents";
+import type { Session, Attachment, Message } from "@libs/agents";
 import type { CompilerPerformanceTracker } from "./tracker";
 
 // Stateful grounding session to preserve browser state across tasks
@@ -305,7 +305,21 @@ export async function groundAndGenerateTask(
   const blocks: Attachment[] = [
     {
       type: "text",
-      text: `Generate Playwright code inside task: \nTitle: ${node.title}\nDescription: ${node.info || "None"}\nID: ${nodeId}\n\nONLY output the raw JavaScript/TypeScript code inside the task block. Do not include markdown code fences or backticks. Just the code lines. Use api.expect for assertions instead of the global expect or importing it. For example, await api.expect(api.page.locator('body')).toContainText("Expected Text");`,
+      text: `Generate Playwright code inside task:
+Title: ${node.title}
+Description: ${node.info || "None"}
+ID: ${nodeId}
+
+Guidelines for the code:
+1. ONLY output the raw JavaScript/TypeScript code inside the task block. Do not include markdown code fences or backticks. Just the code lines.
+2. Use api.expect for assertions instead of the global expect or importing it. For example, await api.expect(api.page.locator('body')).toContainText("Expected Text");
+3. STRICTLY AVOID using conditional branches (if/else, switch), loops (for, while, each), or try-catch blocks to wrap Playwright actions. If a selector or check fails, it must throw directly to fail the task so it can be handled or healed.
+4. Locate elements using this strict priority order:
+   - First priority: [data-testid="..."] attributes.
+   - Second priority: #id attributes.
+   - Third priority: css classes (.class).
+   - Fourth priority: text content or ARIA roles (e.g. getByRole, getByText, getByPlaceholder).
+   - Only use other custom or complex matchers as a last resort.`,
     },
   ];
   if (context?.pageContent) {
@@ -335,7 +349,9 @@ export async function groundAndGenerateTask(
   }
 
   let responseText = "";
-  for await (const chunk of session.prompt(blocks)) {
+  for await (const chunk of session.prompt([
+    { role: "user", content: blocks },
+  ])) {
     if (chunk.type === "text" && chunk.text) {
       responseText += chunk.text;
     }
@@ -523,7 +539,23 @@ export async function groundAndGenerateTask(
         tracker.setTaskStatus(nodeId, "HEALED");
       }
 
-      const feedbackPrompt = `The generated Playwright code failed execution during grounding checks.\nHere is the code you generated:\n\`\`\`typescript\n${currentCode}\n\`\`\`\n\nIt threw the following error:\n${testResult.error?.message || testResult.error}\n\nPlease analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block. Ensure you address the selector failure or assertion failure correctly. Remember to use api.expect for assertions instead of the global expect or importing it. ONLY output the raw code block.`;
+      const feedbackPrompt = `The generated Playwright code failed execution during grounding checks.
+Here is the code you generated:
+\`\`\`typescript
+${currentCode}
+\`\`\`
+
+It threw the following error:
+${testResult.error?.message || testResult.error}
+
+Please analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block.
+
+STRICTLY follow these constraints in your correction:
+1. Address the selector or assertion failure correctly.
+2. Do NOT use conditional branches (if/else, switch), loops, or try-catch blocks to hide errors. Let errors throw naturally if they fail.
+3. Locate elements using this priority order: [data-testid="..."] -> #id -> .class -> text/ARIA role -> other matchers.
+4. Use api.expect for assertions.
+5. ONLY output the raw code block (no markdown blocks or fences).`;
 
       const feedbackBlocks: Attachment[] = [
         { type: "text", text: feedbackPrompt },
@@ -560,7 +592,9 @@ export async function groundAndGenerateTask(
 
       const feedbackStart = performance.now();
       let responseText = "";
-      for await (const chunk of session.prompt(feedbackBlocks)) {
+      for await (const chunk of session.prompt([
+        { role: "user", content: feedbackBlocks },
+      ])) {
         if (chunk.type === "text" && chunk.text) {
           responseText += chunk.text;
         }
