@@ -2,7 +2,7 @@ import { editorStore } from "./EditorStore.svelte";
 
 class UIStore {
   isSidebarOpen = $state(true);
-  isRightSidebarOpen = $state(true);
+  isRightSidebarOpen = $state(false);
   isAssistantPanelOpen = $state(false);
   isConfigPanelOpen = $state(false);
   isInputModalOpen = $state(false);
@@ -52,11 +52,13 @@ class UIStore {
     this.isRightSidebarOpen = !this.isRightSidebarOpen;
     if (this.isRightSidebarOpen) {
       this.restoreLastSidebar();
+    } else {
+      this.isAssistantPanelOpen = false;
+      this.isConfigPanelOpen = false;
     }
   }
 
   restoreLastSidebar() {
-    this.isRightSidebarOpen = true;
     if (this.lastOpenSidebar === "assistant") {
       this.isAssistantPanelOpen = true;
       this.isConfigPanelOpen = false;
@@ -78,27 +80,21 @@ class UIStore {
   }
 
   toggleAssistant() {
-    this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
     if (this.isAssistantPanelOpen) {
       this.isAssistantPanelOpen = false;
-      this.isRightSidebarOpen = false;
     } else {
       this.isAssistantPanelOpen = true;
       this.isConfigPanelOpen = false;
-      this.isRightSidebarOpen = true;
       this.lastOpenSidebar = "assistant";
     }
   }
 
   toggleConfig() {
-    this.isSidebarOpen = true; // Automatically open sidebar if we show Assistant or Config
     if (this.isConfigPanelOpen) {
       this.isConfigPanelOpen = false;
-      this.isRightSidebarOpen = false;
     } else {
       this.isConfigPanelOpen = true;
       this.isAssistantPanelOpen = false;
-      this.isRightSidebarOpen = true;
       this.lastOpenSidebar = "config";
     }
   }

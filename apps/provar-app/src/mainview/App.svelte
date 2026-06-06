@@ -180,9 +180,13 @@
   });
 
   // Automatically reset the last open sidebar to config when switching files
+  let prevFile = $state<string | null>(null);
   $effect(() => {
     const file = editorStore.selectedFilePath;
-    uiStore.lastOpenSidebar = "config";
+    if (file !== prevFile) {
+      prevFile = file;
+      uiStore.lastOpenSidebar = "config";
+    }
   });
 
   // Automatically close the right sidebar if no panel is active
@@ -193,6 +197,8 @@
       (editorStore.selectedNode && editorStore.selectedNodeId);
     if (!hasActivePanel) {
       uiStore.isRightSidebarOpen = false;
+    } else {
+      uiStore.isRightSidebarOpen = true;
     }
   });
 
@@ -471,19 +477,26 @@
     />
   {/if}
 
-  {#if uiStore.isRightSidebarOpen && (uiStore.isAssistantPanelOpen || uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId))}
+  {#if uiStore.isRightSidebarOpen && uiStore.isAssistantPanelOpen}
     <aside
       transition:fly={{ x: 400, duration: 200 }}
       class="absolute top-0 right-0 bottom-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 pt-[4px] backdrop-blur-md"
     >
-      {#if uiStore.isAssistantPanelOpen}
-        <AssistantPanel
-          onSend={handleAssist}
-          selectedFile={editorStore.selectedFilePath}
-          messages={assistantMessages}
-          isBusy={assistantBusy}
-        />
-      {:else if uiStore.isConfigPanelOpen}
+      <AssistantPanel
+        onSend={handleAssist}
+        selectedFile={editorStore.selectedFilePath}
+        messages={assistantMessages}
+        isBusy={assistantBusy}
+      />
+    </aside>
+  {/if}
+
+  {#if uiStore.isRightSidebarOpen && (uiStore.isConfigPanelOpen || (editorStore.selectedNode && editorStore.selectedNodeId))}
+    <aside
+      transition:fly={{ x: 400, duration: 200 }}
+      class="absolute top-0 right-0 bottom-0 z-20 flex w-[400px] flex-col border-l border-zinc-800 bg-[#161b22]/50 pt-[4px] backdrop-blur-md"
+    >
+      {#if uiStore.isConfigPanelOpen}
         <ConfigPanel
           config={workspaceStore.config}
           onSave={(cfg) => workspaceStore.saveConfig(cfg)}
