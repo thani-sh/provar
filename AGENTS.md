@@ -14,6 +14,7 @@ Project status: early development (breaking changes are acceptable)
 
 ## Version Control
 
+- **NEVER** commit without explicit user approval after they have tested and verified.
 - **STRICTLY** follow **Conventional Commits** for commit messages.
   - **ALWAYS** add a `type` and a short `description` to the commit message.
   - **NEVER** use scopes in commit messages.
