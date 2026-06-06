@@ -35,18 +35,17 @@ export type TestNode = {
   screenshotUrl?: string;
 };
 
-export const schemaForTask: z.ZodType<TestNode, z.ZodTypeDef, any> = z.lazy(
-  () =>
-    z.object({
-      title: z.string(),
-      info: z.string(),
-      next: z.union([z.string(), z.array(z.string())]).optional(),
-      config: schemaForTaskConfig.optional(),
-      graph: z.lazy(() => schemaForGraph).optional(),
-      hasGeneratedCode: z.boolean().optional(),
-      isUpToDate: z.boolean().optional(),
-      screenshotUrl: z.string().optional(),
-    }),
+export const schemaForTask: z.ZodType<TestNode, any, any> = z.lazy(() =>
+  z.object({
+    title: z.string(),
+    info: z.string(),
+    next: z.union([z.string(), z.array(z.string())]).optional(),
+    config: schemaForTaskConfig.optional(),
+    graph: z.lazy(() => schemaForGraph).optional(),
+    hasGeneratedCode: z.boolean().optional(),
+    isUpToDate: z.boolean().optional(),
+    screenshotUrl: z.string().optional(),
+  }),
 );
 
 export type TestFileGraph = {
@@ -55,14 +54,13 @@ export type TestFileGraph = {
   nodes: Record<string, TestNode>;
 };
 
-export const schemaForGraph: z.ZodType<TestFileGraph, z.ZodTypeDef, any> =
-  z.lazy(() =>
-    z.object({
-      info: z.string(),
-      start: z.string(),
-      nodes: z.record(z.string().regex(/^task_[a-z0-9]{5}$/), schemaForTask),
-    }),
-  );
+export const schemaForGraph: z.ZodType<TestFileGraph, any, any> = z.lazy(() =>
+  z.object({
+    info: z.string(),
+    start: z.string(),
+    nodes: z.record(z.string().regex(/^task_[a-z0-9]{5}$/), schemaForTask),
+  }),
+);
 
 export const schemaForFile = z.object({
   name: z.string(),
@@ -89,7 +87,7 @@ export const configSchema = z.object({
       model: z.string().optional(),
     }),
   ]),
-  variables: z.record(z.any()).optional(),
+  variables: z.record(z.string(), z.any()).optional(),
 });
 
 export type ProvarConfig = z.infer<typeof configSchema>;
@@ -98,17 +96,16 @@ export type ProvarConfig = z.infer<typeof configSchema>;
 // Loaded Runtime Schemas (Memory representation used by Loader/Compiler)
 // ---------------------------------------------------------------------------
 
-export const schemaForLoadedTask: z.ZodType<Task, z.ZodTypeDef, any> = z.lazy(
-  () =>
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      info: z.string(),
-      next: coerceStringToArray,
-      config: schemaForTaskConfig.optional(),
-      code: z.string().optional(),
-      graph: z.lazy(() => schemaForLoadedGraph).optional(),
-    }),
+export const schemaForLoadedTask: z.ZodType<Task, any, any> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    title: z.string(),
+    info: z.string(),
+    next: coerceStringToArray,
+    config: schemaForTaskConfig.optional(),
+    code: z.string().optional(),
+    graph: z.lazy(() => schemaForLoadedGraph).optional(),
+  }),
 );
 
 const baseLoadedGraphSchema = z.object({
@@ -118,29 +115,27 @@ const baseLoadedGraphSchema = z.object({
   paths: z.array(z.lazy(() => schemaForPath)),
 });
 
-export const schemaForLoadedGraph: z.ZodType<Graph, z.ZodTypeDef, any> = z.lazy(
+export const schemaForLoadedGraph: z.ZodType<Graph, any, any> = z.lazy(
   () => baseLoadedGraphSchema,
 );
 
-export const schemaForLoadedFile: z.ZodType<File, z.ZodTypeDef, any> = z.lazy(
-  () =>
-    baseLoadedGraphSchema.extend({
-      name: z.string(),
-      path: z.string(),
-    }),
+export const schemaForLoadedFile: z.ZodType<File, any, any> = z.lazy(() =>
+  baseLoadedGraphSchema.extend({
+    name: z.string(),
+    path: z.string(),
+  }),
 );
 
-export const schemaForPath: z.ZodType<Path, z.ZodTypeDef, any> = z.lazy(() =>
+export const schemaForPath: z.ZodType<Path, any, any> = z.lazy(() =>
   z.object({
     tasks: z.array(schemaForLoadedTask),
   }),
 );
 
-export const schemaForLoadedProject: z.ZodType<Project, z.ZodTypeDef, any> =
-  z.lazy(() =>
-    z.object({
-      path: z.string(),
-      variables: z.record(z.string(), z.string()),
-      files: z.array(schemaForLoadedFile),
-    }),
-  );
+export const schemaForLoadedProject: z.ZodType<Project, any, any> = z.lazy(() =>
+  z.object({
+    path: z.string(),
+    variables: z.record(z.string(), z.string()),
+    files: z.array(schemaForLoadedFile),
+  }),
+);

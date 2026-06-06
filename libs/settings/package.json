@@ -13,7 +13,7 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
-    "zod": "^3.25.76"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@types/bun": "latest",

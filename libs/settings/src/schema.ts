@@ -30,10 +30,20 @@ export const modelSettingsSchema = z.object({
     .default("google-generative-ai"),
   providers: z
     .object({
-      openai: openaiProviderSchema.default({}),
-      "google-generative-ai": googleProviderSchema.default({}),
+      openai: openaiProviderSchema.default({
+        apiKey: "",
+        model: "gpt-4o",
+        baseUrl: "",
+      }),
+      "google-generative-ai": googleProviderSchema.default({
+        apiKey: "",
+        model: "gemini-1.5-flash",
+      }),
     })
-    .default({}),
+    .default({
+      openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
+      "google-generative-ai": { apiKey: "", model: "gemini-1.5-flash" },
+    }),
 });
 
 export type ModelSettings = z.infer<typeof modelSettingsSchema>;
@@ -47,7 +57,13 @@ export type ModelSettings = z.infer<typeof modelSettingsSchema>;
  */
 export const settingsSchema = z.object({
   placeholder: z.string().default("placeholder-value"),
-  models: modelSettingsSchema.default({}),
+  models: modelSettingsSchema.default({
+    defaultProvider: "google-generative-ai",
+    providers: {
+      openai: { apiKey: "", model: "gpt-4o", baseUrl: "" },
+      "google-generative-ai": { apiKey: "", model: "gemini-1.5-flash" },
+    },
+  }),
   recentWorkspaces: z.array(z.string()).default([]),
 });
 
