@@ -25,8 +25,5 @@ export function convertCommandsToTools(commands: Record<string, CommandInterface
     const toolName = command.name || key;
     tools[toolName] = convertCommandToTool(command);
   }
-
-
-
   return tools;
 }
