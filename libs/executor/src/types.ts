@@ -54,4 +54,5 @@ export interface ExecuteOptions {
   variables?: Record<string, any>;
   upToTaskId?: string;
   existingPage?: Page;
+  provarPath?: string;
 }

@@ -130,6 +130,7 @@ const runTestPath = async (params: {
       headless: params.headless !== false,
       variables: project.variables,
       upToTaskId: params.upToTaskId,
+      provarPath: project.path,
     });
 
     activeRunners.set(runId, runner);

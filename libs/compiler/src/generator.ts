@@ -85,8 +85,9 @@ async function runGroundingSandbox(
   try {
     // Load project configuration variables
     let variables = {};
+    let project: any = null;
     try {
-      const project = await loadProject(targetFilePath);
+      project = await loadProject(targetFilePath);
       variables = project.variables || {};
     } catch (e) {
       // Ignore
@@ -131,6 +132,7 @@ async function runGroundingSandbox(
       headless: true,
       variables,
       existingPage,
+      provarPath: project ? project.path : undefined,
     });
 
     for await (const event of runner.events()) {
@@ -154,10 +156,9 @@ async function runGroundingSandbox(
         try {
           const buf = await page.screenshot({ type: "png" });
 
-          const screenshotsDir = path.resolve(
-            process.cwd(),
-            ".provar/screenshots",
-          );
+          const screenshotsDir = project
+            ? path.join(project.path, "screenshots")
+            : path.resolve(process.cwd(), ".provar/screenshots");
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);
@@ -201,6 +202,15 @@ export async function groundAndGenerateTask(
   const session = options.session;
   const groundingSession = options.groundingSession;
   const tracker = options.tracker;
+
+  // Load project configuration variables
+  let variables: Record<string, any> = {};
+  try {
+    const project = await loadProject(targetFilePath);
+    variables = project.variables || {};
+  } catch (e) {
+    // Ignore
+  }
 
   if (tracker) {
     tracker.initTask(
@@ -256,10 +266,9 @@ export async function groundAndGenerateTask(
         try {
           const buf = await page.screenshot({ type: "png" });
 
-          const screenshotsDir = path.resolve(
-            process.cwd(),
-            ".provar/screenshots",
-          );
+          const screenshotsDir = project
+            ? path.join(project.path, "screenshots")
+            : path.resolve(process.cwd(), ".provar/screenshots");
           fs.mkdirSync(screenshotsDir, { recursive: true });
           const fileName = `compile-${nodeId}-${Date.now()}.png`;
           const filePath = path.join(screenshotsDir, fileName);
@@ -302,6 +311,14 @@ export async function groundAndGenerateTask(
   // Generate compiled code body
   let generatedBody = "";
   const agentStart = performance.now();
+
+  let variablesGuideline = "";
+  if (Object.keys(variables).length > 0) {
+    variablesGuideline = `\n5. Use project variables from the \`api.var\` object when they match values or URLs in the task description, info, or target page. Do NOT hardcode these values.
+    Available project variables (reference them as \`api.var.KEY_NAME\`):
+    ${JSON.stringify(variables, null, 2)}`;
+  }
+
   const blocks: Attachment[] = [
     {
       type: "text",
@@ -319,7 +336,7 @@ Guidelines for the code:
    - Second priority: #id attributes.
    - Third priority: css classes (.class).
    - Fourth priority: text content or ARIA roles (e.g. getByRole, getByText, getByPlaceholder).
-   - Only use other custom or complex matchers as a last resort.`,
+   - Only use other custom or complex matchers as a last resort.${variablesGuideline}`,
     },
   ];
   if (context?.pageContent) {
@@ -555,7 +572,13 @@ STRICTLY follow these constraints in your correction:
 2. Do NOT use conditional branches (if/else, switch), loops, or try-catch blocks to hide errors. Let errors throw naturally if they fail.
 3. Locate elements using this priority order: [data-testid="..."] -> #id -> .class -> text/ARIA role -> other matchers.
 4. Use api.expect for assertions.
-5. ONLY output the raw code block (no markdown blocks or fences).`;
+5. ONLY output the raw code block (no markdown blocks or fences).${
+        Object.keys(variables).length > 0
+          ? `\n6. Use project variables from the \`api.var\` object when they match values or URLs in the task description, info, or target page. Do NOT hardcode these values. For example, if a variable \`BASE_URL\` is \`http://localhost:6001\`, write \`await api.page.goto(api.var.BASE_URL)\` instead of \`await api.page.goto('http://localhost:6001')\`.
+   Available project variables (reference them as \`api.var.KEY_NAME\`):
+   ${JSON.stringify(variables, null, 2)}`
+          : ""
+      }`;
 
       const feedbackBlocks: Attachment[] = [
         { type: "text", text: feedbackPrompt },

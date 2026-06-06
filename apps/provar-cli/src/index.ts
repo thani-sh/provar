@@ -381,6 +381,7 @@ async function main() {
           upToTaskId,
           headless,
           variables,
+          provarPath: project.path,
         });
 
         for await (const event of runner.events()) {
