@@ -113,6 +113,12 @@
   async function handleAssist(prompt: string) {
     if (assistantBusy) return;
 
+    // Capture conversation history prior to this turn
+    const history = assistantMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
     const assistantMsgId = Math.random().toString(36).substring(7);
     activeAssistantMsgId = assistantMsgId;
     assistantMessages = [
@@ -131,13 +137,14 @@
     try {
       const res = await ProvarAPI.assistEditor(
         prompt,
+        history,
         editorStore.selectedFilePath || undefined,
       );
 
       // Final replacement in case the RPC resolves with full message text
       assistantMessages = assistantMessages.map((msg) =>
         msg.id === assistantMsgId
-          ? { ...msg, content: res.message, status: "completed" }
+          ? { ...msg, content: res.message || msg.content, status: "completed" }
           : msg,
       );
 

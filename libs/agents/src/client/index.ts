@@ -16,7 +16,8 @@ function mapAttachment(a: Attachment) {
     };
   }
   if (a.type === "image") {
-    const image = typeof a.data === "string" ? Buffer.from(a.data, "base64") : a.data;
+    const image =
+      typeof a.data === "string" ? Buffer.from(a.data, "base64") : a.data;
     return {
       type: "image" as const,
       image,
@@ -119,4 +120,3 @@ function resolveModel(settings: ModelSettings): LanguageModel {
 
   throw new Error(`Unsupported provider: ${defaultProvider}`);
 }
-

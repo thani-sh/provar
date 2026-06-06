@@ -1,6 +1,5 @@
 import { tool } from "ai";
 
-
 export interface CommandInterface {
   name: string;
   description: string;
@@ -19,7 +18,9 @@ export function convertCommandToTool(command: CommandInterface) {
   });
 }
 
-export function convertCommandsToTools(commands: Record<string, CommandInterface>) {
+export function convertCommandsToTools(
+  commands: Record<string, CommandInterface>,
+) {
   const tools: Record<string, any> = {};
   for (const [key, command] of Object.entries(commands)) {
     const toolName = command.name || key;

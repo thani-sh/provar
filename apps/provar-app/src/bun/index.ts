@@ -7,7 +7,11 @@ import Electrobun, {
 } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../shared/rpc";
 import { createCommands } from "@libs/commands";
-import { createClient } from "@libs/agents";
+import {
+  createClient,
+  convertCommandsToTools,
+  type Message,
+} from "@libs/agents";
 import { loadSettings, saveSettings } from "./lib/settings";
 import {
   setWorkspaceDir,
@@ -582,18 +586,37 @@ const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       runTestPath,
       acceptVisualState,
       getScreenshots,
-      assistEditor: async (params: { prompt: string; path?: string }) => {
+      assistEditor: async (params: {
+        prompt: string;
+        history?: { role: "user" | "assistant"; content: string }[];
+        path?: string;
+      }) => {
         console.log("[RPC Server] assistEditor request:", params);
         try {
           const settings = loadSettings();
           const client = createClient(settings.models);
-          const session = await client.session();
+
+          // Get commands for the workspace and map them to Vercel AI SDK tools
+          const commands = getCommands();
+          const tools = convertCommandsToTools(commands);
+
+          const session = await client.session({ tools });
+
+          // Map the history payload into agent-compatible Message objects
+          const messages: Message[] = (params.history || []).map((h) => ({
+            role: h.role,
+            content: h.content,
+          }));
+
+          // Append current prompt as the last message
+          messages.push({
+            role: "user",
+            content: params.prompt,
+          });
 
           (async () => {
             try {
-              for await (const chunk of session.prompt([
-                { type: "text", text: params.prompt },
-              ])) {
+              for await (const chunk of session.prompt(messages)) {
                 if (chunk.type === "text") {
                   mainWindow.webview.rpc?.send.assistantChunk({
                     params: {

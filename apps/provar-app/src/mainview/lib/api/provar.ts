@@ -94,9 +94,17 @@ export const ProvarAPI = {
     return res;
   },
 
-  async assistEditor(prompt: string, path?: string) {
-    console.log("[RPC Client] assistEditor request:", prompt, path);
-    const res = await electroview.rpc!.request.assistEditor({ prompt, path });
+  async assistEditor(
+    prompt: string,
+    history?: { role: "user" | "assistant"; content: string }[],
+    path?: string,
+  ) {
+    console.log("[RPC Client] assistEditor request:", prompt, history, path);
+    const res = await electroview.rpc!.request.assistEditor({
+      prompt,
+      history,
+      path,
+    });
     console.log("[RPC Client] assistEditor response:", res);
     return res;
   },

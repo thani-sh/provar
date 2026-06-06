@@ -58,7 +58,11 @@ export type ProvarRPCSchema = {
         response: { success: boolean };
       };
       assistEditor: {
-        params: { prompt: string; path?: string };
+        params: {
+          prompt: string;
+          history?: { role: "user" | "assistant"; content: string }[];
+          path?: string;
+        };
         response: {
           message: string;
           action?: {
