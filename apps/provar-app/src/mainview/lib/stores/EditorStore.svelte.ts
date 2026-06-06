@@ -57,7 +57,7 @@ class EditorStore {
   private runFinishedResolve: (() => void) | null = null;
 
   /** currentPathIndex tracks which path is currently being executed. */
-  private currentPathIndex = 0;
+  private currentPathIndex = $state(0);
 
   selectedNode = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
@@ -76,6 +76,16 @@ class EditorStore {
   allPaths = $derived.by(() => {
     if (!this.currentFile) return [];
     return enumeratePaths(this.currentFile.graph);
+  });
+
+  /**
+   * runningPathNodeIds is the set of node IDs that belong to the currently
+   * executing path. Empty when no test is running.
+   */
+  runningPathNodeIds = $derived.by((): Set<string> => {
+    if (!this.isRunning) return new Set();
+    const path = this.allPaths[this.currentPathIndex];
+    return path ? new Set(path) : new Set();
   });
 
   constructor() {

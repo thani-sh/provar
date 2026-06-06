@@ -34,7 +34,11 @@
 
   $effect(() => {
     if (testFile && infiniteCanvas) {
-      infiniteCanvas.renderGraph(testFile, editorStore.taskStates);
+      infiniteCanvas.renderGraph(
+        testFile,
+        editorStore.taskStates,
+        editorStore.runningPathNodeIds,
+      );
     }
   });
 

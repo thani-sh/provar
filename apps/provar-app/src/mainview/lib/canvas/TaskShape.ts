@@ -19,9 +19,11 @@ export class TaskShape extends NodeShape {
     nodeId: string,
     node: TestNode,
     state: TaskState,
+    onActivePath: boolean,
+    ticker: PIXI.Ticker,
     onClick: (id: string) => void,
   ) {
-    super(nodeId, node.title, node.info, state);
+    super(nodeId, node.title, node.info, state, onActivePath);
 
     this.eventMode = "static";
     this.cursor = "pointer";
@@ -70,13 +72,25 @@ export class TaskShape extends NodeShape {
         });
       }, 1.0);
     } else if (state === "running") {
-      addIcon((g) => {
-        g.circle(5, 5, 4);
-        g.stroke({
-          color: 0x3b82f6,
-          width: 1.5,
-        });
-      }, 1.0);
+      // Small spinning arc — same 10×10 icon box as all other icons
+      const spinnerIcon = new PIXI.Graphics();
+      spinnerIcon.alpha = 1.0;
+      icons.push(spinnerIcon);
+      this.iconRow.addChild(spinnerIcon);
+
+      let angle = 0;
+      const ARC_SPAN = Math.PI * 1.2;
+      const cx = 5, cy = 5, r = 4;
+
+      const tick = () => {
+        angle += 0.08;
+        spinnerIcon.clear();
+        spinnerIcon.arc(cx, cy, r, angle, angle + ARC_SPAN);
+        spinnerIcon.stroke({ color: 0x3b82f6, width: 1.5, cap: "round" });
+      };
+
+      ticker.add(tick);
+      this.on("destroyed", () => ticker.remove(tick));
     }
 
     // Sub-graph icon

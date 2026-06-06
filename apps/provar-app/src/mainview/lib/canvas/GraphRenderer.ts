@@ -21,6 +21,8 @@ export class GraphRenderer extends PIXI.Container {
   constructor(
     testFile: TestFile,
     taskStates: Record<string, TaskState>,
+    runningPathNodeIds: Set<string>,
+    ticker: PIXI.Ticker,
     onNodeSelect: (id: string) => void,
     onAddNode: (fromId: string | null, toId: string | null) => void,
   ) {
@@ -28,27 +30,46 @@ export class GraphRenderer extends PIXI.Container {
     this.onNodeSelect = onNodeSelect;
     this.onAddNode = onAddNode;
     this.addChild(this.linksContainer);
-    this.build(testFile.graph, taskStates);
+    this.build(testFile.graph, taskStates, runningPathNodeIds, ticker);
   }
 
-  private build(graph: Graph, taskStates: Record<string, TaskState>) {
-    this.createShapes(graph, taskStates);
+  private build(
+    graph: Graph,
+    taskStates: Record<string, TaskState>,
+    runningPathNodeIds: Set<string>,
+    ticker: PIXI.Ticker,
+  ) {
+    this.createShapes(graph, taskStates, runningPathNodeIds, ticker);
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
     this.drawConnections(graph, taskStates);
   }
 
-  private createShapes(graph: Graph, taskStates: Record<string, TaskState>) {
-    // Derive start state: successful if the first task node succeeded.
+  private createShapes(
+    graph: Graph,
+    taskStates: Record<string, TaskState>,
+    runningPathNodeIds: Set<string>,
+    ticker: PIXI.Ticker,
+  ) {
+    // Start node is always on the active path when any run is happening
+    const startOnPath = runningPathNodeIds.size > 0;
     const startState = graph.start
       ? (taskStates[graph.start] ?? "idle")
       : "idle";
-    this.startShape = new StartShape(startState);
+    this.startShape = new StartShape(startState, startOnPath);
     this.addChild(this.startShape);
 
     for (const [id, node] of Object.entries(graph.nodes)) {
       const state = taskStates[id] || "idle";
-      const shape = new TaskShape(id, node, state, this.onNodeSelect);
+      const onActivePath = runningPathNodeIds.has(id);
+      const shape = new TaskShape(
+        id,
+        node,
+        state,
+        onActivePath,
+        ticker,
+        this.onNodeSelect,
+      );
       this.taskShapes.set(id, shape);
       this.addChild(shape);
 
@@ -61,7 +82,8 @@ export class GraphRenderer extends PIXI.Container {
           precedingState === "success" || precedingState === "mixed"
             ? precedingState
             : "idle";
-        const endShape = new EndShape(endState);
+        const endOnPath = onActivePath;
+        const endShape = new EndShape(endState, endOnPath);
         this.endShapes.set(endId, endShape);
         this.addChild(endShape);
       }
@@ -69,7 +91,7 @@ export class GraphRenderer extends PIXI.Container {
 
     if (!graph.start || !graph.nodes[graph.start]) {
       const endId = `end_${GRAPH_START_ID}`;
-      const endShape = new EndShape();
+      const endShape = new EndShape("idle", startOnPath);
       this.endShapes.set(endId, endShape);
       this.addChild(endShape);
     }

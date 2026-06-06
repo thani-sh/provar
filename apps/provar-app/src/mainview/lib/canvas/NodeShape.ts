@@ -37,6 +37,7 @@ export class NodeShape extends PIXI.Container {
     title: string,
     description: string = "",
     state: TaskState = "idle",
+    onActivePath: boolean = false,
   ) {
     super();
     this.nodeId = nodeId;
@@ -148,6 +149,7 @@ export class NodeShape extends PIXI.Container {
 
     let borderColor: number = COLOURS.nodeBorder;
     let strokeWidth = 1;
+    let strokeAlpha = 1;
     if (state === "running") {
       borderColor = 0x3b82f6;
       strokeWidth = 2;
@@ -160,8 +162,13 @@ export class NodeShape extends PIXI.Container {
     } else if (state === "mixed") {
       borderColor = COLOURS.stateMixed;
       strokeWidth = 2;
+    } else if (onActivePath) {
+      // Idle node queued on the active path — subtle white border
+      borderColor = 0xffffff;
+      strokeWidth = 1.5;
+      strokeAlpha = 0.25;
     }
-    this.bg.stroke({ color: borderColor, width: strokeWidth });
+    this.bg.stroke({ color: borderColor, width: strokeWidth, alpha: strokeAlpha });
 
     // Pivot at vertical centre (used by graph layout)
     this.pivot.set(0, totalHeight / 2);

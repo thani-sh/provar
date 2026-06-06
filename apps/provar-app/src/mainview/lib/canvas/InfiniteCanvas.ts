@@ -88,6 +88,7 @@ export class InfiniteCanvas {
   public renderGraph(
     testFile: TestFile,
     taskStates: Record<string, TaskState> = {},
+    runningPathNodeIds: Set<string> = new Set(),
   ) {
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;
@@ -95,6 +96,8 @@ export class InfiniteCanvas {
     this.currentGraphRenderer = new GraphRenderer(
       testFile,
       taskStates,
+      runningPathNodeIds,
+      this.app.ticker,
       (id) => {
         this.onNodeSelect?.(id);
       },

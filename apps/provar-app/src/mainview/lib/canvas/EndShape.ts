@@ -15,8 +15,8 @@ export class EndShape extends NodeShape {
     return 10;
   }
 
-  constructor(state: TaskState = "idle") {
-    super("end", "End", "", state);
+  constructor(state: TaskState = "idle", onActivePath: boolean = false) {
+    super("end", "End", "", state, onActivePath);
 
     // Style it slightly differently if needed, e.g., different border or text color
     // For now, keeping it consistent with StartShape as per instructions.
