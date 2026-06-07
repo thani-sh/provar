@@ -15,12 +15,18 @@ import type { GroundingContext, TestAPI } from "../types";
 import { groundAndGenerateTask, CompilerGroundingSession } from "./generator";
 import { CompilerPerformanceTracker, type CompilationTrace } from "./tracker";
 
+/**
+ * CompilerOptions contains parameters for running the task generation compiler on a test YAML file.
+ */
 export interface CompilerOptions {
   yamlPath: string;
   outputPath?: string;
   agentConfig: AgentClientConfig;
 }
 
+/**
+ * CompileResult contains output status, resolved paths count, and telemetry trace info from the compile run.
+ */
 export interface CompileResult {
   success: boolean;
   outputPath: string;
@@ -29,7 +35,9 @@ export interface CompileResult {
   trace?: CompilationTrace;
 }
 
-// Main compiler orchestrator
+/**
+ * compile processes a single test definition file and compiles its tasks into executable TypeScript Playwright functions.
+ */
 export async function compile(
   options: CompilerOptions,
 ): Promise<CompileResult> {
@@ -62,13 +70,10 @@ export async function compile(
     );
     client = createClient(options.agentConfig);
     session = await client.session();
-  } catch (err: any) {
-    console.error(
-      `[Compiler Error] Failed to start agent: ${err?.message || err}`,
-    );
-    throw new Error(
-      `Failed to initialize agent client: ${err?.message || err}`,
-    );
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[Compiler Error] Failed to start agent: ${errMsg}`);
+    throw new Error(`Failed to initialize agent client: ${errMsg}`);
   }
 
   tracker.endSetup();

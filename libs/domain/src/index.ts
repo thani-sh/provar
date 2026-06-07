@@ -5,6 +5,9 @@ export interface TaskConfig {
   visualCompare?: boolean;
 }
 
+/**
+ * Task represents a single step in a test graph with metadata, execution transitions, and optional sub-graphs.
+ */
 export interface Task {
   id: string;
   title: string;
@@ -15,6 +18,9 @@ export interface Task {
   graph?: Graph;
 }
 
+/**
+ * Graph represents a collection of tasks and their valid execution paths.
+ */
 export interface Graph {
   info: string;
   start: string;
@@ -22,27 +28,42 @@ export interface Graph {
   paths: Path[];
 }
 
+/**
+ * File represents a test file containing name, path, graph structure, and compiled code status.
+ */
 export interface File extends Graph {
   name: string;
   path: string;
   code?: { valid: boolean } | null;
 }
 
+/**
+ * Path represents a linear sequence of tasks representing a unique test scenario execution.
+ */
 export interface Path {
   tasks: Task[];
 }
 
+/**
+ * Project represents a loaded Provar workspace containing workspace variables and test files.
+ */
 export interface Project {
   path: string;
   variables: Record<string, string>;
   files: File[];
 }
 
-export interface ExecutableTask<T = any> extends Task {
+/**
+ * ExecutableTask represents a task with an executable function bound to it.
+ */
+export interface ExecutableTask<T = unknown> extends Task {
   execute: (api: T) => Promise<void>;
 }
 
-export interface ExecutableFile<T = any> extends File {
+/**
+ * ExecutableFile represents a test file with its tasks compiled into executable functions.
+ */
+export interface ExecutableFile<T = unknown> extends File {
   tasks: Record<string, ExecutableTask<T>>;
   code: { valid: boolean } | null;
 }

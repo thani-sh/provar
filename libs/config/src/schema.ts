@@ -46,6 +46,9 @@ export const modelSettingsSchema = z.object({
     }),
 });
 
+/**
+ * ModelSettings represents the structured settings configuration for all AI models.
+ */
 export type ModelSettings = z.infer<typeof modelSettingsSchema>;
 
 // ---------------------------------------------------------------------------
@@ -67,4 +70,7 @@ export const settingsSchema = z.object({
   recentWorkspaces: z.array(z.string()).default([]),
 });
 
+/**
+ * Settings represents the complete top-level user and workspace settings structure.
+ */
 export type Settings = z.infer<typeof settingsSchema>;

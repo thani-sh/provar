@@ -91,7 +91,8 @@ const runTestPath = async (params: {
     // Check synchronization and compile if out of sync
     let project = await loadProject(absPath);
     const loadedFile = project.files.find((f) => f.path === absPath);
-    const needCompile = !loadedFile || !loadedFile.code || !loadedFile.code.valid;
+    const needCompile =
+      !loadedFile || !loadedFile.code || !loadedFile.code.valid;
 
     if (needCompile) {
       console.log(`[Auto-Compile] Compiling out of sync test: ${absPath}`);

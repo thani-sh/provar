@@ -3,11 +3,7 @@ import * as path from "path";
 import os from "os";
 
 /**
- * Saves a screenshot buffer to the OS temporary directory under a specified prefix.
- *
- * @param buf Screenshot image buffer (PNG).
- * @param prefix Prefix for the generated file name.
- * @returns The absolute file path of the saved screenshot.
+ * saveScreenshotToTmp saves a screenshot buffer to the OS temporary directory under a specified prefix.
  */
 export function saveScreenshotToTmp(buf: Buffer, prefix: string): string {
   const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");

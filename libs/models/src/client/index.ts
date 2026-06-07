@@ -29,16 +29,21 @@ function mapAttachment(a: Attachment) {
       mimeType: a.mimeType,
     };
   }
-  throw new Error(`Unsupported attachment type: ${(a as any).type}`);
+  throw new Error(
+    `Unsupported attachment type: ${(a as Record<string, unknown>).type}`,
+  );
 }
 
+/**
+ * AISDKSession implements an active conversation session using the Vercel AI SDK.
+ */
 export class AISDKSession implements Session {
   private messages: ModelMessage[] = [];
 
   constructor(
     public id: string,
     private model: LanguageModel,
-    private tools?: Record<string, any>,
+    private tools?: Record<string, unknown>,
   ) {}
 
   async *prompt(stuff: Message[]): AsyncGenerator<Attachment, void> {
@@ -50,13 +55,13 @@ export class AISDKSession implements Session {
     for (const msg of stuff) {
       if (typeof msg.content === "string") {
         this.messages.push({
-          role: msg.role as any,
+          role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
         });
       } else {
         const contentParts = msg.content.map(mapAttachment);
         this.messages.push({
-          role: msg.role as any,
+          role: msg.role as "user" | "assistant" | "system",
           content: contentParts as any,
         });
       }
@@ -87,6 +92,9 @@ export class AISDKSession implements Session {
   }
 }
 
+/**
+ * AISDKClient manages the LLM provider mapping and session instantiation.
+ */
 export class AISDKClient implements Client {
   private model: LanguageModel;
 
@@ -94,7 +102,9 @@ export class AISDKClient implements Client {
     this.model = resolveModel(config);
   }
 
-  async session(options?: { tools?: Record<string, any> }): Promise<Session> {
+  async session(options?: {
+    tools?: Record<string, unknown>;
+  }): Promise<Session> {
     return new AISDKSession(crypto.randomUUID(), this.model, options?.tools);
   }
 

@@ -4,8 +4,20 @@ import type { Task, Graph, File, Path, Project } from "./index";
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
+
+/**
+ * PROVAR_DIR is the default directory name containing Provar configuration and tests.
+ */
 export const PROVAR_DIR = ".provar";
+
+/**
+ * TESTS_DIR is the directory path where Provar test files are located.
+ */
 export const TESTS_DIR = `${PROVAR_DIR}/tests`;
+
+/**
+ * CONFIG_FILE is the configuration file path for the Provar workspace.
+ */
 export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
 
 // ---------------------------------------------------------------------------
@@ -15,7 +27,9 @@ const coerceStringToArray = z
   .union([z.string(), z.array(z.string())])
   .transform((val) => (typeof val === "string" ? [val] : val));
 
-// TaskConfig Schema (Shared)
+/**
+ * schemaForTaskConfig validates task-specific configuration overrides.
+ */
 export const schemaForTaskConfig = z.object({
   visualCompare: z.boolean().optional(),
 });
@@ -24,6 +38,9 @@ export const schemaForTaskConfig = z.object({
 // Raw Serialized Schemas (Test YAML format on disk)
 // ---------------------------------------------------------------------------
 
+/**
+ * TestNode represents a raw node structure serialized in YAML format on disk.
+ */
 export type TestNode = {
   title: string;
   info: string;
@@ -35,6 +52,9 @@ export type TestNode = {
   screenshotUrl?: string;
 };
 
+/**
+ * schemaForTask is the Zod schema validating a serialized task node.
+ */
 export const schemaForTask: z.ZodType<TestNode, any, any> = z.lazy(() =>
   z.object({
     title: z.string(),
@@ -48,12 +68,18 @@ export const schemaForTask: z.ZodType<TestNode, any, any> = z.lazy(() =>
   }),
 );
 
+/**
+ * TestFileGraph represents a collection of serialized test nodes and their metadata.
+ */
 export type TestFileGraph = {
   info: string;
   start: string;
   nodes: Record<string, TestNode>;
 };
 
+/**
+ * schemaForGraph is the Zod schema validating a serialized task graph.
+ */
 export const schemaForGraph: z.ZodType<TestFileGraph, any, any> = z.lazy(() =>
   z.object({
     info: z.string(),
@@ -62,25 +88,39 @@ export const schemaForGraph: z.ZodType<TestFileGraph, any, any> = z.lazy(() =>
   }),
 );
 
+/**
+ * schemaForFile is the Zod schema validating a serialized test file structure.
+ */
 export const schemaForFile = z.object({
   name: z.string(),
   graph: schemaForGraph,
   code: z.object({ valid: z.boolean() }).nullable().optional(),
 });
 
+/**
+ * TestFile represents a serialized test file structure validated by schemaForFile.
+ */
 export type TestFile = z.infer<typeof schemaForFile>;
 
-// Provar Config Schema
+/**
+ * configSchema validates the global .provar/config.yml configuration on disk.
+ */
 export const configSchema = z.object({
   variables: z.record(z.string(), z.any()).optional(),
 });
 
+/**
+ * ProvarConfig represents the parsed and validated configSchema.
+ */
 export type ProvarConfig = z.infer<typeof configSchema>;
 
 // ---------------------------------------------------------------------------
 // Loaded Runtime Schemas (Memory representation used by Loader/Compiler)
 // ---------------------------------------------------------------------------
 
+/**
+ * schemaForLoadedTask is the Zod schema validating runtime loaded Task objects.
+ */
 export const schemaForLoadedTask: z.ZodType<Task, any, any> = z.lazy(() =>
   z.object({
     id: z.string(),
@@ -100,10 +140,16 @@ const baseLoadedGraphSchema = z.object({
   paths: z.array(z.lazy(() => schemaForPath)),
 });
 
+/**
+ * schemaForLoadedGraph is the Zod schema validating runtime loaded Graph objects.
+ */
 export const schemaForLoadedGraph: z.ZodType<Graph, any, any> = z.lazy(
   () => baseLoadedGraphSchema,
 );
 
+/**
+ * schemaForLoadedFile is the Zod schema validating runtime loaded File objects.
+ */
 export const schemaForLoadedFile: z.ZodType<File, any, any> = z.lazy(() =>
   baseLoadedGraphSchema.extend({
     name: z.string(),
@@ -112,12 +158,18 @@ export const schemaForLoadedFile: z.ZodType<File, any, any> = z.lazy(() =>
   }),
 );
 
+/**
+ * schemaForPath is the Zod schema validating runtime loaded Path objects.
+ */
 export const schemaForPath: z.ZodType<Path, any, any> = z.lazy(() =>
   z.object({
     tasks: z.array(schemaForLoadedTask),
   }),
 );
 
+/**
+ * schemaForLoadedProject is the Zod schema validating runtime loaded Project objects.
+ */
 export const schemaForLoadedProject: z.ZodType<Project, any, any> = z.lazy(() =>
   z.object({
     path: z.string(),

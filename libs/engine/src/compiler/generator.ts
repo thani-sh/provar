@@ -3,17 +3,19 @@ import * as path from "path";
 import vm from "node:vm";
 import os from "os";
 import type { Page } from "playwright";
-import type { Task, Path } from "@libs/domain";
-import { loadProject } from "../loader";
-import { execute } from "../TestRun";
+import type { Task, Path, Project, ExecutableTask } from "@libs/domain";
+import { loadProject, type ProjectLoader } from "../loader";
+import { execute, PathRunner } from "../test-run";
 import { expect } from "@playwright/test";
-import type { GroundingContext } from "../types";
+import type { GroundingContext, TestAPI } from "../types";
 import type { Session, Attachment, Message } from "@libs/models";
 import type { CompilerPerformanceTracker } from "./tracker";
 import { launchBrowserSession, type BrowserSession } from "../browser";
 import { saveScreenshotToTmp } from "../screenshot";
 
-// Stateful grounding session to preserve browser state across tasks
+/**
+ * CompilerGroundingSession manages a stateful browser page session that persists across task generations.
+ */
 export class CompilerGroundingSession {
   private session: BrowserSession | null = null;
   private headless: boolean = true;
@@ -37,6 +39,9 @@ export class CompilerGroundingSession {
   }
 }
 
+/**
+ * cleanCode strips markdown code blocks or backticks from generated code snippets.
+ */
 export function cleanCode(code: string): string {
   let cleaned = code.trim();
   if (cleaned.startsWith("```")) {
@@ -49,8 +54,8 @@ export function cleanCode(code: string): string {
 // Compiles a string of Javascript/TypeScript task function into an executable in-memory function
 function compileCodeToFunction(
   codeStr: string,
-  tasksObj: any,
-): (api: any) => Promise<void> {
+  tasksObj: Record<string, (api: TestAPI) => Promise<void>>,
+): (api: TestAPI) => Promise<void> {
   let cleanCode = codeStr.replace(/\(api:\s*TestAPI\)/g, "(api)").trim();
 
   const wrappedCode = `(${cleanCode})`;
@@ -65,7 +70,9 @@ function compileCodeToFunction(
     tasks: tasksObj,
   };
   const context = vm.createContext(sandbox);
-  return vm.runInContext(wrappedCode, context);
+  return vm.runInContext(wrappedCode, context) as (
+    api: TestAPI,
+  ) => Promise<void>;
 }
 
 // Spawns Playwright test execution on the prefix path to acquire grounding DOM and screenshot context
@@ -78,23 +85,24 @@ async function runGroundingSandbox(
   compiledTasksCache: Map<string, { code: string; title: string }>,
   upToTaskId: string,
   existingPage?: Page,
-): Promise<{ error: any; context: GroundingContext | null }> {
-  let executionError: any = null;
+): Promise<{ error: unknown; context: GroundingContext | null }> {
+  let executionError: unknown = null;
   let groundingContext: GroundingContext | null = null;
 
   try {
     // Load project configuration variables
-    let variables = {};
-    let project: any = null;
+    let variables: Record<string, unknown> = {};
+    let project: (Project & ProjectLoader) | null = null;
     try {
       project = await loadProject(targetFilePath);
-      variables = project.variables || {};
+      variables =
+        (project.variables as unknown as Record<string, unknown>) || {};
     } catch (e) {
       // Ignore
     }
 
     // Build tasks mapping for sandbox context
-    const sandboxTasks: Record<string, (api: any) => Promise<void>> = {};
+    const sandboxTasks: Record<string, (api: TestAPI) => Promise<void>> = {};
     const allNodeIds = [...prefixNodeIds, nodeId];
 
     // Compile prefix nodes in order
@@ -115,13 +123,13 @@ async function runGroundingSandbox(
     // Construct linear in-memory execution Path
     const tasksList: Task[] = allNodeIds.map((nid) => {
       const t = nid === nodeId ? node : { title: "prefix", info: "" };
-      const executableTask: Task = {
+      const executableTask: ExecutableTask<TestAPI> = {
         id: nid,
         title: t.title,
         info: t.info || "",
         next: [],
+        execute: sandboxTasks[nid]!,
       };
-      (executableTask as any).execute = sandboxTasks[nid];
       return executableTask;
     });
 
@@ -148,7 +156,9 @@ async function runGroundingSandbox(
     }
 
     // Capture dynamic grounding context
-    const page = existingPage || (runner as any).activePage;
+    const page =
+      existingPage ||
+      (runner as unknown as { activePage: Page | null }).activePage;
     if (page) {
       try {
         const pageContent = await page.content();
@@ -167,7 +177,7 @@ async function runGroundingSandbox(
         groundingContext = { pageContent, screenshot };
       }
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
     executionError = err;
   }
 
@@ -177,6 +187,9 @@ async function runGroundingSandbox(
   };
 }
 
+/**
+ * groundAndGenerateTask runs the grounding sandbox environment and delegates code generation to the AI agent.
+ */
 export async function groundAndGenerateTask(
   targetFilePath: string,
   nodeId: string,
@@ -196,11 +209,11 @@ export async function groundAndGenerateTask(
   const tracker = options.tracker;
 
   // Load project configuration variables
-  let variables: Record<string, any> = {};
-  let project: any = null;
+  let variables: Record<string, unknown> = {};
+  let project: (Project & ProjectLoader) | null = null;
   try {
     project = await loadProject(targetFilePath);
-    variables = project.variables || {};
+    variables = (project.variables as unknown as Record<string, unknown>) || {};
   } catch (e) {
     // Ignore
   }
@@ -383,8 +396,13 @@ Guidelines for the code:
     // Fast-path: If stateful session is active, try executing directly on the active page!
     if (groundingSession) {
       let statefulMutated = false;
-      const originals = new Map<string, any>();
+      const originals = new Map<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >();
       let page: Page | null = null;
+      let pageRecord: Record<string, (...args: unknown[]) => Promise<unknown>> =
+        {};
 
       try {
         page = await groundingSession.getPage();
@@ -399,21 +417,27 @@ Guidelines for the code:
           "selectOption",
           "hover",
           "dblclick",
-        ];
+        ] as const;
 
+        pageRecord = page as unknown as Record<
+          string,
+          (...args: unknown[]) => Promise<unknown>
+        >;
         mutatingMethods.forEach((method) => {
-          if (typeof (page as any)[method] === "function") {
-            const original = (page as any)[method].bind(page);
+          const original = pageRecord[method];
+          if (typeof original === "function") {
+            const boundOriginal = original.bind(page);
             originals.set(method, original);
-            (page as any)[method] = async (...args: any[]) => {
-              const res = await original(...args);
+            pageRecord[method] = async (...args: unknown[]) => {
+              const res = await boundOriginal(...args);
               statefulMutated = true;
               return res;
             };
           }
         });
 
-        const sandboxTasks: Record<string, (api: any) => Promise<void>> = {};
+        const sandboxTasks: Record<string, (api: TestAPI) => Promise<void>> =
+          {};
 
         prefixNodeIds.forEach((pid) => {
           const cached = cache.get(pid);
@@ -437,7 +461,7 @@ Guidelines for the code:
           variables = project.variables || {};
         } catch (e) {}
 
-        const api = {
+        const api: TestAPI = {
           page,
           var: variables,
           state: {},
@@ -446,11 +470,11 @@ Guidelines for the code:
 
         const runStart = performance.now();
         try {
-          await currentExecFn(api as any);
+          await currentExecFn(api);
         } finally {
           // Restore original page methods
           originals.forEach((orig, method) => {
-            (page as any)[method] = orig;
+            pageRecord[method] = orig;
           });
         }
 
@@ -468,16 +492,17 @@ Guidelines for the code:
           `⚡ [Stateful Fast-Path] Task ${nodeId} executed successfully directly on active page!`,
         );
         break;
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
         // Restore original page methods if catch occurred before finally block executed (e.g. during initialization)
         if (page) {
           originals.forEach((orig, method) => {
-            (page as any)[method] = orig;
+            pageRecord[method] = orig;
           });
         }
 
         console.log(
-          `⚠️ [Stateful Fast-Path Fail] Direct execution failed for ${nodeId}: ${err.message || err}`,
+          `⚠️ [Stateful Fast-Path Fail] Direct execution failed for ${nodeId}: ${errMsg}`,
         );
 
         if (statefulMutated) {
@@ -523,8 +548,12 @@ Guidelines for the code:
       );
       break;
     } else {
+      const errMsg =
+        testResult.error instanceof Error
+          ? testResult.error.message
+          : String(testResult.error);
       console.error(
-        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Task ${nodeId}: ${testResult.error?.message || testResult.error}`,
+        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Task ${nodeId}: ${errMsg}`,
       );
       if (tryCount >= maxTries) {
         console.warn(
@@ -548,7 +577,7 @@ ${currentCode}
 \`\`\`
 
 It threw the following error:
-${testResult.error?.message || testResult.error}
+${errMsg}
 
 Please analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block.
 

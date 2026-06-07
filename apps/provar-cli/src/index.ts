@@ -407,11 +407,16 @@ async function main() {
             case "task-finished":
               console.log(`    ${pc.green("✔")} ${pc.green("Completed")}`);
               break;
-            case "task-failed":
+            case "task-failed": {
+              const errMsg =
+                event.error instanceof Error
+                  ? event.error.message
+                  : String(event.error);
               console.log(
-                `    ${pc.red("✖")} ${pc.red("Failed:")} ${pc.bold(event.error.message || event.error)}`,
+                `    ${pc.red("✖")} ${pc.red("Failed:")} ${pc.bold(errMsg)}`,
               );
               break;
+            }
             case "run-finished":
               if (event.status === "failed") {
                 suiteSuccess = false;

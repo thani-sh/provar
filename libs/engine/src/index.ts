@@ -1,5 +1,5 @@
 export * from "./types";
-export * from "./TestRun";
+export * from "./test-run";
 export * from "./browser";
 export * from "./loader";
 export * from "./compiler/compiler";

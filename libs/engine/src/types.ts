@@ -1,18 +1,27 @@
 import { type Page } from "playwright";
 import type { Path } from "@libs/domain";
 
+/**
+ * TestAPI defines the execution API exposed to the compiled test task functions.
+ */
 export interface TestAPI {
   page: Page;
-  var: Record<string, any>;
-  state: Record<string, any>;
-  expect: any;
+  var: Record<string, unknown>;
+  state: Record<string, unknown>;
+  expect: unknown;
 }
 
+/**
+ * GroundingContext contains HTML DOM state and screenshot details for grounding AI agent requests.
+ */
 export interface GroundingContext {
   pageContent?: string;
   screenshot?: string;
 }
 
+/**
+ * RunnerState describes the current execution state of a test path run.
+ */
 export interface RunnerState {
   status: "idle" | "running" | "paused" | "success" | "failed" | "cancelled";
   current?: string;
@@ -23,11 +32,14 @@ export interface RunnerState {
   pageMutated?: boolean;
 }
 
+/**
+ * RunnerEvent represents lifecycle events emitted by the runner during test execution.
+ */
 export type RunnerEvent =
   | { type: "run-started" }
   | { type: "task-started"; taskId: string; title: string }
   | { type: "task-finished"; taskId: string }
-  | { type: "task-failed"; taskId: string; error: any }
+  | { type: "task-failed"; taskId: string; error: unknown }
   | {
       type: "visual-comparison-triggered";
       taskId: string;
@@ -36,10 +48,16 @@ export type RunnerEvent =
     }
   | { type: "run-finished"; status: RunnerState["status"] };
 
+/**
+ * RunnerResult contains the final execution result summary of a test path run.
+ */
 export interface RunnerResult extends RunnerState {
   status: "success" | "failed" | "cancelled";
 }
 
+/**
+ * Runner is the interface implemented by test execution engines.
+ */
 export interface Runner {
   getState(): RunnerState;
   events(): AsyncGenerator<RunnerEvent, void>;
@@ -49,9 +67,12 @@ export interface Runner {
   wait(): Promise<RunnerResult>;
 }
 
+/**
+ * ExecuteOptions contains configuration parameter overrides for executing a test run.
+ */
 export interface ExecuteOptions {
   headless?: boolean;
-  variables?: Record<string, any>;
+  variables?: Record<string, unknown>;
   upToTaskId?: string;
   existingPage?: Page;
   provarPath?: string;

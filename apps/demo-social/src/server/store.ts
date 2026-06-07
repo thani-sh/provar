@@ -29,7 +29,12 @@ class Store {
 
   constructor() {
     // Seed a default test user so the app is never empty on startup.
-    this.addUser("void_user", "testpass123", "Void User", "The default test account.");
+    this.addUser(
+      "void_user",
+      "testpass123",
+      "Void User",
+      "The default test account.",
+    );
   }
 
   // Auth

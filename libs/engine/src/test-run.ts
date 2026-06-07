@@ -4,7 +4,7 @@ import crypto from "crypto";
 import os from "os";
 import { type Browser, type Page } from "playwright";
 import { expect } from "@playwright/test";
-import type { Path, Task } from "@libs/domain";
+import type { Path, Task, ExecutableTask } from "@libs/domain";
 import type {
   TestAPI,
   Runner,
@@ -16,6 +16,9 @@ import type {
 import { launchBrowserSession } from "./browser";
 import { saveScreenshotToTmp } from "./screenshot";
 
+/**
+ * PathRunner executes a linear sequence of tasks representing a single test path.
+ */
 export class PathRunner implements Runner {
   private state: RunnerState = {
     status: "idle",
@@ -42,7 +45,7 @@ export class PathRunner implements Runner {
     private path: Path,
     private options: ExecuteOptions = {},
   ) {
-    let resolveFn: any;
+    let resolveFn: (value: RunnerResult) => void = () => {};
     this.waitPromise = new Promise<RunnerResult>((resolve) => {
       resolveFn = resolve;
     });
@@ -101,7 +104,10 @@ export class PathRunner implements Runner {
       case "task-failed":
         this.state.errors.push({
           taskId: event.taskId,
-          error: event.error,
+          error:
+            event.error instanceof Error
+              ? event.error
+              : new Error(String(event.error)),
         });
         break;
       case "run-finished":
@@ -117,8 +123,7 @@ export class PathRunner implements Runner {
   async pause(): Promise<void> {
     if (this.state.status !== "running") return;
 
-    // Set up standard deferred signal promise
-    let resolveFn: any;
+    let resolveFn: () => void = () => {};
     const promise = new Promise<void>((resolve) => {
       resolveFn = resolve;
     });
@@ -129,7 +134,6 @@ export class PathRunner implements Runner {
     };
 
     this.state.status = "paused";
-    // We emit run-finished with status paused as an event
     this.pushEvent({ type: "run-finished", status: "paused" });
     this.state.status = "paused";
   }
@@ -183,12 +187,18 @@ export class PathRunner implements Runner {
         "selectOption",
         "hover",
         "dblclick",
-      ];
+      ] as const;
+
+      const pageRecord = page as unknown as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+      >;
       mutatingMethods.forEach((method) => {
-        if (typeof (page as any)[method] === "function") {
-          const original = (page as any)[method].bind(page);
-          (page as any)[method] = async (...args: any[]) => {
-            const res = await original(...args);
+        const original = pageRecord[method];
+        if (typeof original === "function") {
+          const boundOriginal = original.bind(page);
+          pageRecord[method] = async (...args: unknown[]) => {
+            const res = await boundOriginal(...args);
             this.state.pageMutated = true;
             return res;
           };
@@ -209,7 +219,6 @@ export class PathRunner implements Runner {
           break;
         }
 
-        // Task Boundary Pause checkpoint
         if (this.state.status === "paused" && this.resumeSignal) {
           await this.resumeSignal.promise;
         }
@@ -226,11 +235,8 @@ export class PathRunner implements Runner {
           title: task.title,
         });
 
-        // Execute dynamic task bindings
         try {
-          const executableTask = task as Task & {
-            execute: (api: TestAPI) => Promise<void>;
-          };
+          const executableTask = task as ExecutableTask<TestAPI>;
           if (typeof executableTask.execute !== "function") {
             throw new Error(
               `Task '${task.id}' does not have a compiled execute function bound.`,
@@ -238,7 +244,6 @@ export class PathRunner implements Runner {
           }
           await executableTask.execute(api);
 
-          // Capture visual screenshot of the step for audit logs and AI grounding (always enabled by default)
           try {
             const buf = await page.screenshot({ type: "png" });
             this.pushEvent({
@@ -255,7 +260,7 @@ export class PathRunner implements Runner {
             type: "task-finished",
             taskId: task.id,
           });
-        } catch (err: any) {
+        } catch (err: unknown) {
           runSuccess = false;
           this.pushEvent({
             type: "task-failed",
@@ -269,7 +274,7 @@ export class PathRunner implements Runner {
           break;
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       runSuccess = false;
       this.pushEvent({
         type: "task-failed",
@@ -308,7 +313,7 @@ export class PathRunner implements Runner {
       });
 
       const result: RunnerResult = {
-        status: finalStatus as any,
+        status: finalStatus as RunnerResult["status"],
         errors: this.state.errors,
       };
       this.waitResolve?.(result);
@@ -316,6 +321,9 @@ export class PathRunner implements Runner {
   }
 }
 
+/**
+ * execute begins execution of a test path asynchronously, returning the Runner instance.
+ */
 export async function execute(
   path: Path,
   options?: ExecuteOptions,

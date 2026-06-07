@@ -1,11 +1,17 @@
 import { chromium, type Browser, type Page } from "playwright";
 
+/**
+ * BrowserSession holds the active browser instance, associated page, and clean up method.
+ */
 export interface BrowserSession {
   browser: Browser;
   page: Page;
   close: () => Promise<void>;
 }
 
+/**
+ * launchBrowserSession launches a new Playwright chromium browser session.
+ */
 export async function launchBrowserSession(options?: {
   headless?: boolean;
 }): Promise<BrowserSession> {

@@ -12,13 +12,20 @@ import type {
   ExecutableFile,
 } from "@libs/domain";
 import { schemaForLoadedFile } from "@libs/domain/zod";
+import type { TestAPI } from "./types";
 
+/**
+ * ProjectLoader defines the contract for loading a test project or single test file.
+ */
 export interface ProjectLoader {
+  /**
+   * readFile loads and parses an executable test file from the given path.
+   */
   readFile(filePath: string): Promise<ExecutableFile>;
 }
 
 // Deeply resolve nested ${ENV.VAR_NAME} placeholders
-function resolveEnvVars(val: any): any {
+function resolveEnvVars(val: unknown): unknown {
   if (typeof val === "string") {
     const envMatch = val.match(/^\$\{ENV\.(.+)\}$/);
     if (envMatch && envMatch[1]) {
@@ -28,8 +35,8 @@ function resolveEnvVars(val: any): any {
   } else if (Array.isArray(val)) {
     return val.map(resolveEnvVars);
   } else if (val && typeof val === "object") {
-    const resolved: Record<string, any> = {};
-    for (const [k, v] of Object.entries(val)) {
+    const resolved: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
       resolved[k] = resolveEnvVars(v);
     }
     return resolved;
@@ -37,7 +44,9 @@ function resolveEnvVars(val: any): any {
   return val;
 }
 
-// Dynamically resolves all execution paths from a task graph definition
+/**
+ * buildGraphPaths dynamically resolves all linear execution paths from a task graph definition.
+ */
 export function buildGraphPaths(
   start: string,
   tasks: Record<string, Task>,
@@ -81,25 +90,37 @@ export function buildGraphPaths(
 }
 
 // Helper to convert raw parsed YAML tasks into standard Task structures
-function buildTasksMap(rawNodes: Record<string, any>): Record<string, Task> {
+function buildTasksMap(
+  rawNodes: Record<string, unknown>,
+): Record<string, Task> {
   const tasks: Record<string, Task> = {};
-  for (const [id, raw] of Object.entries(rawNodes)) {
+  for (const [id, rawVal] of Object.entries(rawNodes)) {
+    const raw = rawVal as Record<string, unknown>;
+    const rawConfig = raw.config as Record<string, unknown> | undefined;
+    const rawGraph = raw.graph as Record<string, unknown> | undefined;
+
     tasks[id] = {
       id,
-      title: raw.title || "",
-      info: raw.info || "",
-      next: Array.isArray(raw.next) ? raw.next : raw.next ? [raw.next] : [],
-      config: raw.config
+      title: typeof raw.title === "string" ? raw.title : "",
+      info: typeof raw.info === "string" ? raw.info : "",
+      next: Array.isArray(raw.next)
+        ? (raw.next as string[])
+        : typeof raw.next === "string"
+          ? [raw.next]
+          : [],
+      config: rawConfig
         ? {
-            visualCompare: raw.config.visualCompare,
+            visualCompare: rawConfig.visualCompare === true,
           }
         : undefined,
-      code: raw.code,
-      graph: raw.graph
+      code: typeof raw.code === "string" ? raw.code : undefined,
+      graph: rawGraph
         ? {
-            info: raw.graph.info || "",
-            start: raw.graph.start || "",
-            tasks: buildTasksMap(raw.graph.nodes || {}),
+            info: typeof rawGraph.info === "string" ? rawGraph.info : "",
+            start: typeof rawGraph.start === "string" ? rawGraph.start : "",
+            tasks: buildTasksMap(
+              (rawGraph.nodes as Record<string, unknown>) || {},
+            ),
             paths: [], // Subpaths populated on demand
           }
         : undefined,
@@ -108,17 +129,22 @@ function buildTasksMap(rawNodes: Record<string, any>): Record<string, Task> {
   return tasks;
 }
 
+/**
+ * parseTestFile parses a test YAML file and resolves its execution paths and TS code status.
+ */
 export function parseTestFile(content: string, filePath: string): File {
-  const doc = yaml.parse(content) as any;
+  const doc = yaml.parse(content) as Record<string, unknown> | null;
   if (!doc || typeof doc !== "object") {
     throw new Error(`Invalid test graph format in: ${filePath}`);
   }
 
-  const name = doc.name || path.basename(filePath, ".test.yml");
-  const rawGraph = doc.graph || {};
-  const tasks = buildTasksMap(rawGraph.nodes || {});
-  const start = rawGraph.start || "";
-  const info = rawGraph.info || "";
+  const name = (doc.name as string) || path.basename(filePath, ".test.yml");
+  const rawGraph = (doc.graph as Record<string, unknown>) || {};
+  const tasks = buildTasksMap(
+    (rawGraph.nodes as Record<string, unknown>) || {},
+  );
+  const start = (rawGraph.start as string) || "";
+  const info = (rawGraph.info as string) || "";
 
   // Resolve unique linear execution paths
   const paths = buildGraphPaths(start, tasks);
@@ -147,6 +173,9 @@ export function parseTestFile(content: string, filePath: string): File {
   return schemaForLoadedFile.parse(fileData);
 }
 
+/**
+ * loadProject crawls up to locate the .provar directory and loads the project configurations and test files.
+ */
 export async function loadProject(
   projectPath: string,
 ): Promise<Project & ProjectLoader> {
@@ -175,9 +204,9 @@ export async function loadProject(
   const configPath = path.join(provarPath, "config.yml");
   if (fs.existsSync(configPath)) {
     const content = fs.readFileSync(configPath, "utf-8");
-    const doc = yaml.parse(content) as any;
-    const resolved = resolveEnvVars(doc);
-    variables = resolved.variables || {};
+    const doc = yaml.parse(content) as Record<string, unknown>;
+    const resolved = resolveEnvVars(doc) as Record<string, unknown>;
+    variables = (resolved.variables as Record<string, string>) || {};
   }
 
   // Scan tests
@@ -223,7 +252,10 @@ export async function loadProject(
       const tsPath = filePath.replace(".test.yml", ".test.ts");
       // Read dynamic TS module to export compiled task mapping.
       const compiledModule = await import(tsPath);
-      const compiledTasks = compiledModule.tasks || {};
+      const compiledTasks = (compiledModule.tasks || {}) as Record<
+        string,
+        (api: TestAPI) => Promise<void>
+      >;
 
       for (const [id, task] of Object.entries(baseFile.tasks)) {
         const execFn = compiledTasks[id];
@@ -232,7 +264,7 @@ export async function loadProject(
             `Mismatch: Task '${id}' is defined in ${path.basename(filePath)} but has no compiled function in the TypeScript file. Please recompile.`,
           );
         }
-        (task as any).execute = execFn;
+        (task as ExecutableTask<TestAPI>).execute = execFn;
       }
 
       // Explicitly bind execute function to tasks inside resolved paths too
@@ -241,7 +273,7 @@ export async function loadProject(
         for (const task of resolvedPath.tasks) {
           const execFn = compiledTasks[task.id];
           if (execFn) {
-            (task as any).execute = execFn;
+            (task as ExecutableTask<TestAPI>).execute = execFn;
           }
         }
       }

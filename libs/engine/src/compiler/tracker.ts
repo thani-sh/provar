@@ -1,3 +1,6 @@
+/**
+ * TaskTelemetry captures execution metrics and performance details for a single task compilation.
+ */
 export interface TaskTelemetry {
   id: string;
   title: string;
@@ -8,6 +11,9 @@ export interface TaskTelemetry {
   retryCount: number;
 }
 
+/**
+ * CompilationTrace represents the full performance compilation report of a test suite run.
+ */
 export interface CompilationTrace {
   target: string;
   totalDurationMs: number;
@@ -18,6 +24,9 @@ export interface CompilationTrace {
   tasks: TaskTelemetry[];
 }
 
+/**
+ * CompilerPerformanceTracker monitors parsing, network calls, sandbox test executions, and disk writes timings.
+ */
 export class CompilerPerformanceTracker {
   private startTime = 0;
   private endTime = 0;
