@@ -22,7 +22,6 @@ Project status: early development (breaking changes are acceptable)
   - **NEVER** add extra lines to the commit messages.
 - **STRICTLY** follow branch naming strategy described below.
   - **ALWAYS** use hyphens `-`, do not use underscores `_` or camel case `camelCase`.
-  - **NEVER** commit directly to the `main` or `develop` branch.
   - **NEVER** add any prefix to the branch name (e.g., `feat/` or `fix/`).
   - **NEVER** use uppercase letters in branch names.
 
