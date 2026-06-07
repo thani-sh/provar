@@ -21,6 +21,9 @@ class EditorStore {
 
   isRunning = $state(false);
   isCompiling = $state(false);
+  compilationStates = $state<
+    Record<string, "compiling" | "compiled" | "failed" | "idle">
+  >({});
 
   /**
    * taskPathStates tracks the execution result of each node per path index.
@@ -37,6 +40,29 @@ class EditorStore {
    */
   taskStates = $derived.by<Record<string, TaskState>>(() => {
     const result: Record<string, TaskState> = {};
+
+    if (this.isCompiling || Object.keys(this.compilationStates).length > 0) {
+      for (const [nodeId, state] of Object.entries(this.compilationStates)) {
+        if (state === "compiling") {
+          result[nodeId] = "compiling";
+        } else if (state === "compiled") {
+          result[nodeId] = "compiled";
+        } else if (state === "failed") {
+          result[nodeId] = "failed";
+        } else {
+          result[nodeId] = "idle";
+        }
+      }
+      if (this.currentFile?.graph?.nodes) {
+        for (const id of Object.keys(this.currentFile.graph.nodes)) {
+          if (!result[id]) {
+            result[id] = "idle";
+          }
+        }
+      }
+      return result;
+    }
+
     for (const [nodeId, pathResults] of Object.entries(this.taskPathStates)) {
       const states = Object.values(pathResults);
       if (states.includes("running")) {
@@ -105,6 +131,7 @@ class EditorStore {
 
         if (event.type === "run-started") {
           this.isRunning = true;
+          this.compilationStates = {};
           // Reset this path's slot for all known nodes; other paths are preserved.
           if (this.currentFile?.graph?.nodes) {
             const updated = { ...this.taskPathStates };
@@ -178,6 +205,45 @@ class EditorStore {
             break;
         }
       },
+      compileProgressEvent: (event) => {
+        console.log(
+          "[EditorStore] Received compileProgressEvent:",
+          event.type,
+          "nodeId:",
+          event.nodeId,
+        );
+
+        if (event.type === "compile-started") {
+          this.isCompiling = true;
+          this.compilationStates = {};
+          if (this.currentFile?.graph?.nodes) {
+            for (const id of Object.keys(this.currentFile.graph.nodes)) {
+              this.compilationStates[id] = "idle";
+            }
+          }
+          return;
+        }
+
+        if (event.type === "compile-finished") {
+          this.isCompiling = false;
+          return;
+        }
+
+        if (event.nodeId) {
+          let stateVal: "compiling" | "compiled" | "failed" | "idle" = "idle";
+          if (event.type === "node-started") {
+            stateVal = "compiling";
+          } else if (event.type === "node-succeeded") {
+            stateVal = "compiled";
+          } else if (event.type === "node-failed") {
+            stateVal = "failed";
+          }
+          this.compilationStates = {
+            ...this.compilationStates,
+            [event.nodeId]: stateVal,
+          };
+        }
+      },
     });
   }
 
@@ -187,6 +253,7 @@ class EditorStore {
   async compileCurrentTest(): Promise<boolean> {
     if (!this.selectedFilePath) return false;
     this.isCompiling = true;
+    this.compilationStates = {};
     try {
       const res = await ProvarAPI.compileTest(this.selectedFilePath);
       this.isCompiling = false;
@@ -360,6 +427,7 @@ class EditorStore {
     this.currentFile = res.content;
     this.selectedNodeId = null;
     this.taskPathStates = {};
+    this.compilationStates = {};
     this.screenshots = {};
     if (this.currentFile?.graph?.nodes) {
       for (const id of Object.keys(this.currentFile.graph.nodes)) {

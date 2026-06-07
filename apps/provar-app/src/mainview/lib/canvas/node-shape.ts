@@ -162,6 +162,12 @@ export class NodeShape extends PIXI.Container {
     } else if (state === "mixed") {
       borderColor = COLOURS.stateMixed;
       strokeWidth = 2;
+    } else if (state === "compiling") {
+      borderColor = 0xf59e0b;
+      strokeWidth = 2;
+    } else if (state === "compiled") {
+      borderColor = 0x10b981;
+      strokeWidth = 2;
     } else if (onActivePath) {
       // Idle node queued on the active path — subtle white border
       borderColor = 0xffffff;

@@ -126,6 +126,20 @@ export type ProvarRPCSchema = {
           status?: string;
         };
       };
+      compileProgressEvent: {
+        params: {
+          yamlPath: string;
+          type:
+            | "compile-started"
+            | "node-started"
+            | "node-succeeded"
+            | "node-failed"
+            | "compile-finished";
+          nodeId?: string;
+          title?: string;
+          error?: string;
+        };
+      };
       openSettings: {
         params: {};
       };

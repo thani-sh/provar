@@ -36,11 +36,23 @@ export interface CompileResult {
 }
 
 /**
- * compile processes a single test definition file and compiles its tasks into executable TypeScript Playwright functions.
+ * CompileEvent represents progress notifications emitted during compilation.
  */
-export async function compile(
+export type CompileEvent =
+  | { type: "compile-started" }
+  | { type: "node-started"; nodeId: string; title: string }
+  | { type: "node-succeeded"; nodeId: string; title: string }
+  | { type: "node-failed"; nodeId: string; title: string; error: string }
+  | { type: "compile-finished"; success: boolean; result: CompileResult };
+
+/**
+ * compileProgress runs the compilation process and yields CompileEvents incrementally.
+ */
+export async function* compileProgress(
   options: CompilerOptions,
-): Promise<CompileResult> {
+): AsyncGenerator<CompileEvent, CompileResult, void> {
+  yield { type: "compile-started" };
+
   const tracker = new CompilerPerformanceTracker(options.yamlPath);
   tracker.start();
 
@@ -73,6 +85,17 @@ export async function compile(
   } catch (err: unknown) {
     const errMsg = err instanceof Error ? err.message : String(err);
     console.error(`[Compiler Error] Failed to start agent: ${errMsg}`);
+    const result: CompileResult = {
+      success: false,
+      outputPath,
+      generatedCode: "",
+      pathsResolved: 0,
+    };
+    yield {
+      type: "compile-finished",
+      success: false,
+      result,
+    };
     throw new Error(`Failed to initialize agent client: ${errMsg}`);
   }
 
@@ -85,61 +108,70 @@ export async function compile(
 
   try {
     // Sequential recursive node compilation in correct path prefix context
-    async function compileNodeRecursively(
+    async function* compileNodeRecursively(
       nodeId: string,
       node: Task,
       prefixTasks: string[],
-    ): Promise<void> {
+    ): AsyncGenerator<CompileEvent, void, void> {
       if (generatedTasks.has(nodeId)) {
         return;
       }
 
-      if (node.graph) {
-        const innerTasks = node.graph.tasks;
-        const innerPaths = node.graph.paths;
-        const primaryPath = innerPaths[0]?.tasks || [];
+      yield { type: "node-started", nodeId, title: node.title };
 
-        let subPrefix = [...prefixTasks];
-        for (const subTask of primaryPath) {
-          await compileNodeRecursively(subTask.id, subTask, subPrefix);
-          subPrefix.push(subTask.id);
+      try {
+        if (node.graph) {
+          const innerTasks = node.graph.tasks;
+          const innerPaths = node.graph.paths;
+          const primaryPath = innerPaths[0]?.tasks || [];
+
+          let subPrefix = [...prefixTasks];
+          for (const subTask of primaryPath) {
+            yield* compileNodeRecursively(subTask.id, subTask, subPrefix);
+            subPrefix.push(subTask.id);
+          }
+
+          let executeBlock = `async (api: TestAPI) => {\n`;
+          executeBlock += `    // Sub-graph context: ${node.title}\n`;
+          for (const subTask of primaryPath) {
+            executeBlock += `    await tasks[${JSON.stringify(subTask.id)}](api);\n`;
+          }
+          executeBlock += `  }`;
+
+          generatedTasks.set(nodeId, {
+            code: executeBlock,
+            title: node.title,
+          });
+        } else {
+          const taskBody = await groundAndGenerateTask(
+            options.yamlPath,
+            nodeId,
+            node,
+            {
+              prefixTasks,
+              compiledTasksCache: generatedTasks,
+              session,
+              groundingSession,
+              tracker,
+            },
+          );
+
+          const formattedBody = taskBody
+            .split("\n")
+            .map((l) => `    ${l}`)
+            .join("\n");
+          const executeBlock = `async (api: TestAPI) => {\n${formattedBody}\n  }`;
+
+          generatedTasks.set(nodeId, {
+            code: executeBlock,
+            title: node.title,
+          });
         }
-
-        let executeBlock = `async (api: TestAPI) => {\n`;
-        executeBlock += `    // Sub-graph context: ${node.title}\n`;
-        for (const subTask of primaryPath) {
-          executeBlock += `    await tasks[${JSON.stringify(subTask.id)}](api);\n`;
-        }
-        executeBlock += `  }`;
-
-        generatedTasks.set(nodeId, {
-          code: executeBlock,
-          title: node.title,
-        });
-      } else {
-        const taskBody = await groundAndGenerateTask(
-          options.yamlPath,
-          nodeId,
-          node,
-          {
-            prefixTasks,
-            compiledTasksCache: generatedTasks,
-            session,
-            groundingSession,
-            tracker,
-          },
-        );
-
-        const formattedBody = taskBody
-          .split("\n")
-          .map((l) => `    ${l}`)
-          .join("\n");
-        const executeBlock = `async (api: TestAPI) => {\n${formattedBody}\n  }`;
-
-        generatedTasks.set(nodeId, {
-          code: executeBlock,
-          title: node.title,
-        });
+        yield { type: "node-succeeded", nodeId, title: node.title };
+      } catch (err: any) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        yield { type: "node-failed", nodeId, title: node.title, error: errMsg };
+        throw err;
       }
     }
 
@@ -147,7 +179,7 @@ export async function compile(
     for (const resolvedPath of fileDef.paths) {
       const prefix: string[] = [];
       for (const task of resolvedPath.tasks) {
-        await compileNodeRecursively(task.id, task, prefix);
+        yield* compileNodeRecursively(task.id, task, prefix);
         prefix.push(task.id);
       }
     }
@@ -187,13 +219,34 @@ export async function compile(
     const tracePath = outputPath.replace(".test.ts", ".trace.json");
     fs.writeFileSync(tracePath, JSON.stringify(trace, null, 2), "utf-8");
 
-    return {
+    const result: CompileResult = {
       success: true,
       outputPath,
       generatedCode: fileContent,
       pathsResolved: fileDef.paths.length,
       trace,
     };
+
+    yield {
+      type: "compile-finished",
+      success: true,
+      result,
+    };
+
+    return result;
+  } catch (err: any) {
+    const result: CompileResult = {
+      success: false,
+      outputPath,
+      generatedCode: "",
+      pathsResolved: 0,
+    };
+    yield {
+      type: "compile-finished",
+      success: false,
+      result,
+    };
+    throw err;
   } finally {
     // Make sure we close stateful session to prevent leaking processes!
     await groundingSession.close();
@@ -203,4 +256,23 @@ export async function compile(
       await client.close();
     }
   }
+}
+
+/**
+ * compile processes a single test definition file and compiles its tasks into executable TypeScript Playwright functions.
+ */
+export async function compile(
+  options: CompilerOptions,
+): Promise<CompileResult> {
+  const generator = compileProgress(options);
+  let result: CompileResult | undefined;
+  for await (const event of generator) {
+    if (event.type === "compile-finished") {
+      result = event.result;
+    }
+  }
+  if (!result) {
+    throw new Error("Compilation did not yield a finished event");
+  }
+  return result;
 }

@@ -24,6 +24,13 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
         );
         handlers.testRunEvent?.(params.params);
       },
+      compileProgressEvent: (params) => {
+        console.log(
+          "[RPC Client] Received compileProgressEvent notification:",
+          params.params,
+        );
+        handlers.compileProgressEvent?.(params.params);
+      },
       openSettings: () => {
         handlers.openSettings?.();
       },
@@ -61,6 +68,18 @@ type Handlers = {
     screenshotBase64?: string;
     visualCompare?: boolean;
     status?: string;
+  }) => void;
+  compileProgressEvent?: (params: {
+    yamlPath: string;
+    type:
+      | "compile-started"
+      | "node-started"
+      | "node-succeeded"
+      | "node-failed"
+      | "compile-finished";
+    nodeId?: string;
+    title?: string;
+    error?: string;
   }) => void;
   openSettings?: () => void;
   settingsChanged?: () => void;

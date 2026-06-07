@@ -45,8 +45,8 @@ export class TaskShape extends NodeShape {
       this.iconRow.addChild(g);
     };
 
-    // Execution state icon (success / failed / running)
-    if (state === "success") {
+    // Execution state icon (success / failed / running / compiled / compiling)
+    if (state === "success" || state === "compiled") {
       addIcon((g) => {
         g.moveTo(2, 5);
         g.lineTo(5, 8);
@@ -71,7 +71,7 @@ export class TaskShape extends NodeShape {
           cap: "round",
         });
       }, 1.0);
-    } else if (state === "running") {
+    } else if (state === "running" || state === "compiling") {
       // Small spinning arc — same 10×10 icon box as all other icons
       const spinnerIcon = new PIXI.Graphics();
       spinnerIcon.alpha = 1.0;
@@ -88,7 +88,8 @@ export class TaskShape extends NodeShape {
         angle += 0.08;
         spinnerIcon.clear();
         spinnerIcon.arc(cx, cy, r, angle, angle + ARC_SPAN);
-        spinnerIcon.stroke({ color: 0x3b82f6, width: 1.5, cap: "round" });
+        const color = state === "compiling" ? 0xf59e0b : 0x3b82f6;
+        spinnerIcon.stroke({ color, width: 1.5, cap: "round" });
       };
 
       ticker.add(tick);

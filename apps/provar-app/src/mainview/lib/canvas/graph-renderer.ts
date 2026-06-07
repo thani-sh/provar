@@ -208,10 +208,7 @@ export class GraphRenderer extends PIXI.Container {
     }
   }
 
-  private drawConnections(
-    graph: Graph,
-    taskStates: Record<string, "idle" | "running" | "success" | "failed">,
-  ) {
+  private drawConnections(graph: Graph, taskStates: Record<string, TaskState>) {
     this.linksContainer.removeChildren();
 
     const firstShape = this.taskShapes.get(graph.start);
