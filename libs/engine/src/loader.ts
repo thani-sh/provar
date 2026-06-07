@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import crypto from "crypto";
-import yaml from "js-yaml";
+import yaml from "yaml";
 import type {
   Task,
   Graph,
@@ -109,7 +109,7 @@ function buildTasksMap(rawNodes: Record<string, any>): Record<string, Task> {
 }
 
 export function parseTestFile(content: string, filePath: string): File {
-  const doc = yaml.load(content) as any;
+  const doc = yaml.parse(content) as any;
   if (!doc || typeof doc !== "object") {
     throw new Error(`Invalid test graph format in: ${filePath}`);
   }
@@ -175,7 +175,7 @@ export async function loadProject(
   const configPath = path.join(provarPath, "config.yml");
   if (fs.existsSync(configPath)) {
     const content = fs.readFileSync(configPath, "utf-8");
-    const doc = yaml.load(content) as any;
+    const doc = yaml.parse(content) as any;
     const resolved = resolveEnvVars(doc);
     variables = resolved.variables || {};
   }

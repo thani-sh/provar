@@ -11,6 +11,7 @@ import type { GroundingContext } from "../types";
 import type { Session, Attachment, Message } from "@libs/models";
 import type { CompilerPerformanceTracker } from "./tracker";
 import { launchBrowserSession, type BrowserSession } from "../browser";
+import { saveScreenshotToTmp } from "../screenshot";
 
 // Stateful grounding session to preserve browser state across tasks
 export class CompilerGroundingSession {
@@ -154,13 +155,7 @@ async function runGroundingSandbox(
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-
-          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
-          fs.mkdirSync(screenshotsDir, { recursive: true });
-          const fileName = `compile-${nodeId}-${Date.now()}.png`;
-          const filePath = path.join(screenshotsDir, fileName);
-          fs.writeFileSync(filePath, buf);
-          screenshot = filePath;
+          screenshot = saveScreenshotToTmp(buf, `compile-${nodeId}`);
         } catch (e) {}
         groundingContext = { pageContent, screenshot };
       } catch (e) {}
@@ -263,13 +258,7 @@ export async function groundAndGenerateTask(
         let screenshot: string | undefined;
         try {
           const buf = await page.screenshot({ type: "png" });
-
-          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
-          fs.mkdirSync(screenshotsDir, { recursive: true });
-          const fileName = `compile-${nodeId}-${Date.now()}.png`;
-          const filePath = path.join(screenshotsDir, fileName);
-          fs.writeFileSync(filePath, buf);
-          screenshot = filePath;
+          screenshot = saveScreenshotToTmp(buf, `compile-${nodeId}`);
         } catch (e) {}
         context = { pageContent, screenshot };
       }

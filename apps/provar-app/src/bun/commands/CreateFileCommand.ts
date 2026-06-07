@@ -4,6 +4,7 @@ import yaml from "yaml";
 import { z } from "zod";
 import { Command } from "./Command";
 import { getAbsPath } from "./utils";
+import { generateNodeId } from "../../shared/utils";
 
 export type CreateFileInput = {
   path: string;
@@ -32,14 +33,14 @@ export class CreateFileCommand extends Command<
   async execute(input: CreateFileInput): Promise<CreateFileOutput> {
     try {
       console.log(`[BUN] Creating file: ${input.path} (name: ${input.name})`);
-      const randomId = Math.random().toString(36).substring(2, 7);
+      const startTaskId = generateNodeId();
       const defaultContent = {
         name: input.name,
         graph: {
           info: "New test graph",
-          start: `task_${randomId}`,
+          start: startTaskId,
           nodes: {
-            [`task_${randomId}`]: {
+            [startTaskId]: {
               title: "Start Task",
               info: "Describe the first step here",
             },

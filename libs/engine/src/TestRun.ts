@@ -14,6 +14,7 @@ import type {
   ExecuteOptions,
 } from "./types";
 import { launchBrowserSession } from "./browser";
+import { saveScreenshotToTmp } from "./screenshot";
 
 export class PathRunner implements Runner {
   private state: RunnerState = {
@@ -225,19 +226,6 @@ export class PathRunner implements Runner {
           title: task.title,
         });
 
-        // Capture visual screenshot of the step for audit logs and AI grounding (always enabled by default)
-        try {
-          const buf = await page.screenshot({ type: "png" });
-          this.pushEvent({
-            type: "visual-comparison-triggered",
-            taskId: task.id,
-            screenshotBase64: buf.toString("base64"),
-            visualCompare: task.config?.visualCompare === true,
-          });
-        } catch (e) {
-          // Ignore screenshot capture/trigger failures
-        }
-
         // Execute dynamic task bindings
         try {
           const executableTask = task as Task & {
@@ -249,6 +237,20 @@ export class PathRunner implements Runner {
             );
           }
           await executableTask.execute(api);
+
+          // Capture visual screenshot of the step for audit logs and AI grounding (always enabled by default)
+          try {
+            const buf = await page.screenshot({ type: "png" });
+            this.pushEvent({
+              type: "visual-comparison-triggered",
+              taskId: task.id,
+              screenshotBase64: buf.toString("base64"),
+              visualCompare: task.config?.visualCompare === true,
+            });
+          } catch (e) {
+            // Ignore screenshot capture/trigger failures
+          }
+
           this.pushEvent({
             type: "task-finished",
             taskId: task.id,
@@ -279,13 +281,8 @@ export class PathRunner implements Runner {
         try {
           this.state.pageContent = await this.activePage.content();
           const buf = await this.activePage.screenshot({ type: "png" });
-
-          const screenshotsDir = path.join(os.tmpdir(), "provar-screenshots");
-          fs.mkdirSync(screenshotsDir, { recursive: true });
-          const fileName = `run-${Date.now()}-${crypto.randomUUID().slice(0, 8)}.png`;
-          const filePath = path.join(screenshotsDir, fileName);
-          fs.writeFileSync(filePath, buf);
-
+          const prefix = `run-${crypto.randomUUID().slice(0, 8)}`;
+          const filePath = saveScreenshotToTmp(buf, prefix);
           this.state.pageScreenshot = filePath;
         } catch (e) {
           // Ignore

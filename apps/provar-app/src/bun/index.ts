@@ -23,7 +23,6 @@ import {
 import { execute, compile, loadProject } from "@libs/engine";
 import * as fs from "fs";
 import * as path from "path";
-import crypto from "crypto";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -90,20 +89,9 @@ const runTestPath = async (params: {
   });
   try {
     // Check synchronization and compile if out of sync
-    const tsPath = absPath.replace(".test.yml", ".test.ts");
-    let needCompile = !fs.existsSync(tsPath);
-    if (!needCompile) {
-      const yamlContent = fs.readFileSync(absPath, "utf-8");
-      const yamlHash = crypto
-        .createHash("sha256")
-        .update(yamlContent)
-        .digest("hex");
-      const tsContent = fs.readFileSync(tsPath, "utf-8");
-      const match = tsContent.match(/^\/\/ hash: ([a-f0-9]+)/);
-      if (!match || match[1] !== yamlHash) {
-        needCompile = true;
-      }
-    }
+    let project = await loadProject(absPath);
+    const loadedFile = project.files.find((f) => f.path === absPath);
+    const needCompile = !loadedFile || !loadedFile.code || !loadedFile.code.valid;
 
     if (needCompile) {
       console.log(`[Auto-Compile] Compiling out of sync test: ${absPath}`);
@@ -116,9 +104,10 @@ const runTestPath = async (params: {
           "Auto-compilation failed. Please compile manually to check errors.",
         );
       }
+      // Reload the project after compilation to ensure file and code status are updated
+      project = await loadProject(absPath);
     }
 
-    const project = await loadProject(absPath);
     const execFile = await project.readFile(absPath);
 
     if (params.pathIndex < 0 || params.pathIndex >= execFile.paths.length) {
