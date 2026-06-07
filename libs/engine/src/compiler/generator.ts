@@ -1,43 +1,19 @@
 import * as fs from "fs";
-import * as path from "path";
-import vm from "node:vm";
-import os from "os";
 import type { Page } from "playwright";
-import type { Task, Path, Project, ExecutableTask } from "@libs/domain";
-import { loadProject, type ProjectLoader } from "../loader";
-import { execute, PathRunner } from "../test-run";
+import type { Task } from "@libs/domain";
+import { loadProject } from "../loader";
 import { expect } from "@playwright/test";
-import type { GroundingContext, TestAPI } from "../types";
-import type { Session, Attachment, Message } from "@libs/models";
+import type { Session, Attachment } from "@libs/models";
 import type { CompilerPerformanceTracker } from "./tracker";
-import { launchBrowserSession, type BrowserSession } from "../browser";
+import type { TestAPI, GroundingContext } from "../types";
+import {
+  CompilerGroundingSession,
+  compileCodeToFunction,
+  runGroundingSandbox,
+} from "./sandbox";
 import { saveScreenshotToTmp } from "../screenshot";
 
-/**
- * CompilerGroundingSession manages a stateful browser page session that persists across task generations.
- */
-export class CompilerGroundingSession {
-  private session: BrowserSession | null = null;
-  private headless: boolean = true;
-
-  constructor(headless: boolean = true) {
-    this.headless = headless;
-  }
-
-  async getPage(): Promise<Page> {
-    if (!this.session) {
-      this.session = await launchBrowserSession({ headless: this.headless });
-    }
-    return this.session.page;
-  }
-
-  async close(): Promise<void> {
-    if (this.session) {
-      await this.session.close();
-      this.session = null;
-    }
-  }
-}
+export { CompilerGroundingSession };
 
 /**
  * cleanCode strips markdown code blocks or backticks from generated code snippets.
@@ -49,142 +25,6 @@ export function cleanCode(code: string): string {
     cleaned = cleaned.replace(/\n```$/, "");
   }
   return cleaned.trim();
-}
-
-// Compiles a string of Javascript/TypeScript task function into an executable in-memory function
-function compileCodeToFunction(
-  codeStr: string,
-  tasksObj: Record<string, (api: TestAPI) => Promise<void>>,
-): (api: TestAPI) => Promise<void> {
-  let cleanCode = codeStr.replace(/\(api:\s*TestAPI\)/g, "(api)").trim();
-
-  const wrappedCode = `(${cleanCode})`;
-  const sandbox = {
-    console,
-    setTimeout,
-    clearTimeout,
-    setInterval,
-    clearInterval,
-    Promise,
-    Buffer,
-    tasks: tasksObj,
-  };
-  const context = vm.createContext(sandbox);
-  return vm.runInContext(wrappedCode, context) as (
-    api: TestAPI,
-  ) => Promise<void>;
-}
-
-// Spawns Playwright test execution on the prefix path to acquire grounding DOM and screenshot context
-async function runGroundingSandbox(
-  targetFilePath: string,
-  nodeId: string,
-  node: Task,
-  prefixNodeIds: string[],
-  currentCodeBody: string,
-  compiledTasksCache: Map<string, { code: string; title: string }>,
-  upToTaskId: string,
-  existingPage?: Page,
-): Promise<{ error: unknown; context: GroundingContext | null }> {
-  let executionError: unknown = null;
-  let groundingContext: GroundingContext | null = null;
-
-  try {
-    // Load project configuration variables
-    let variables: Record<string, unknown> = {};
-    let project: (Project & ProjectLoader) | null = null;
-    try {
-      project = await loadProject(targetFilePath);
-      variables =
-        (project.variables as unknown as Record<string, unknown>) || {};
-    } catch (e) {
-      // Ignore
-    }
-
-    // Build tasks mapping for sandbox context
-    const sandboxTasks: Record<string, (api: TestAPI) => Promise<void>> = {};
-    const allNodeIds = [...prefixNodeIds, nodeId];
-
-    // Compile prefix nodes in order
-    prefixNodeIds.forEach((pid) => {
-      const cached = compiledTasksCache.get(pid);
-      if (cached) {
-        sandboxTasks[pid] = compileCodeToFunction(cached.code, sandboxTasks);
-      }
-    });
-
-    // Compile the current target node code
-    const currentCodeWrapped = `async (api: TestAPI) => {\n${currentCodeBody}\n}`;
-    sandboxTasks[nodeId] = compileCodeToFunction(
-      currentCodeWrapped,
-      sandboxTasks,
-    );
-
-    // Construct linear in-memory execution Path
-    const tasksList: Task[] = allNodeIds.map((nid) => {
-      const t = nid === nodeId ? node : { title: "prefix", info: "" };
-      const executableTask: ExecutableTask<TestAPI> = {
-        id: nid,
-        title: t.title,
-        info: t.info || "",
-        next: [],
-        execute: sandboxTasks[nid]!,
-      };
-      return executableTask;
-    });
-
-    const primaryPath: Path = { tasks: tasksList };
-
-    const runner = await execute(primaryPath, {
-      upToTaskId,
-      headless: true,
-      variables,
-      existingPage,
-      provarPath: project ? project.path : undefined,
-    });
-
-    for await (const event of runner.events()) {
-      if (event.type === "task-failed" && event.taskId === upToTaskId) {
-        executionError = event.error;
-      }
-    }
-
-    const state = runner.getState();
-    const errors = state.errors.filter((e) => e.taskId === upToTaskId);
-    if (errors.length > 0) {
-      executionError = errors[0]?.error;
-    }
-
-    // Capture dynamic grounding context
-    const page =
-      existingPage ||
-      (runner as unknown as { activePage: Page | null }).activePage;
-    if (page) {
-      try {
-        const pageContent = await page.content();
-        let screenshot: string | undefined;
-        try {
-          const buf = await page.screenshot({ type: "png" });
-          screenshot = saveScreenshotToTmp(buf, `compile-${nodeId}`);
-        } catch (e) {}
-        groundingContext = { pageContent, screenshot };
-      } catch (e) {}
-    } else {
-      // Runner closed, fetch cached context from state nested fields
-      const pageContent = state.pageContent;
-      const screenshot = state.pageScreenshot;
-      if (pageContent || screenshot) {
-        groundingContext = { pageContent, screenshot };
-      }
-    }
-  } catch (err: unknown) {
-    executionError = err;
-  }
-
-  return {
-    error: executionError,
-    context: groundingContext,
-  };
 }
 
 /**
@@ -210,7 +50,7 @@ export async function groundAndGenerateTask(
 
   // Load project configuration variables
   let variables: Record<string, unknown> = {};
-  let project: (Project & ProjectLoader) | null = null;
+  let project: any = null;
   try {
     project = await loadProject(targetFilePath);
     variables = (project.variables as unknown as Record<string, unknown>) || {};
