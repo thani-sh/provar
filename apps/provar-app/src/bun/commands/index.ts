@@ -1,22 +1,22 @@
-export * from "./Command";
-export * from "./GetConfigCommand";
-export * from "./SaveConfigCommand";
-export * from "./ReadFileCommand";
-export * from "./WriteFileCommand";
-export * from "./CreateFileCommand";
-export * from "./CreateDirectoryCommand";
-export * from "./DeletePathCommand";
-export * from "./ListFilesCommand";
+export * from "./command";
+export * from "./get-config-command";
+export * from "./save-config-command";
+export * from "./read-file-command";
+export * from "./write-file-command";
+export * from "./create-file-command";
+export * from "./create-directory-command";
+export * from "./delete-path-command";
+export * from "./list-files-command";
 
-import type { CommandContext } from "./Command";
-import { GetConfigCommand } from "./GetConfigCommand";
-import { SaveConfigCommand } from "./SaveConfigCommand";
-import { ReadFileCommand } from "./ReadFileCommand";
-import { WriteFileCommand } from "./WriteFileCommand";
-import { CreateFileCommand } from "./CreateFileCommand";
-import { CreateDirectoryCommand } from "./CreateDirectoryCommand";
-import { DeletePathCommand } from "./DeletePathCommand";
-import { ListFilesCommand } from "./ListFilesCommand";
+import type { CommandContext } from "./command";
+import { GetConfigCommand } from "./get-config-command";
+import { SaveConfigCommand } from "./save-config-command";
+import { ReadFileCommand } from "./read-file-command";
+import { WriteFileCommand } from "./write-file-command";
+import { CreateFileCommand } from "./create-file-command";
+import { CreateDirectoryCommand } from "./create-directory-command";
+import { DeletePathCommand } from "./delete-path-command";
+import { ListFilesCommand } from "./list-files-command";
 
 export function createCommands(context: CommandContext) {
   return {

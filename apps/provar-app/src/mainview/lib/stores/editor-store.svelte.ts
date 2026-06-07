@@ -8,9 +8,12 @@ import {
 import type { TestFile, TestNode } from "@libs/domain/zod";
 import { enumeratePaths } from "../../../shared/utils";
 import type { TaskState } from "../canvas/constants";
-import { workspaceStore } from "./WorkspaceStore.svelte";
-import { uiStore } from "./UIStore.svelte";
+import { workspaceStore } from "./workspace-store.svelte";
+import { uiStore } from "./ui-store.svelte";
 
+/**
+ * EditorStore manages the active file, code generation status, and test execution runner.
+ */
 class EditorStore {
   currentFile = $state<TestFile | null>(null);
   selectedFilePath = $state<string | null>(null);
@@ -178,8 +181,11 @@ class EditorStore {
     });
   }
 
-  async compileCurrentTest() {
-    if (!this.selectedFilePath) return;
+  /**
+   * compileCurrentTest triggers background TS/Playwright compilation for the active file.
+   */
+  async compileCurrentTest(): Promise<boolean> {
+    if (!this.selectedFilePath) return false;
     this.isCompiling = true;
     try {
       const res = await ProvarAPI.compileTest(this.selectedFilePath);
@@ -196,7 +202,10 @@ class EditorStore {
   }
 
   /** runAllPaths runs every path in the file sequentially, accumulating results. */
-  async runAllPaths() {
+  /**
+   * runAllPaths runs every path in the file sequentially, accumulating results.
+   */
+  async runAllPaths(): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     if (!this.currentFile?.code?.valid) {
       alert(
@@ -213,6 +222,9 @@ class EditorStore {
   }
 
   /** runPath runs a single path by its index and resolves when execution finishes. */
+  /**
+   * runPath runs a single path by its index and resolves when execution finishes.
+   */
   async runPath(pathIndex: number): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     if (!this.currentFile?.code?.valid) {
@@ -224,7 +236,7 @@ class EditorStore {
     this.currentPathIndex = pathIndex;
     this.isRunning = true;
 
-    return new Promise(async (resolve) => {
+    return new Promise<void>(async (resolve) => {
       // Store resolve so the run-finished RPC event can unblock the caller.
       this.runFinishedResolve = resolve;
 
@@ -251,6 +263,9 @@ class EditorStore {
   }
 
   /** runPathUpTo runs a path stopping execution at the given task node. */
+  /**
+   * runPathUpTo runs a path stopping execution at the given task node.
+   */
   async runPathUpTo(pathIndex: number, upToTaskId: string): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     if (!this.currentFile?.code?.valid) {
@@ -262,7 +277,7 @@ class EditorStore {
     this.currentPathIndex = pathIndex;
     this.isRunning = true;
 
-    return new Promise(async (resolve) => {
+    return new Promise<void>(async (resolve) => {
       this.runFinishedResolve = resolve;
 
       try {
@@ -288,11 +303,17 @@ class EditorStore {
   }
 
   /** clearRunStates removes all per-path execution results from the display. */
-  clearRunStates() {
+  /**
+   * clearRunStates removes all per-path execution results from the display.
+   */
+  clearRunStates(): void {
     this.taskPathStates = {};
   }
 
-  async loadScreenshotsForNode(nodeId: string) {
+  /**
+   * loadScreenshotsForNode retrieves baseline and current screenshot assets for a node.
+   */
+  async loadScreenshotsForNode(nodeId: string): Promise<void> {
     if (!this.selectedFilePath) return;
     try {
       const res = await ProvarAPI.getScreenshots(
@@ -309,7 +330,10 @@ class EditorStore {
     }
   }
 
-  async acceptVisualStateForNode(nodeId: string) {
+  /**
+   * acceptVisualStateForNode promotes the current screenshot of a node to baseline.
+   */
+  async acceptVisualStateForNode(nodeId: string): Promise<void> {
     if (!this.selectedFilePath) return;
     try {
       const res = await ProvarAPI.acceptVisualState(
@@ -327,7 +351,10 @@ class EditorStore {
     }
   }
 
-  async loadFile(path: string) {
+  /**
+   * loadFile reads the test file contents and updates the workspace editor state.
+   */
+  async loadFile(path: string): Promise<void> {
     this.selectedFilePath = path;
     const res = await ProvarAPI.readFile(path);
     this.currentFile = res.content;
@@ -341,18 +368,27 @@ class EditorStore {
     }
   }
 
-  async closeFile() {
+  /**
+   * closeFile closes the current active test file in the editor workspace.
+   */
+  async closeFile(): Promise<void> {
     this.selectedFilePath = null;
     this.currentFile = null;
     this.selectedNodeId = null;
   }
 
-  async saveFile() {
+  /**
+   * saveFile serializes the active test file graph and updates the disk storage.
+   */
+  async saveFile(): Promise<void> {
     if (!this.selectedFilePath || !this.currentFile) return;
     await ProvarAPI.writeFile(this.selectedFilePath, this.currentFile);
   }
 
-  async addNode(fromId: string | null, toId: string | null) {
+  /**
+   * addNode appends a new task node between fromId and toId in the test file.
+   */
+  async addNode(fromId: string | null, toId: string | null): Promise<void> {
     if (!this.currentFile) return;
     const { file, newNodeId } = addNodeToGraph(
       $state.snapshot(this.currentFile),
@@ -364,7 +400,10 @@ class EditorStore {
     await this.saveFile();
   }
 
-  async updateNode(id: string, updates: Partial<TestNode>) {
+  /**
+   * updateNode merges updates into the specified task node state.
+   */
+  async updateNode(id: string, updates: Partial<TestNode>): Promise<void> {
     if (!this.currentFile) return;
     this.currentFile = updateNodeInGraph(
       $state.snapshot(this.currentFile),
@@ -374,7 +413,10 @@ class EditorStore {
     await this.saveFile();
   }
 
-  async deleteNode(id: string) {
+  /**
+   * deleteNode removes a node and all of its descendant execution branches.
+   */
+  async deleteNode(id: string): Promise<void> {
     if (!this.currentFile) return;
     const file = this.currentFile;
 
@@ -389,7 +431,10 @@ class EditorStore {
     );
   }
 
-  async createFile(dir: string, name: string) {
+  /**
+   * createFile creates a new test graph file under the specified workspace subdirectory.
+   */
+  async createFile(dir: string, name: string): Promise<void> {
     const path = `${dir}/${name}.test.yml`;
     const res = await ProvarAPI.createFile(path, name);
     if (res.success) {
@@ -398,14 +443,20 @@ class EditorStore {
     }
   }
 
-  async createDirectory(path: string) {
+  /**
+   * createDirectory creates a new directory folder in the workspace.
+   */
+  async createDirectory(path: string): Promise<void> {
     const res = await ProvarAPI.createDirectory(path);
     if (res.success) {
       await workspaceStore.refreshFiles();
     }
   }
 
-  async deletePath(path: string) {
+  /**
+   * deletePath deletes a directory or test file path from disk.
+   */
+  async deletePath(path: string): Promise<void> {
     console.log("[EditorStore] deletePath called with:", path);
     const isFolder = !path.endsWith(".yml");
     const typeLabel = path.endsWith(".test.yml") ? "test" : "folder";
@@ -431,4 +482,7 @@ class EditorStore {
   }
 }
 
+/**
+ * editorStore is the shared reactive state instance of EditorStore.
+ */
 export const editorStore = new EditorStore();

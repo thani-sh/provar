@@ -12,22 +12,22 @@
     RefreshCw,
   } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
-  import { workspaceStore } from "./lib/stores/WorkspaceStore.svelte";
-  import { editorStore } from "./lib/stores/EditorStore.svelte";
-  import { uiStore } from "./lib/stores/UIStore.svelte";
+  import { workspaceStore } from "./lib/stores/workspace-store.svelte";
+  import { editorStore } from "./lib/stores/editor-store.svelte";
+  import { uiStore } from "./lib/stores/ui-store.svelte";
   import { registerRPCHandlers } from "./lib/api/rpc";
 
   import AssistantPanel, {
     type AssistantMessage,
-  } from "./lib/components/feature/AssistantPanel.svelte";
+  } from "./lib/components/feature/assistant-panel.svelte";
   import Canvas from "./lib/components/feature/Canvas.svelte";
-  import ConfigModal from "./lib/components/ui/ConfigModal.svelte";
-  import ConfigPanel from "./lib/components/feature/ConfigPanel.svelte";
-  import InputModal from "./lib/components/ui/InputModal.svelte";
-  import NodeSidePanel from "./lib/components/feature/NodeSidePanel.svelte";
-  import TestExplorer from "./lib/components/feature/TestExplorer.svelte";
-  import ConfirmModal from "./lib/components/ui/ConfirmModal.svelte";
-  import SettingsModal from "./lib/components/ui/SettingsModal.svelte";
+  import ConfigModal from "./lib/components/ui/config-modal.svelte";
+  import ConfigPanel from "./lib/components/feature/config-panel.svelte";
+  import InputModal from "./lib/components/ui/input-modal.svelte";
+  import NodeSidePanel from "./lib/components/feature/node-side-panel.svelte";
+  import TestExplorer from "./lib/components/feature/test-explorer.svelte";
+  import ConfirmModal from "./lib/components/ui/confirm-modal.svelte";
+  import SettingsModal from "./lib/components/ui/settings-modal.svelte";
 
   // Assistant State (keeping local as it's view-specific and transient)
   let assistantMessages = $state<AssistantMessage[]>([]);

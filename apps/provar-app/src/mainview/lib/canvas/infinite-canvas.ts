@@ -1,9 +1,12 @@
 import * as PIXI from "pixi.js";
 import type { TestFile } from "@libs/domain/zod";
-import { GraphRenderer } from "./GraphRenderer";
+import { GraphRenderer } from "./graph-renderer";
 import { LAYOUT, COLOURS, type TaskState } from "./constants";
-import { Viewport } from "./Viewport";
+import { Viewport } from "./viewport";
 
+/**
+ * InfiniteCanvas controls the underlying PIXI application viewport and tiling background.
+ */
 export class InfiniteCanvas {
   private app: PIXI.Application | null = null;
   private container: HTMLElement | null = null;

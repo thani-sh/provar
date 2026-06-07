@@ -8,7 +8,7 @@
     Play,
     ArrowRightToLine,
   } from "lucide-svelte";
-  import { editorStore } from "../../stores/EditorStore.svelte";
+  import { editorStore } from "../../stores/editor-store.svelte";
 
   let {
     node,

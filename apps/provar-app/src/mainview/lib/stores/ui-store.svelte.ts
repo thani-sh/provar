@@ -1,5 +1,8 @@
-import { editorStore } from "./EditorStore.svelte";
+import { editorStore } from "./editor-store.svelte";
 
+/**
+ * UIStore manages the visibility state of panels, sidebars, modals, and window layouts.
+ */
 class UIStore {
   isSidebarOpen = $state(true);
   isRightSidebarOpen = $state(false);
@@ -24,7 +27,14 @@ class UIStore {
     onConfirm: () => {},
   });
 
-  openConfirmModal(title: string, message: string, onConfirm: () => void) {
+  /**
+   * openConfirmModal triggers the global confirmation dialog with the given message.
+   */
+  openConfirmModal(
+    title: string,
+    message: string,
+    onConfirm: () => void,
+  ): void {
     this.confirmModalProps = {
       title,
       message,
@@ -33,7 +43,10 @@ class UIStore {
     this.isConfirmModalOpen = true;
   }
 
-  openInputModal(type: "file" | "folder", parentPath: string) {
+  /**
+   * openInputModal triggers the file or directory creation input modal.
+   */
+  openInputModal(type: "file" | "folder", parentPath: string): void {
     this.inputModalProps = {
       type,
       parentPath,
@@ -44,11 +57,17 @@ class UIStore {
     this.isInputModalOpen = true;
   }
 
-  toggleSidebar() {
+  /**
+   * toggleSidebar opens or closes the primary explorer sidebar.
+   */
+  toggleSidebar(): void {
     this.isSidebarOpen = !this.isSidebarOpen;
   }
 
-  toggleRightSidebar() {
+  /**
+   * toggleRightSidebar displays or hides the utility side panel.
+   */
+  toggleRightSidebar(): void {
     this.isRightSidebarOpen = !this.isRightSidebarOpen;
     if (this.isRightSidebarOpen) {
       this.restoreLastSidebar();
@@ -58,7 +77,10 @@ class UIStore {
     }
   }
 
-  restoreLastSidebar() {
+  /**
+   * restoreLastSidebar restores the active tab configuration of the side panel.
+   */
+  restoreLastSidebar(): void {
     if (this.lastOpenSidebar === "assistant") {
       this.isAssistantPanelOpen = true;
       this.isConfigPanelOpen = false;
@@ -71,7 +93,6 @@ class UIStore {
         this.isAssistantPanelOpen = false;
         this.isConfigPanelOpen = false;
       } else {
-        // Fallback to config
         this.lastOpenSidebar = "config";
         this.isConfigPanelOpen = true;
         this.isAssistantPanelOpen = false;
@@ -79,7 +100,10 @@ class UIStore {
     }
   }
 
-  toggleAssistant() {
+  /**
+   * toggleAssistant opens or closes the AI Assistant tab.
+   */
+  toggleAssistant(): void {
     if (this.isAssistantPanelOpen) {
       this.isAssistantPanelOpen = false;
     } else {
@@ -89,7 +113,10 @@ class UIStore {
     }
   }
 
-  toggleConfig() {
+  /**
+   * toggleConfig opens or closes the configuration settings tab.
+   */
+  toggleConfig(): void {
     if (this.isConfigPanelOpen) {
       this.isConfigPanelOpen = false;
     } else {
@@ -99,10 +126,16 @@ class UIStore {
     }
   }
 
-  closeAllPanels() {
+  /**
+   * closeAllPanels closes all active slide-over panels.
+   */
+  closeAllPanels(): void {
     this.isAssistantPanelOpen = false;
     this.isConfigPanelOpen = false;
   }
 }
 
+/**
+ * uiStore is the shared reactive state instance of UIStore.
+ */
 export const uiStore = new UIStore();

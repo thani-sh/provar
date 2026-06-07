@@ -10,7 +10,11 @@ import type {
   AgentClientConfig,
 } from "../types";
 
-function mapAttachment(a: Attachment) {
+type MappedAttachment =
+  | { type: "text"; text: string }
+  | { type: "image"; image: Buffer; mimeType: string };
+
+function mapAttachment(a: Attachment): MappedAttachment {
   if (a.type === "text") {
     return { type: "text" as const, text: a.text };
   }
@@ -57,13 +61,13 @@ export class AISDKSession implements Session {
         this.messages.push({
           role: msg.role as "user" | "assistant" | "system",
           content: msg.content,
-        });
+        } as unknown as ModelMessage);
       } else {
         const contentParts = msg.content.map(mapAttachment);
         this.messages.push({
           role: msg.role as "user" | "assistant" | "system",
-          content: contentParts as any,
-        });
+          content: contentParts as unknown as string,
+        } as unknown as ModelMessage);
       }
     }
 

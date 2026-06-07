@@ -13,7 +13,7 @@ export interface CommandInterface {
 /**
  * convertCommandToTool converts a CommandInterface instance into a compatible AI SDK Tool.
  */
-export function convertCommandToTool(command: CommandInterface) {
+export function convertCommandToTool(command: CommandInterface): unknown {
   return tool({
     description: command.description,
     inputSchema: command.inputSchema as any,

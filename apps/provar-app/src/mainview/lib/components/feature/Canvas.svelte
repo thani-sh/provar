@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import type { TestFile } from "@libs/domain/zod";
-  import { InfiniteCanvas } from "../../canvas/InfiniteCanvas";
-  import { editorStore } from "../../stores/EditorStore.svelte";
+  import { InfiniteCanvas } from "../../canvas/infinite-canvas";
+  import { editorStore } from "../../stores/editor-store.svelte";
 
   interface Props {
     testFile: TestFile;

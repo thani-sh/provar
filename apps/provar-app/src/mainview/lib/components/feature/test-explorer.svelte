@@ -7,8 +7,8 @@
     Settings,
     Sparkles,
   } from "lucide-svelte";
-  import { editorStore } from "../../stores/EditorStore.svelte";
-  import { uiStore } from "../../stores/UIStore.svelte";
+  import { editorStore } from "../../stores/editor-store.svelte";
+  import { uiStore } from "../../stores/ui-store.svelte";
 
   let {
     files = [],

@@ -89,7 +89,7 @@ export async function compile(
       nodeId: string,
       node: Task,
       prefixTasks: string[],
-    ) {
+    ): Promise<void> {
       if (generatedTasks.has(nodeId)) {
         return;
       }

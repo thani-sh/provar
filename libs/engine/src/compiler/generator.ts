@@ -31,7 +31,7 @@ export class CompilerGroundingSession {
     return this.session.page;
   }
 
-  async close() {
+  async close(): Promise<void> {
     if (this.session) {
       await this.session.close();
       this.session = null;

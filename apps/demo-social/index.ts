@@ -317,14 +317,13 @@ const server = Bun.serve({
 
           const post = store.addPost(userId, text);
           return Response.json(post);
-        } catch (err: any) {
-          return new Response(
-            JSON.stringify({ error: err.message || "Failed to create post" }),
-            {
-              status: 400,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
+        } catch (err: unknown) {
+          const errMsg =
+            err instanceof Error ? err.message : "Failed to create post";
+          return new Response(JSON.stringify({ error: errMsg }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
         }
       },
     },

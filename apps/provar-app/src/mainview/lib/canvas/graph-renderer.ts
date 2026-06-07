@@ -1,12 +1,15 @@
 import * as PIXI from "pixi.js";
 import type { TestFile, TestFileGraph as Graph } from "@libs/domain/zod";
-import { TaskShape } from "./TaskShape";
-import { StartShape } from "./StartShape";
-import { EndShape } from "./EndShape";
-import { ConnectorShape } from "./ConnectorShape";
+import { TaskShape } from "./task-shape";
+import { StartShape } from "./start-shape";
+import { EndShape } from "./end-shape";
+import { ConnectorShape } from "./connector-shape";
 import { GRAPH_START_ID, LAYOUT, CONNECTOR, type TaskState } from "./constants";
 import { getNextNodes } from "../../../shared/utils";
 
+/**
+ * GraphRenderer compiles the test task definitions into visual PIXI containers and aligns positions.
+ */
 export class GraphRenderer extends PIXI.Container {
   private readonly taskShapes = new Map<string, TaskShape>();
   private readonly endShapes = new Map<string, EndShape>();

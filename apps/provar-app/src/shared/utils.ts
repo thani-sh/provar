@@ -1,7 +1,7 @@
 import type { TestNode, TestFileGraph } from "@libs/domain/zod";
 
 /**
- * Normalises the `next` field of a test node into a consistent array form.
+ * getNextNodes normalises the `next` field of a test node into a consistent array form.
  */
 export function getNextNodes(node: Pick<TestNode, "next">): string[] {
   if (!node.next) return [];
@@ -38,7 +38,7 @@ export function enumeratePaths(graph: TestFileGraph): string[][] {
 }
 
 /**
- * Generates a unique node ID in the format task_[a-z0-9]{5}.
+ * generateNodeId generates a unique node ID in the format task_[a-z0-9]{5}.
  */
 export function generateNodeId(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
@@ -49,10 +49,13 @@ export function generateNodeId(): string {
   return `task_${result}`;
 }
 
+/**
+ * CodeStatus represents the code generation status of a node.
+ */
 export type CodeStatus = "upToDate" | "outdated" | "notGenerated";
 
 /**
- * Derives the code-generation status of a node.
+ * getCodeStatus derives the code-generation status of a node.
  */
 export function getCodeStatus(
   node: Pick<TestNode, "hasGeneratedCode" | "isUpToDate">,

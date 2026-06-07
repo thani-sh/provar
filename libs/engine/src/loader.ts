@@ -57,7 +57,7 @@ export function buildGraphPaths(
     currentNodeId: string,
     currentPath: Task[],
     visited: Set<string>,
-  ) {
+  ): void {
     if (visited.has(currentNodeId)) {
       paths.push({ tasks: [...currentPath] });
       return;
@@ -213,7 +213,7 @@ export async function loadProject(
   const testsPath = path.join(provarPath, "tests");
   const files: File[] = [];
 
-  function scan(dir: string) {
+  function scan(dir: string): void {
     if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {

@@ -42,39 +42,39 @@ export class CompilerPerformanceTracker {
 
   constructor(private target: string) {}
 
-  start() {
+  start(): void {
     this.startTime = performance.now();
   }
 
-  end() {
+  end(): void {
     this.endTime = performance.now();
   }
 
-  startSetup() {
+  startSetup(): void {
     this.setupStartTime = performance.now();
   }
 
-  endSetup() {
+  endSetup(): void {
     this.setupEndTime = performance.now();
   }
 
-  startParse() {
+  startParse(): void {
     this.parseStartTime = performance.now();
   }
 
-  endParse() {
+  endParse(): void {
     this.parseEndTime = performance.now();
   }
 
-  startWrite() {
+  startWrite(): void {
     this.writeStartTime = performance.now();
   }
 
-  endWrite() {
+  endWrite(): void {
     this.writeEndTime = performance.now();
   }
 
-  recordTiming(key: string, durationMs: number) {
+  recordTiming(key: string, durationMs: number): void {
     if (!this.totalTimings[key]) {
       this.totalTimings[key] = [];
     }
@@ -85,7 +85,7 @@ export class CompilerPerformanceTracker {
     id: string,
     title: string,
     mode: TaskTelemetry["mode"] = "STATEFUL",
-  ) {
+  ): void {
     this.tasks.set(id, {
       id,
       title,
@@ -101,14 +101,14 @@ export class CompilerPerformanceTracker {
     return performance.now();
   }
 
-  endTaskTimer(id: string, startTime: number) {
+  endTaskTimer(id: string, startTime: number): void {
     const task = this.tasks.get(id);
     if (task) {
       task.durationMs += performance.now() - startTime;
     }
   }
 
-  recordTaskTiming(id: string, key: string, durationMs: number) {
+  recordTaskTiming(id: string, key: string, durationMs: number): void {
     const task = this.tasks.get(id);
     if (task) {
       if (!task.timings[key]) {
@@ -119,21 +119,21 @@ export class CompilerPerformanceTracker {
     }
   }
 
-  recordTaskRetry(id: string) {
+  recordTaskRetry(id: string): void {
     const task = this.tasks.get(id);
     if (task) {
       task.retryCount++;
     }
   }
 
-  setTaskStatus(id: string, status: TaskTelemetry["status"]) {
+  setTaskStatus(id: string, status: TaskTelemetry["status"]): void {
     const task = this.tasks.get(id);
     if (task) {
       task.status = status;
     }
   }
 
-  setTaskMode(id: string, mode: TaskTelemetry["mode"]) {
+  setTaskMode(id: string, mode: TaskTelemetry["mode"]): void {
     const task = this.tasks.get(id);
     if (task) {
       task.mode = mode;

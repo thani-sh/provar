@@ -1,5 +1,8 @@
 import { join, isAbsolute, relative, resolve } from "path";
 
+/**
+ * getAbsPath resolves a path string relative to the workspace directory and validates security constraints.
+ */
 export const getAbsPath = (workspaceDir: string, pathStr: string): string => {
   if (!workspaceDir) {
     throw new Error("Workspace directory is not set");

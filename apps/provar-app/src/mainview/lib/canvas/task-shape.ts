@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { NodeShape } from "./NodeShape";
+import { NodeShape } from "./node-shape";
 import { COLOURS, LAYOUT, type TaskState } from "./constants";
 import type { TestNode } from "@libs/domain/zod";
 

@@ -1,6 +1,9 @@
 import { Electroview } from "electrobun/view";
 import type { ProvarRPCSchema } from "../../../shared/rpc";
 
+/**
+ * rpc is the WebView RPC instance defining how incoming messaging callbacks are handled.
+ */
 export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
@@ -31,6 +34,9 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
   },
 });
 
+/**
+ * electroview is the core webview context wrapper.
+ */
 export const electroview = new Electroview({ rpc });
 
 type Handlers = {
@@ -62,6 +68,9 @@ type Handlers = {
 
 const handlers: Handlers = {};
 
-export function registerRPCHandlers(newHandlers: Handlers) {
+/**
+ * registerRPCHandlers registers reactive handlers for notifications incoming from the Bun process.
+ */
+export function registerRPCHandlers(newHandlers: Handlers): void {
   Object.assign(handlers, newHandlers);
 }

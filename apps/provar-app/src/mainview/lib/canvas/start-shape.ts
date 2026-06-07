@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { NodeShape } from "./NodeShape";
+import { NodeShape } from "./node-shape";
 import { GRAPH_START_ID, type TaskState } from "./constants";
 
 export class StartShape extends NodeShape {

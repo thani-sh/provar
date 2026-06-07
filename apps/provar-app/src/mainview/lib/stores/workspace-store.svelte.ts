@@ -2,6 +2,9 @@ import { ProvarAPI } from "../api/provar";
 import { registerRPCHandlers } from "../api/rpc";
 import type { ProvarConfig } from "@libs/domain/zod";
 
+/**
+ * WorkspaceStore manages the path, config, and file list of the current active test workspace.
+ */
 class WorkspaceStore {
   path = $state<string | null>(null);
   config = $state<ProvarConfig | null>(null);
@@ -20,7 +23,10 @@ class WorkspaceStore {
     });
   }
 
-  async initialize() {
+  /**
+   * initialize retrieves the workspace path and configurations from the backend.
+   */
+  async initialize(): Promise<void> {
     try {
       const workspaceRes = await ProvarAPI.getWorkspace();
       const configRes = await ProvarAPI.getConfig();
@@ -41,13 +47,19 @@ class WorkspaceStore {
     }
   }
 
-  async refreshFiles() {
+  /**
+   * refreshFiles fetches the list of available test files in the workspace.
+   */
+  async refreshFiles(): Promise<void> {
     if (!this.path) return;
     const res = await ProvarAPI.listFiles();
     this.tests = res.tests;
   }
 
-  async saveConfig(newConfig: ProvarConfig) {
+  /**
+   * saveConfig stores the updated workspace variables and config on disk.
+   */
+  async saveConfig(newConfig: ProvarConfig): Promise<boolean> {
     const res = await ProvarAPI.saveConfig(newConfig);
     if (res.success) {
       this.config = newConfig;
@@ -58,4 +70,7 @@ class WorkspaceStore {
   }
 }
 
+/**
+ * workspaceStore is the shared reactive state instance of WorkspaceStore.
+ */
 export const workspaceStore = new WorkspaceStore();

@@ -1,3 +1,6 @@
+/**
+ * User represents a microblogging user profile.
+ */
 export interface User {
   id: string;
   username: string;
@@ -6,6 +9,9 @@ export interface User {
   bio: string;
 }
 
+/**
+ * Post represents a 100-character-limit microblog post created by a user.
+ */
 export interface Post {
   id: string;
   userId: string;
@@ -16,11 +22,30 @@ export interface Post {
   likes: string[]; // array of user IDs
 }
 
+/**
+ * Follow represents a follower/followee relationship between two users.
+ */
 export interface Follow {
   followerId: string;
   followeeId: string;
 }
 
+/**
+ * UserWithStats represents a user profile loaded with follow statistics.
+ */
+export interface UserWithStats {
+  id: string;
+  username: string;
+  displayName: string;
+  bio: string;
+  followersCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+}
+
+/**
+ * Store manages the in-memory data tables for profiles, posts, follows, and session tokens.
+ */
 class Store {
   users: User[] = [];
   posts: Post[] = [];
@@ -94,7 +119,7 @@ class Store {
     this.sessions.delete(token);
   }
 
-  getUsers(currentUserId?: string) {
+  getUsers(currentUserId?: string): UserWithStats[] {
     // Return all users with follow stats, except optionally the current user
     return this.users.map((u) => {
       const followers = this.follows.filter(
@@ -201,4 +226,7 @@ class Store {
   }
 }
 
+/**
+ * store is the singleton database instance.
+ */
 export const store = new Store();

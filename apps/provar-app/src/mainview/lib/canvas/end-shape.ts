@@ -1,4 +1,4 @@
-import { NodeShape } from "./NodeShape";
+import { NodeShape } from "./node-shape";
 import { COLOURS, type TaskState } from "./constants";
 
 export class EndShape extends NodeShape {

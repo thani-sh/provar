@@ -1,6 +1,9 @@
 import type { TestFile, TestNode } from "@libs/domain/zod";
 import { generateNodeId } from "../../../shared/utils";
 
+/**
+ * addNodeToGraph creates a new task node and splices it into the test file graph.
+ */
 export function addNodeToGraph(
   file: TestFile,
   fromId: string | null,
@@ -40,6 +43,9 @@ export function addNodeToGraph(
   return { file: newFile, newNodeId };
 }
 
+/**
+ * updateNodeInGraph updates the properties of a task node in the test file.
+ */
 export function updateNodeInGraph(
   file: TestFile,
   id: string,
@@ -55,11 +61,14 @@ export function updateNodeInGraph(
   return newFile;
 }
 
+/**
+ * deleteNodeFromGraph deletes a task node and recursively deletes all downstream nodes.
+ */
 export function deleteNodeFromGraph(file: TestFile, id: string): TestFile {
   const newFile = structuredClone(file);
   const idsToDelete = new Set<string>();
 
-  function collectIds(nodeId: string) {
+  function collectIds(nodeId: string): void {
     if (idsToDelete.has(nodeId)) return;
     idsToDelete.add(nodeId);
     const node = newFile.graph.nodes[nodeId];

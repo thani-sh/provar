@@ -2,6 +2,9 @@ import { type RPCSchema } from "electrobun/types";
 import type { TestFile, ProvarConfig } from "@libs/domain/zod";
 import type { Settings } from "@libs/config";
 
+/**
+ * ProvarRPCSchema defines the type schema for bidirectional RPC communication between Bun and WebView.
+ */
 export type ProvarRPCSchema = {
   bun: RPCSchema<{
     requests: {
