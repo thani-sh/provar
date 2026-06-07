@@ -1,9 +1,9 @@
 ---
-name: documentation
+name: writing
 description: Describes how to write ADRs, PDRs, READMEs, etc.
 ---
 
-# Documentation Guide
+# Writing & Documentation Guide
 
 This skill provides guidelines and templates for maintaining consistent and high-quality documentation across the Provar codebase. Use the templates below to structure new documentation.
 
@@ -18,13 +18,13 @@ This skill provides guidelines and templates for maintaining consistent and high
 
 Every package in the `libs/` directory should have a concise `README.md` at its root explaining what the library does, its key features, installation instructions, and basic TypeScript usage.
 
-- Template file: [shared-library-readme-template.md](./resources/shared-library-readme-template.md)
+- Template file: [readme-lib-template.md](./resources/readme-lib-template.md)
 
 ### 2. Application READMEs
 
 Every application in the `apps/` or `demo/` directory should have a `README.md` introducing the app, explaining its primary features, and providing clear setup instructions.
 
-- Template file: [application-readme-template.md](./resources/application-readme-template.md)
+- Template file: [readme-app-template.md](./resources/readme-app-template.md)
 
 ### 3. Architecture Decision Records (ADRs)
 
