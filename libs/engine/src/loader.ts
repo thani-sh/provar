@@ -11,7 +11,7 @@ import type {
   ExecutableTask,
   ExecutableFile,
 } from "@libs/domain";
-import { schemaForLoadedFile } from "@libs/domain/zod";
+import { schemaForLoadedFileMeta } from "@libs/domain/zod";
 import type { TestAPI } from "./types";
 
 /**
@@ -179,7 +179,21 @@ export function parseTestFile(content: string, filePath: string): File {
     code = { valid };
   }
 
-  const fileData = {
+  // The full `schemaForLoadedFile` would deep-clone the tasks map (Zod
+  // parsing is destructive — see BUG-4), breaking the identity contract
+  // between `tasks[id]` and the `Task` objects referenced from
+  // `paths[*].tasks[*]`. Instead, validate the top-level scalar fields
+  // with a focused schema and assemble the File manually. This keeps
+  // `paths[*].tasks[*] === tasks[id]` true.
+  schemaForLoadedFileMeta.parse({
+    name,
+    path: filePath,
+    info,
+    start,
+    code,
+  });
+
+  return {
     name,
     path: filePath,
     info,
@@ -188,8 +202,6 @@ export function parseTestFile(content: string, filePath: string): File {
     paths,
     code,
   };
-
-  return schemaForLoadedFile.parse(fileData);
 }
 
 /**
@@ -286,16 +298,10 @@ export async function loadProject(
         (task as ExecutableTask<TestAPI>).execute = execFn;
       }
 
-      // Explicitly bind execute function to tasks inside resolved paths too
-      // (Zod parsing clones objects so they need separate bindings).
-      for (const resolvedPath of baseFile.paths) {
-        for (const task of resolvedPath.tasks) {
-          const execFn = compiledTasks[task.id];
-          if (execFn) {
-            (task as ExecutableTask<TestAPI>).execute = execFn;
-          }
-        }
-      }
+      // `baseFile.tasks` and `baseFile.paths[*].tasks[*]` share the same
+      // Task objects (see BUG-4), so binding the execute function in the
+      // loop above is enough — paths pick it up automatically. The
+      // historical "rebind" loop is no longer required.
 
       return {
         ...baseFile,

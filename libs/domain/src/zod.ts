@@ -159,6 +159,21 @@ export const schemaForLoadedFile: z.ZodType<File, any, any> = z.lazy(() =>
 );
 
 /**
+ * schemaForLoadedFileMeta validates only the scalar top-level fields of a
+ * runtime File (name, path, info, start, code). The full schema clones its
+ * input, which breaks the identity contract between `tasks` and the
+ * `Task` objects held by `paths[*].tasks[*]` (see BUG-4). Use this when
+ * you need a strict shape check without sacrificing object identity.
+ */
+export const schemaForLoadedFileMeta = z.object({
+  name: z.string(),
+  path: z.string(),
+  info: z.string(),
+  start: z.string(),
+  code: z.object({ valid: z.boolean() }).nullable().optional(),
+});
+
+/**
  * schemaForPath is the Zod schema validating runtime loaded Path objects.
  */
 export const schemaForPath: z.ZodType<Path, any, any> = z.lazy(() =>
