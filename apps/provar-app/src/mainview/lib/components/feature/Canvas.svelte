@@ -5,7 +5,7 @@
   import { editorStore } from "../../stores/editor-store.svelte";
 
   interface Props {
-    testFile: TestFile;
+    testFile: TestFile | null;
     selectedNodeId: string | null;
     onAddNode?: (fromId: string | null, toId: string | null) => void;
   }
@@ -33,12 +33,15 @@
   });
 
   $effect(() => {
-    if (testFile && infiniteCanvas) {
+    if (!infiniteCanvas) return;
+    if (testFile) {
       infiniteCanvas.renderGraph(
         testFile,
         editorStore.taskStates,
         editorStore.runningPathNodeIds,
       );
+    } else {
+      infiniteCanvas.clearGraph();
     }
   });
 

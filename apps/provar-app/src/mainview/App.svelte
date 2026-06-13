@@ -442,16 +442,19 @@
           </button>
         </div>
       </div>
-    {:else if editorStore.currentFile}
+    {:else}
       <Canvas
         testFile={editorStore.currentFile}
         bind:selectedNodeId={editorStore.selectedNodeId}
         onAddNode={(from, to) => editorStore.addNode(from, to)}
       />
-    {:else}
-      <div class="flex h-full items-center justify-center text-zinc-500">
-        <p>Select a test to begin</p>
-      </div>
+      {#if !editorStore.currentFile}
+        <div
+          class="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500"
+        >
+          <p>Select a test to begin</p>
+        </div>
+      {/if}
     {/if}
   </div>
 
