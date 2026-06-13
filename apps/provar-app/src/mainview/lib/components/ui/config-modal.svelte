@@ -24,7 +24,7 @@
         Initialize Project
       </h2>
       <p class="mb-8 text-sm text-zinc-400">
-        This workspace doesn't have a Provar configuration yet. Click below to
+        This project doesn't have a Provar configuration yet. Click below to
         initialize it and get started.
       </p>
 

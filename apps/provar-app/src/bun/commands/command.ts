@@ -1,10 +1,10 @@
 import { z } from "zod";
 
 /**
- * CommandContext provides context information (like workspace directory) for running editor commands.
+ * CommandContext provides context information (like project directory) for running editor commands.
  */
 export interface CommandContext {
-  workspaceDir: string;
+  projectDir: string;
 }
 
 /**

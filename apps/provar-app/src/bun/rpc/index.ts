@@ -4,10 +4,10 @@ import { type ProvarRPCSchema } from "../../shared/rpc";
 import { acceptVisualState } from "./handlers/accept-visual-state";
 import { getScreenshots } from "./handlers/get-screenshots";
 import {
-  openWorkspace,
-  selectWorkspace,
-  getWorkspace,
-} from "./handlers/workspace-handlers";
+  openProject,
+  selectProject,
+  getProject,
+} from "./handlers/project-handlers";
 import {
   getSettings,
   saveSettings,
@@ -35,10 +35,10 @@ export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
     requests: {
       getSettings,
       saveSettings,
-      openWorkspace,
-      selectWorkspace,
+      openProject,
+      selectProject,
       getConfig,
-      getWorkspace,
+      getProject,
       saveConfig,
       listFiles,
       readFile,

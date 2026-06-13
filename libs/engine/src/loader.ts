@@ -226,7 +226,7 @@ export async function loadProject(
 
   if (!provarPath) {
     throw new Error(
-      `Could not find a '.provar' workspace directory at or above: ${projectPath}`,
+      `Could not find a '.provar' project directory at or above: ${projectPath}`,
     );
   }
 

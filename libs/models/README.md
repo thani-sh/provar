@@ -41,7 +41,7 @@ await client.close();
 
 ### 2. Exposing Commands as AI Tools
 
-Expose workspace commands to the agent:
+Expose project commands to the agent:
 
 ```typescript
 import { createClient, convertCommandsToTools } from "@libs/models";

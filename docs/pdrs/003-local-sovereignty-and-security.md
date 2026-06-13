@@ -6,7 +6,7 @@ Enterprise users are often concerned about data privacy and security when using 
 
 ## Decision
 
-All test data, visual graphs, and generated code will remain **locally in the team's workspace** (Git-native). AI is used for creation/maintenance, but execution is local/CI-based.
+All test data, visual graphs, and generated code will remain **locally in the team's project** (Git-native). AI is used for creation/maintenance, but execution is local/CI-based.
 
 ## Consequences
 

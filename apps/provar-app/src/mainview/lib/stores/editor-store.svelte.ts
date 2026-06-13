@@ -7,7 +7,7 @@ import {
 import type { TestFile, TestNode } from "@libs/domain/zod";
 import { enumeratePaths } from "../../../shared/utils";
 import type { TaskState } from "../canvas/constants";
-import { workspaceStore } from "./workspace-store.svelte";
+import { projectStore } from "./project-store.svelte";
 import { uiStore } from "./ui-store.svelte";
 
 /**
@@ -358,7 +358,7 @@ class EditorStore {
   }
 
   /**
-   * loadFile reads the test file contents and updates the workspace editor state.
+   * loadFile reads the test file contents and updates the project editor state.
    */
   async loadFile(path: string): Promise<void> {
     this.selectedFilePath = path;
@@ -376,7 +376,7 @@ class EditorStore {
   }
 
   /**
-   * closeFile closes the current active test file in the editor workspace.
+   * closeFile closes the current active test file in the editor project.
    */
   async closeFile(): Promise<void> {
     this.selectedFilePath = null;
@@ -439,24 +439,24 @@ class EditorStore {
   }
 
   /**
-   * createFile creates a new test graph file under the specified workspace subdirectory.
+   * createFile creates a new test graph file under the specified project subdirectory.
    */
   async createFile(dir: string, name: string): Promise<void> {
     const path = `${dir}/${name}.test.yml`;
     const res = await ProvarAPI.createFile(path, name);
     if (res.success) {
-      await workspaceStore.refreshFiles();
+      await projectStore.refreshFiles();
       await this.loadFile(path);
     }
   }
 
   /**
-   * createDirectory creates a new directory folder in the workspace.
+   * createDirectory creates a new directory folder in the project.
    */
   async createDirectory(path: string): Promise<void> {
     const res = await ProvarAPI.createDirectory(path);
     if (res.success) {
-      await workspaceStore.refreshFiles();
+      await projectStore.refreshFiles();
     }
   }
 
@@ -482,7 +482,7 @@ class EditorStore {
           ) {
             this.closeFile();
           }
-          await workspaceStore.refreshFiles();
+          await projectStore.refreshFiles();
         }
       },
     );

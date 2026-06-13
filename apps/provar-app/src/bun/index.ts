@@ -1,22 +1,22 @@
 import Electrobun from "electrobun/bun";
-import { onWorkspaceChanged, WORKSPACE_DIR } from "./utils";
+import { onProjectChanged, PROJECT_DIR } from "./utils";
 import { createMainWindow } from "./window/main-window";
 import {
   updateApplicationMenu,
   registerMenuClickListener,
 } from "./window/menu";
-import { openWorkspace } from "./rpc/handlers/workspace-handlers";
+import { openProject } from "./rpc/handlers/project-handlers";
 import { provarRPC } from "./rpc";
 
 // Boot up Electrobun window
 const mainWindow = await createMainWindow();
 
-onWorkspaceChanged(() => {
-  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.workspaceChanged({ params: {} });
+onProjectChanged(() => {
+  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.projectChanged({ params: {} });
 });
 
-if (WORKSPACE_DIR) {
-  await openWorkspace({ path: WORKSPACE_DIR });
+if (PROJECT_DIR) {
+  await openProject({ path: PROJECT_DIR });
 } else {
   updateApplicationMenu();
 }

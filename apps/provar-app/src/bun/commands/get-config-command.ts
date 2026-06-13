@@ -14,7 +14,7 @@ export class GetConfigCommand extends Command<GetConfigInput, GetConfigOutput> {
   readonly name = "getConfig";
   readonly title = "Get Configuration";
   readonly description =
-    "Reads the Provar configuration file from the workspace.";
+    "Reads the Provar configuration file from the project.";
   readonly inputSchema = z.object({});
   readonly outputSchema = z.object({
     config: configSchema.nullable(),
@@ -22,7 +22,7 @@ export class GetConfigCommand extends Command<GetConfigInput, GetConfigOutput> {
 
   async execute(): Promise<GetConfigOutput> {
     try {
-      const configPath = getAbsPath(this.context.workspaceDir, CONFIG_FILE);
+      const configPath = getAbsPath(this.context.projectDir, CONFIG_FILE);
       await access(configPath);
       const content = await readFile(configPath, "utf-8");
       const parsed = yaml.parse(content);

@@ -16,7 +16,7 @@ export const PROVAR_DIR = ".provar";
 export const TESTS_DIR = `${PROVAR_DIR}/tests`;
 
 /**
- * CONFIG_FILE is the configuration file path for the Provar workspace.
+ * CONFIG_FILE is the configuration file path for the Provar project.
  */
 export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
 

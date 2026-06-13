@@ -48,7 +48,7 @@ export class CreateFileCommand extends Command<
         },
       };
       const yamlContent = yaml.stringify(defaultContent);
-      const fullPath = getAbsPath(this.context.workspaceDir, input.path);
+      const fullPath = getAbsPath(this.context.projectDir, input.path);
       console.log(`[BUN] Full path: ${fullPath}`);
       await mkdir(dirname(fullPath), { recursive: true });
       await writeFile(fullPath, yamlContent, "utf-8");

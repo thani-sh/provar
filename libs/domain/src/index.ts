@@ -45,7 +45,7 @@ export interface Path {
 }
 
 /**
- * Project represents a loaded Provar workspace containing workspace variables and test files.
+ * Project represents a loaded Provar project containing project variables and test files.
  */
 export interface Project {
   path: string;

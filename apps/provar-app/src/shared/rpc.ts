@@ -23,11 +23,11 @@ export type ProvarRPCSchema = {
         params: { settings: Partial<Settings> };
         response: { settings: Settings };
       };
-      openWorkspace: {
+      openProject: {
         params: { path: string };
         response: { success: boolean };
       };
-      selectWorkspace: {
+      selectProject: {
         params: {};
         response: { success: boolean; path?: string };
       };
@@ -35,7 +35,7 @@ export type ProvarRPCSchema = {
         params: {};
         response: { config: ProvarConfig | null };
       };
-      getWorkspace: {
+      getProject: {
         params: {};
         response: { path: string };
       };
@@ -82,10 +82,10 @@ export type ProvarRPCSchema = {
   }>;
   webview: RPCSchema<{
     messages: {
-      workspaceSelected: {
+      projectOpened: {
         params: { path: string };
       };
-      workspaceChanged: {
+      projectChanged: {
         params: {};
       };
       openSettings: {

@@ -67,10 +67,10 @@ export const settingsSchema = z.object({
       "google-generative-ai": { apiKey: "", model: "gemini-1.5-flash" },
     },
   }),
-  recentWorkspaces: z.array(z.string()).default([]),
+  recentProjects: z.array(z.string()).default([]),
 });
 
 /**
- * Settings represents the complete top-level user and workspace settings structure.
+ * Settings represents the complete top-level user and project settings structure.
  */
 export type Settings = z.infer<typeof settingsSchema>;

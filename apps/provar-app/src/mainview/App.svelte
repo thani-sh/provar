@@ -12,7 +12,7 @@
     RefreshCw,
   } from "lucide-svelte";
   import { ProvarAPI } from "./lib/api/provar";
-  import { workspaceStore } from "./lib/stores/workspace-store.svelte";
+  import { projectStore } from "./lib/stores/project-store.svelte";
   import { editorStore } from "./lib/stores/editor-store.svelte";
   import { uiStore } from "./lib/stores/ui-store.svelte";
   import { registerRPCHandlers } from "./lib/api/rpc";
@@ -34,15 +34,15 @@
   let assistantBusy = $state(false);
   let activeAssistantMsgId = $state<string | null>(null);
 
-  let recentWorkspaces = $state<string[]>([]);
+  let recentProjects = $state<string[]>([]);
   let homeDir = $state("");
   let runMenuOpen = $state(false);
 
   $effect(() => {
-    if (!workspaceStore.path) {
+    if (!projectStore.path) {
       ProvarAPI.getSettings()
         .then((res) => {
-          recentWorkspaces = res.settings.recentWorkspaces || [];
+          recentProjects = res.settings.recentProjects || [];
           homeDir = res.home || "";
         })
         .catch((err) => {
@@ -52,7 +52,7 @@
   });
 
   onMount(() => {
-    workspaceStore.initialize();
+    projectStore.initialize();
 
     registerRPCHandlers({
       openSettings: () => {
@@ -61,7 +61,7 @@
       settingsChanged: () => {
         ProvarAPI.getSettings()
           .then((res) => {
-            recentWorkspaces = res.settings.recentWorkspaces || [];
+            recentProjects = res.settings.recentProjects || [];
             homeDir = res.home || "";
           })
           .catch((err) => {
@@ -74,7 +74,7 @@
     });
 
     const refreshInterval = setInterval(() => {
-      workspaceStore.refreshFiles();
+      projectStore.refreshFiles();
     }, 30000);
 
     return () => clearInterval(refreshInterval);
@@ -209,7 +209,7 @@
   <div
     class="electrobun-webkit-app-region-drag absolute top-0 right-0 left-0 z-40 h-[28px]"
   >
-    {#if workspaceStore.path}
+    {#if projectStore.path}
       <button
         onclick={() => uiStore.toggleSidebar()}
         class="electrobun-webkit-app-region-no-drag pointer-events-auto absolute top-[2px] left-[65px] flex h-6 w-6 items-center justify-center text-zinc-300 opacity-60 transition-opacity hover:opacity-100 focus:outline-none"
@@ -395,23 +395,23 @@
     role="button"
     tabindex="-1"
   >
-    {#if !workspaceStore.path}
+    {#if !projectStore.path}
       <div
         class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
       >
         <div class="flex w-full max-w-sm flex-col items-center">
-          {#if recentWorkspaces.length > 0}
+          {#if recentProjects.length > 0}
             <h3
               class="mb-3 text-xs font-semibold tracking-wider text-zinc-600 uppercase"
             >
-              Recent Workspaces
+              Recent Projects
             </h3>
             <ul class="mb-3 w-full space-y-2">
-              {#each recentWorkspaces as path}
+              {#each recentProjects as path}
                 <li>
                   <button
                     onclick={async () => {
-                      await ProvarAPI.openWorkspace({ path });
+                      await ProvarAPI.openProject({ path });
                     }}
                     class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
                     title={path}
@@ -434,11 +434,11 @@
 
           <button
             onclick={async () => {
-              await ProvarAPI.selectWorkspace();
+              await ProvarAPI.selectProject();
             }}
             class="w-full rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-3.5 text-center text-xs font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
           >
-            Open workspace folder...
+            Open project...
           </button>
         </div>
       </div>
@@ -458,9 +458,9 @@
     {/if}
   </div>
 
-  {#if workspaceStore.path}
+  {#if projectStore.path}
     <TestExplorer
-      files={workspaceStore.tests}
+      files={projectStore.tests}
       selectedFile={editorStore.selectedFilePath}
       onSelect={(path) => editorStore.loadFile(path)}
       onCreateFile={(parent) => uiStore.openInputModal("file", parent)}
@@ -492,8 +492,8 @@
     >
       {#if uiStore.isConfigPanelOpen}
         <ConfigPanel
-          config={workspaceStore.config}
-          onSave={(cfg) => workspaceStore.saveConfig(cfg)}
+          config={projectStore.config}
+          onSave={(cfg) => projectStore.saveConfig(cfg)}
         />
       {:else if editorStore.selectedNode && editorStore.selectedNodeId}
         <NodeSidePanel
@@ -515,8 +515,8 @@
   />
 
   <ConfigModal
-    show={workspaceStore.isConfigModalOpen}
-    onConfirm={(cfg) => workspaceStore.saveConfig(cfg)}
+    show={projectStore.isConfigModalOpen}
+    onConfirm={(cfg) => projectStore.saveConfig(cfg)}
   />
 
   <ConfirmModal

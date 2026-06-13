@@ -1,0 +1,68 @@
+import { Utils } from "electrobun/bun";
+import { setProjectDir, PROJECT_DIR } from "../../utils";
+import { loadSettings, saveSettings } from "../../lib/settings";
+import { getMainWindow } from "../../window/window-registry";
+import { provarRPC } from "../../rpc";
+
+let updateMenuCallback: (() => void) | null = null;
+export function registerUpdateMenuCallback(cb: () => void) {
+  updateMenuCallback = cb;
+}
+
+/**
+ * openProject changes the active project directory, updates settings, and updates the application menu.
+ */
+export async function openProject(params: { path: string }) {
+  const { path: projectPath } = params;
+  if (!projectPath) return { success: false };
+
+  setProjectDir(projectPath);
+  const mainWindow = getMainWindow();
+  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.projectOpened({
+    params: { path: projectPath },
+  });
+
+  try {
+    const settings = loadSettings();
+    const recents = settings.recentProjects || [];
+    const updatedRecents = [
+      projectPath,
+      ...recents.filter((p) => p !== projectPath),
+    ].slice(0, 3);
+
+    saveSettings({
+      recentProjects: updatedRecents,
+    });
+
+    if (updateMenuCallback) {
+      updateMenuCallback();
+    }
+  } catch (e) {
+    console.error("Failed to update recent projects settings:", e);
+  }
+
+  return { success: true };
+}
+
+export const selectProject = async () => {
+  console.log("[RPC Server] selectProject request");
+  const chosenPaths = await Utils.openFileDialog({
+    canChooseFiles: false,
+    canChooseDirectory: true,
+    allowsMultipleSelection: false,
+  });
+
+  if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
+    const newProject = chosenPaths[0];
+    await openProject({ path: newProject });
+    return { success: true, path: newProject };
+  }
+  return { success: false };
+};
+
+export const getProject = async () => {
+  console.log("[RPC Server] getProject request");
+  const res = { path: PROJECT_DIR };
+  console.log("[RPC Server] getProject response:", res);
+  return res;
+};

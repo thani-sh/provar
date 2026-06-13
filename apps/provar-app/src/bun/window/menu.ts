@@ -3,13 +3,13 @@ import { loadSettings, saveSettings } from "../lib/settings";
 import { getMainWindow } from "./window-registry";
 import { provarRPC } from "../rpc";
 import {
-  openWorkspace,
+  openProject,
   registerUpdateMenuCallback,
-} from "../rpc/handlers/workspace-handlers";
+} from "../rpc/handlers/project-handlers";
 
 export function updateApplicationMenu() {
   const settings = loadSettings();
-  const recents = settings.recentWorkspaces || [];
+  const recents = settings.recentProjects || [];
   const homeDir = Utils.paths.home;
 
   const recentItems = recents.map((p) => {
@@ -22,7 +22,7 @@ export function updateApplicationMenu() {
 
   if (recentItems.length === 0) {
     recentItems.push({
-      label: "No Recent Workspaces",
+      label: "No Recent Projects",
       action: "no-recents",
       enabled: false,
     } as any);
@@ -79,19 +79,19 @@ export function registerMenuClickListener() {
       });
 
       if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
-        const newWorkspace = chosenPaths[0];
-        await openWorkspace({ path: newWorkspace });
+        const newProject = chosenPaths[0];
+        await openProject({ path: newProject });
       }
     } else if (e.data.action.startsWith("open-recent:")) {
       const path = e.data.action.substring("open-recent:".length);
-      await openWorkspace({ path });
+      await openProject({ path });
     } else if (e.data.action === "clear-recents") {
       try {
-        saveSettings({ recentWorkspaces: [] });
+        saveSettings({ recentProjects: [] });
         updateApplicationMenu();
         (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.settingsChanged({ params: {} });
       } catch (e) {
-        console.error("Failed to clear recent workspaces settings:", e);
+        console.error("Failed to clear recent projects settings:", e);
       }
     }
   });

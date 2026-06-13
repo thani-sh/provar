@@ -10,13 +10,13 @@ import {
   type Message,
 } from "@libs/models";
 import { createCommands } from "../commands";
-import { WORKSPACE_DIR, getAbsPath } from "../utils";
+import { PROJECT_DIR, getAbsPath } from "../utils";
 import { getAgentConfig } from "./context";
 import { compileProgress, execute, loadProject } from "@libs/engine";
 import * as path from "path";
 import * as fs from "fs";
 
-const getCommands = () => createCommands({ workspaceDir: WORKSPACE_DIR });
+const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
 
 export function registerStreams() {
   // 1. Assist Editor Stream
@@ -174,7 +174,7 @@ export function registerStreams() {
           });
 
           // Handle runner events
-          const testsDir = path.join(WORKSPACE_DIR, ".provar", "tests");
+          const testsDir = path.join(PROJECT_DIR, ".provar", "tests");
           const relativePath = path
             .relative(testsDir, absPath)
             .replace(".test.yml", "");
@@ -195,7 +195,7 @@ export function registerStreams() {
                     const taskId = event.taskId.replace(/^task_/, "");
 
                     const currentDir = path.join(
-                      WORKSPACE_DIR,
+                      PROJECT_DIR,
                       ".provar",
                       "screenshots",
                       "current",

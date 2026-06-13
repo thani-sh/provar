@@ -64,12 +64,12 @@ export async function* compileProgress(
   const outputPath =
     options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
 
-  // Load project to determine workspace root directory
+  // Load project to determine project root directory
   tracker.startSetup();
-  let workspaceDir = process.cwd();
+  let projectDir = process.cwd();
   try {
     const project = await loadProject(options.yamlPath);
-    workspaceDir = path.dirname(project.path);
+    projectDir = path.dirname(project.path);
   } catch (err) {
     // Ignore
   }

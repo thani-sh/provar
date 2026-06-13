@@ -27,7 +27,7 @@ export class WriteFileCommand extends Command<WriteFileInput, WriteFileOutput> {
   });
 
   async execute(input: WriteFileInput): Promise<WriteFileOutput> {
-    const fullPath = getAbsPath(this.context.workspaceDir, input.path);
+    const fullPath = getAbsPath(this.context.projectDir, input.path);
     const yamlContent = yaml.stringify(input.content);
     await mkdir(dirname(fullPath), { recursive: true });
     await writeFile(fullPath, yamlContent, "utf-8");

@@ -9,11 +9,11 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
     messages: {
-      workspaceSelected: (params) => {
-        handlers.workspaceSelected?.(params.params.path);
+      projectOpened: (params) => {
+        handlers.projectOpened?.(params.params.path);
       },
-      workspaceChanged: () => {
-        handlers.workspaceChanged?.();
+      projectChanged: () => {
+        handlers.projectChanged?.();
       },
       openSettings: () => {
         handlers.openSettings?.();
@@ -35,8 +35,8 @@ export const electroview = new Electroview({ rpc });
 SteamBun.bind(electroview);
 
 type Handlers = {
-  workspaceSelected?: (path: string) => void;
-  workspaceChanged?: () => void;
+  projectOpened?: (path: string) => void;
+  projectChanged?: () => void;
   openSettings?: () => void;
   settingsChanged?: () => void;
 };

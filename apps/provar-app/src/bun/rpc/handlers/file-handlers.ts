@@ -1,7 +1,7 @@
 import { createCommands } from "../../commands";
-import { WORKSPACE_DIR, triggerWorkspaceChanged } from "../../utils";
+import { PROJECT_DIR, triggerProjectChanged } from "../../utils";
 
-const getCommands = () => createCommands({ workspaceDir: WORKSPACE_DIR });
+const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
 
 export const listFiles = async () => {
   console.log("[RPC Server] listFiles request");
@@ -21,7 +21,7 @@ export const writeFile = async (params: { path: string; content: any }) => {
   console.log("[RPC Server] writeFile request:", params);
   const res = await getCommands().writeFile.execute(params);
   console.log("[RPC Server] writeFile response:", res);
-  triggerWorkspaceChanged();
+  triggerProjectChanged();
   return res;
 };
 
@@ -29,7 +29,7 @@ export const createFile = async (params: { path: string; name: string }) => {
   console.log("[RPC Server] createFile request:", params);
   const res = await getCommands().createFile.execute(params);
   console.log("[RPC Server] createFile response:", res);
-  triggerWorkspaceChanged();
+  triggerProjectChanged();
   return res;
 };
 
@@ -37,7 +37,7 @@ export const createDirectory = async (params: { path: string }) => {
   console.log("[RPC Server] createDirectory request:", params);
   const res = await getCommands().createDirectory.execute(params);
   console.log("[RPC Server] createDirectory response:", res);
-  triggerWorkspaceChanged();
+  triggerProjectChanged();
   return res;
 };
 
@@ -45,6 +45,6 @@ export const deletePath = async (params: { path: string }) => {
   console.log("[RPC Server] deletePath request:", params);
   const res = await getCommands().deletePath.execute(params);
   console.log("[RPC Server] deletePath response:", res);
-  triggerWorkspaceChanged();
+  triggerProjectChanged();
   return res;
 };

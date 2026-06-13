@@ -63,10 +63,10 @@ The foundational layer of the codebase defining data models and validation.
 ### `@libs/config`
 Global application configuration store on the user's system.
 * **Responsibilities:**
-  - Define the Zod schema and TypeScript types for global user settings (e.g., LLM provider API keys, recent workspaces list).
+  - Define the Zod schema and TypeScript types for global user settings (e.g., LLM provider API keys, recent projects list).
   - Handle loading and saving user settings to the persistent global path (`~/.provar/settings.json`).
 * **Constraints:**
-  - **MUST NOT** manage individual project workspace settings or variables (which belongs to `@libs/domain` / `@libs/engine`).
+  - **MUST NOT** manage individual project settings or variables (which belongs to `@libs/domain` / `@libs/engine`).
   - **MUST NOT** import from other `@libs/*` packages except `@libs/domain` (if global schemas require domain references).
   - **MUST NOT** initiate LLM connections or sessions directly (delegated to `@libs/models`).
 
@@ -98,8 +98,8 @@ Unified loading, compilation, and browser execution engine.
 * **Constraints:**
   - **MUST NOT** import or depend on `@libs/config`. It must receive required LLM client/configurations from the application layer.
   - **MUST NOT** contain any desktop UI/Svelte views or Electron-specific code.
-  - **MUST NOT** save, delete, or modify workspace files (except for temporary runtime outputs like screenshots, and generating compiled `.test.ts` / `.trace.json` files).
-  - **MUST NOT** modify workspace files or folders outside of the compilation/execution context (delegated to the application's commands module).
+  - **MUST NOT** save, delete, or modify project files (except for temporary runtime outputs like screenshots, and generating compiled `.test.ts` / `.trace.json` files).
+  - **MUST NOT** modify project files or folders outside of the compilation/execution context (delegated to the application's commands module).
 
 ---
 
@@ -108,10 +108,10 @@ Unified loading, compilation, and browser execution engine.
 ### `apps/provar-app`
 The main desktop user interface.
 * **Responsibilities:**
-  - Render the visual workspace editor, settings panels, and runner execution graphs (Svelte).
+  - Render the visual project editor, settings panels, and runner execution graphs (Svelte).
   - Implement the desktop environment (Electrobun), menus, dialogs, and main process IPC bindings.
   - Connect user interactions (run buttons, editor saves, settings updates) to the underlying `@libs/*` APIs.
-  - Implement a uniform Command Pattern (`Command`, `CommandContext`) under `src/bun/commands/` for workspace manipulation, filesystem mutations, and configuration updates with directory traversal protection.
+  - Implement a uniform Command Pattern (`Command`, `CommandContext`) under `src/bun/commands/` for project manipulation, filesystem mutations, and configuration updates with directory traversal protection.
   - Stream running execution events back to the UI.
 * **Constraints:**
   - **MUST NOT** implement loading, compilation, or execution logic directly (delegated to `@libs/engine`).
@@ -132,4 +132,4 @@ Command-line runner tool.
 
 - **Clear Boundaries:** Developers and agents can quickly determine where to write new logic based on whether it concerns domain schemas, filesystem actions, execution, compilation, or LLMs.
 - **Modularity:** Prevents circular dependency loops and ensures that libraries can be easily tested and reused in CLI or automated server pipelines without UI overhead.
-- **Secure filesystem mutations:** All changes to workspaces must pass through the app's encapsulated commands module, ensuring strict bounds-checking and preventing arbitrary filesystem writes.
+- **Secure filesystem mutations:** All changes to projects must pass through the app's encapsulated commands module, ensuring strict bounds-checking and preventing arbitrary filesystem writes.

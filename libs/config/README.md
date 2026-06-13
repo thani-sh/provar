@@ -8,7 +8,7 @@ Settings are stored at `~/.provar/settings.json`. The directory is created autom
 
 ## Key Features
 
-- **Global Config Schema:** Zod-backed validation for user settings, LLM provider API credentials, and recent workspaces.
+- **Global Config Schema:** Zod-backed validation for user settings, LLM provider API credentials, and recent projects.
 - **Persistent Storage:** Simple file-system reading and deep-merging updates.
 - **Architectural Boundary:** Strictly consumed by the application layer (`apps/provar-app` and `apps/provar-cli`) to read settings. It is never directly imported by lower-level libraries like `@libs/models` or `@libs/engine`.
 
@@ -23,7 +23,7 @@ console.log(settings.models.defaultProvider); // "google-generative-ai"
 
 // Write (deep merge with current values)
 saveSettings({
-  recentWorkspaces: ["/Users/user/Projects/my-provar-workspace"],
+  recentProjects: ["/Users/user/Projects/my-provar-project"],
 });
 ```
 
@@ -38,4 +38,4 @@ saveSettings({
 | `models.providers.openai.baseUrl` | `string` | `""` |
 | `models.providers["google-generative-ai"].apiKey` | `string` | `""` |
 | `models.providers["google-generative-ai"].model` | `string` | `"gemini-1.5-flash"` |
-| `recentWorkspaces` | `string[]` | `[]` |
+| `recentProjects` | `string[]` | `[]` |

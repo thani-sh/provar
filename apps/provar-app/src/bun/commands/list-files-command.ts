@@ -25,7 +25,7 @@ export class ListFilesCommand extends Command<ListFilesInput, ListFilesOutput> {
 
     const scan = async (dir: string, extension: string, results: string[]) => {
       try {
-        const fullAbsPath = getAbsPath(this.context.workspaceDir, dir);
+        const fullAbsPath = getAbsPath(this.context.projectDir, dir);
         const entries = await readdir(fullAbsPath, { withFileTypes: true });
         for (const entry of entries) {
           const relativePath = join(dir, entry.name);

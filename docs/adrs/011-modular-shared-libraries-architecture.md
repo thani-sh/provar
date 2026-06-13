@@ -2,7 +2,7 @@
 
 ## Context
 
-As the Provar codebase matures, the responsibilities of test definition, code compilation, workspace loading, and test execution must be decoupled. Mixing execution dependencies with compilation output or hardcoding runtime library wrappers into compiled files makes it difficult to maintain and scale. We need a well-defined, modular architecture with clear library boundaries to support different agent providers, strict domain validation, dynamic file loading, and precise run execution control.
+As the Provar codebase matures, the responsibilities of test definition, code compilation, project loading, and test execution must be decoupled. Mixing execution dependencies with compilation output or hardcoding runtime library wrappers into compiled files makes it difficult to maintain and scale. We need a well-defined, modular architecture with clear library boundaries to support different agent providers, strict domain validation, dynamic file loading, and precise run execution control.
 
 ## Decision
 
@@ -14,7 +14,7 @@ The codebase is split into the following specialized packages:
 
 - **`@libs/models`**: Handles client orchestration. It defines a protocol-agnostic client factory (`createClient`) and standard interfaces (`Client`, `Session`, `Attachment`) to communicate with provider models.
 - **`@libs/domain`**: Establishes core data structures and graph models (`Project`, `Graph`, `File`, `Path`, `Task`). All structures are validated using Zod schemas prefixed with `schemaFor` and exported from `@libs/domain/zod`. Pre-processing transparently coerces singular task links (`next`) into arrays.
-- **`@libs/engine`**: Unified workspace loading, compilation, and browser execution engine. It crawls workspaces, parses YAML, generates task interaction code via AI models, and executes tests step-by-step using Playwright.
+- **`@libs/engine`**: Unified project loading, compilation, and browser execution engine. It crawls projects, parses YAML, generates task interaction code via AI models, and executes tests step-by-step using Playwright.
 
 ### 2. Decoupled Code Generation
 

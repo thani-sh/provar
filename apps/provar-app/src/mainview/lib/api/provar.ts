@@ -35,32 +35,32 @@ export const ProvarAPI = {
   },
 
   /**
-   * openWorkspace changes the active workspace directory in the backend.
+   * openProject changes the active project directory in the backend.
    */
-  async openWorkspace(params: { path: string }): Promise<{ success: boolean }> {
-    console.log("[RPC Client] openWorkspace request:", params);
-    const res = await electroview.rpc!.request.openWorkspace(params);
-    console.log("[RPC Client] openWorkspace response:", res);
+  async openProject(params: { path: string }): Promise<{ success: boolean }> {
+    console.log("[RPC Client] openProject request:", params);
+    const res = await electroview.rpc!.request.openProject(params);
+    console.log("[RPC Client] openProject response:", res);
     return res;
   },
 
   /**
-   * selectWorkspace prompts the native folder selector to choose a workspace directory.
+   * selectProject prompts the native folder selector to choose a project directory.
    */
-  async selectWorkspace(): Promise<{ success: boolean; path?: string }> {
-    console.log("[RPC Client] selectWorkspace request");
-    const res = await electroview.rpc!.request.selectWorkspace({});
-    console.log("[RPC Client] selectWorkspace response:", res);
+  async selectProject(): Promise<{ success: boolean; path?: string }> {
+    console.log("[RPC Client] selectProject request");
+    const res = await electroview.rpc!.request.selectProject({});
+    console.log("[RPC Client] selectProject response:", res);
     return res;
   },
 
   /**
-   * getWorkspace returns the current active workspace directory.
+   * getProject returns the current active project directory.
    */
-  async getWorkspace(): Promise<{ path: string }> {
-    console.log("[RPC Client] getWorkspace request");
-    const res = await electroview.rpc!.request.getWorkspace({});
-    console.log("[RPC Client] getWorkspace response:", res);
+  async getProject(): Promise<{ path: string }> {
+    console.log("[RPC Client] getProject request");
+    const res = await electroview.rpc!.request.getProject({});
+    console.log("[RPC Client] getProject response:", res);
     return res;
   },
 
@@ -85,7 +85,7 @@ export const ProvarAPI = {
   },
 
   /**
-   * listFiles scans the workspace to list all test yml files.
+   * listFiles scans the project to list all test yml files.
    */
   async listFiles(): Promise<{ tests: string[] }> {
     console.log("[RPC Client] listFiles request");
@@ -128,7 +128,7 @@ export const ProvarAPI = {
   },
 
   /**
-   * createDirectory creates a new directory in the workspace.
+   * createDirectory creates a new directory in the project.
    */
   async createDirectory(path: string): Promise<{ success: boolean }> {
     console.log("[RPC Client] createDirectory request:", path);
@@ -138,7 +138,7 @@ export const ProvarAPI = {
   },
 
   /**
-   * deletePath removes a file or directory from the workspace.
+   * deletePath removes a file or directory from the project.
    */
   async deletePath(path: string): Promise<{ success: boolean }> {
     console.log("[RPC Client] deletePath request:", path);

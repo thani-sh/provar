@@ -42,7 +42,7 @@ export class ReadFileCommand extends Command<ReadFileInput, ReadFileOutput> {
   });
 
   async execute(input: ReadFileInput): Promise<ReadFileOutput> {
-    const fullPath = getAbsPath(this.context.workspaceDir, input.path);
+    const fullPath = getAbsPath(this.context.projectDir, input.path);
     const project = await loadProject(fullPath);
     const loadedFile = project.files.find((f) => f.path === fullPath);
     if (!loadedFile) {

@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { loadProject } from "@libs/engine";
-import { getAbsPath, WORKSPACE_DIR } from "../../utils";
+import { getAbsPath, PROJECT_DIR } from "../../utils";
 
 export const acceptVisualState = async (params: {
   testPath: string;
@@ -24,7 +24,7 @@ export const acceptVisualState = async (params: {
       };
     }
 
-    const testsDir = path.join(WORKSPACE_DIR, ".provar", "tests");
+    const testsDir = path.join(PROJECT_DIR, ".provar", "tests");
     const relativePath = path
       .relative(testsDir, absPath)
       .replace(".test.yml", "");
@@ -50,7 +50,7 @@ export const acceptVisualState = async (params: {
 
     const screenshotFile = `${stepIndexStr}_${shortTaskId}.png`;
     const currentFilePath = path.join(
-      WORKSPACE_DIR,
+      PROJECT_DIR,
       ".provar",
       "screenshots",
       "current",
@@ -59,7 +59,7 @@ export const acceptVisualState = async (params: {
       screenshotFile,
     );
     const acceptedFilePath = path.join(
-      WORKSPACE_DIR,
+      PROJECT_DIR,
       ".provar",
       "screenshots",
       "accepted",

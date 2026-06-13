@@ -17,7 +17,7 @@ export class DeletePathCommand extends Command<
   readonly name = "deletePath";
   readonly title = "Delete Path";
   readonly description =
-    "Deletes a file or directory from the workspace recursively.";
+    "Deletes a file or directory from the project recursively.";
   readonly inputSchema = z.object({
     path: z.string(),
   });
@@ -28,7 +28,7 @@ export class DeletePathCommand extends Command<
   async execute(input: DeletePathInput): Promise<DeletePathOutput> {
     try {
       console.log(`[BUN] Deleting path: ${input.path}`);
-      const fullPath = getAbsPath(this.context.workspaceDir, input.path);
+      const fullPath = getAbsPath(this.context.projectDir, input.path);
       await rm(fullPath, { recursive: true, force: true });
       console.log(`[BUN] Path deleted successfully: ${fullPath}`);
       return { success: true };

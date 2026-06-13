@@ -3,9 +3,9 @@ import { registerRPCHandlers } from "../api/rpc";
 import type { ProvarConfig } from "@libs/domain/zod";
 
 /**
- * WorkspaceStore manages the path, config, and file list of the current active test workspace.
+ * ProjectStore manages the path, config, and file list of the current active test project.
  */
-class WorkspaceStore {
+class ProjectStore {
   path = $state<string | null>(null);
   config = $state<ProvarConfig | null>(null);
   tests = $state<string[]>([]);
@@ -13,25 +13,25 @@ class WorkspaceStore {
 
   constructor() {
     registerRPCHandlers({
-      workspaceSelected: (path) => {
+      projectOpened: (path) => {
         this.path = path;
         this.initialize();
       },
-      workspaceChanged: () => {
+      projectChanged: () => {
         this.refreshFiles();
       },
     });
   }
 
   /**
-   * initialize retrieves the workspace path and configurations from the backend.
+   * initialize retrieves the project path and configurations from the backend.
    */
   async initialize(): Promise<void> {
     try {
-      const workspaceRes = await ProvarAPI.getWorkspace();
+      const projectRes = await ProvarAPI.getProject();
       const configRes = await ProvarAPI.getConfig();
 
-      this.path = workspaceRes.path || null;
+      this.path = projectRes.path || null;
 
       if (configRes.config) {
         this.config = configRes.config;
@@ -40,7 +40,7 @@ class WorkspaceStore {
         this.isConfigModalOpen = true;
       }
     } catch (e) {
-      console.error("WorkspaceStore: Initialization failed:", e);
+      console.error("ProjectStore: Initialization failed:", e);
       if (this.path) {
         this.isConfigModalOpen = true;
       }
@@ -48,7 +48,7 @@ class WorkspaceStore {
   }
 
   /**
-   * refreshFiles fetches the list of available test files in the workspace.
+   * refreshFiles fetches the list of available test files in the project.
    */
   async refreshFiles(): Promise<void> {
     if (!this.path) return;
@@ -57,7 +57,7 @@ class WorkspaceStore {
   }
 
   /**
-   * saveConfig stores the updated workspace variables and config on disk.
+   * saveConfig stores the updated project variables and config on disk.
    */
   async saveConfig(newConfig: ProvarConfig): Promise<boolean> {
     const res = await ProvarAPI.saveConfig(newConfig);
@@ -71,6 +71,6 @@ class WorkspaceStore {
 }
 
 /**
- * workspaceStore is the shared reactive state instance of WorkspaceStore.
+ * projectStore is the shared reactive state instance of ProjectStore.
  */
-export const workspaceStore = new WorkspaceStore();
+export const projectStore = new ProjectStore();

@@ -30,13 +30,13 @@ export class SaveConfigCommand extends Command<
 
   async execute(input: SaveConfigInput): Promise<SaveConfigOutput> {
     try {
-      const configPath = getAbsPath(this.context.workspaceDir, CONFIG_FILE);
+      const configPath = getAbsPath(this.context.projectDir, CONFIG_FILE);
       const yamlContent = yaml.stringify(input.config);
       await mkdir(dirname(configPath), { recursive: true });
       await writeFile(configPath, yamlContent, "utf-8");
 
       // Also ensure tests dir exists
-      const testsDir = getAbsPath(this.context.workspaceDir, TESTS_DIR);
+      const testsDir = getAbsPath(this.context.projectDir, TESTS_DIR);
       await mkdir(testsDir, { recursive: true });
 
       return { success: true };

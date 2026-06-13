@@ -16,7 +16,7 @@ export class CreateDirectoryCommand extends Command<
 > {
   readonly name = "createDirectory";
   readonly title = "Create Directory";
-  readonly description = "Creates a directory recursively under the workspace.";
+  readonly description = "Creates a directory recursively under the project.";
   readonly inputSchema = z.object({
     path: z.string(),
   });
@@ -27,7 +27,7 @@ export class CreateDirectoryCommand extends Command<
   async execute(input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
     try {
       console.log(`[BUN] Creating directory: ${input.path}`);
-      const fullPath = getAbsPath(this.context.workspaceDir, input.path);
+      const fullPath = getAbsPath(this.context.projectDir, input.path);
       console.log(`[BUN] Full path: ${fullPath}`);
       await mkdir(fullPath, { recursive: true });
       console.log(`[BUN] Directory created successfully: ${fullPath}`);

@@ -1,20 +1,20 @@
 import { join, isAbsolute, relative, resolve } from "path";
 
 /**
- * getAbsPath resolves a path string relative to the workspace directory and validates security constraints.
+ * getAbsPath resolves a path string relative to the project directory and validates security constraints.
  */
-export const getAbsPath = (workspaceDir: string, pathStr: string): string => {
-  if (!workspaceDir) {
-    throw new Error("Workspace directory is not set");
+export const getAbsPath = (projectDir: string, pathStr: string): string => {
+  if (!projectDir) {
+    throw new Error("Project directory is not set");
   }
   const absPath = isAbsolute(pathStr)
     ? resolve(pathStr)
-    : resolve(join(workspaceDir, pathStr));
-  const relPath = relative(resolve(workspaceDir), absPath);
+    : resolve(join(projectDir, pathStr));
+  const relPath = relative(resolve(projectDir), absPath);
 
   if (relPath.startsWith("..") || isAbsolute(relPath)) {
     throw new Error(
-      `Path security violation: ${pathStr} is outside of workspace directory: ${workspaceDir}`,
+      `Path security violation: ${pathStr} is outside of project directory: ${projectDir}`,
     );
   }
   return absPath;

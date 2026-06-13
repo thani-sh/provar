@@ -4,9 +4,9 @@ import {
   saveSettings as saveSettingsLib,
 } from "../../lib/settings";
 import { createCommands } from "../../commands";
-import { WORKSPACE_DIR } from "../../utils";
+import { PROJECT_DIR } from "../../utils";
 
-const getCommands = () => createCommands({ workspaceDir: WORKSPACE_DIR });
+const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
 
 export const getSettings = async () => {
   console.log("[RPC Server] getSettings request");
