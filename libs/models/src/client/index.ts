@@ -39,6 +39,13 @@ function mapAttachment(a: Attachment): MappedAttachment {
 }
 
 /**
+ * @internal
+ * Exposed for unit tests only — the AI SDK takes a different shape than
+ * our `Attachment` union, and we want to pin the conversion contract.
+ */
+export const __test__ = { mapAttachment };
+
+/**
  * AISDKSession implements an active conversation session using the Vercel AI SDK.
  */
 export class AISDKSession implements Session {

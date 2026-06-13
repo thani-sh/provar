@@ -46,21 +46,68 @@ function deepMerge(
 }
 
 /**
+ * buildStorage returns a load/save/ensure triplet bound to a given directory
+ * and file path. The exported `loadSettings` / `saveSettings` / `ensureSettings`
+ * below are simply this builder wired to the default `~/.provar` location.
+ *
+ * Exposed (under a `__test__` namespace) so unit tests can exercise the
+ * round-trip against a tmp dir without touching the user's real homedir.
+ */
+function buildStorage(dir: string, filePath: string) {
+  function loadSettings(): Settings {
+    try {
+      if (!existsSync(filePath)) {
+        return settingsSchema.parse({});
+      }
+      const raw = readFileSync(filePath, "utf-8");
+      return settingsSchema.parse(JSON.parse(raw));
+    } catch (error) {
+      console.error("[settings] Failed to load settings:", error);
+      return settingsSchema.parse({});
+    }
+  }
+
+  function ensureSettings(): Settings {
+    if (existsSync(filePath)) {
+      return loadSettings();
+    }
+    return saveSettings(settingsSchema.parse({}));
+  }
+
+  function saveSettings(settings: Partial<Settings>): Settings {
+    try {
+      mkdirSync(dir, { recursive: true });
+
+      let current: Record<string, unknown> = {};
+      if (existsSync(filePath)) {
+        try {
+          current = JSON.parse(readFileSync(filePath, "utf-8"));
+        } catch {
+          // ignore malformed file — start fresh
+        }
+      }
+
+      const merged = settingsSchema.parse(
+        deepMerge(current, settings as Record<string, unknown>),
+      );
+      writeFileSync(filePath, JSON.stringify(merged, null, 2), "utf-8");
+      return merged;
+    } catch (error) {
+      console.error("[settings] Failed to save settings:", error);
+      throw error;
+    }
+  }
+
+  return { loadSettings, saveSettings, ensureSettings };
+}
+
+const defaultStorage = buildStorage(SETTINGS_DIR, SETTINGS_PATH);
+
+/**
  * loadSettings reads and validates settings from disk, returning in-memory
  * defaults when no file exists. Reads must not write — see BUG-6.
  */
-export function loadSettings(): Settings {
-  try {
-    if (!existsSync(SETTINGS_PATH)) {
-      return settingsSchema.parse({});
-    }
-    const raw = readFileSync(SETTINGS_PATH, "utf-8");
-    return settingsSchema.parse(JSON.parse(raw));
-  } catch (error) {
-    console.error("[settings] Failed to load settings:", error);
-    return settingsSchema.parse({});
-  }
-}
+export const loadSettings = defaultStorage.loadSettings;
 
 /**
  * ensureSettings is the explicit counterpart to the previous implicit
@@ -68,12 +115,7 @@ export function loadSettings(): Settings {
  * (or never, if you don't need the file to exist on disk yet) to create
  * the on-disk file with current defaults.
  */
-export function ensureSettings(): Settings {
-  if (existsSync(SETTINGS_PATH)) {
-    return loadSettings();
-  }
-  return saveSettings(settingsSchema.parse({}));
-}
+export const ensureSettings = defaultStorage.ensureSettings;
 
 /**
  * saveSettings merges the provided partial settings with current values
@@ -87,26 +129,15 @@ export function ensureSettings(): Settings {
  * - Arrays and primitives are replaced wholesale when present in the patch.
  * - `undefined` keys in the patch are ignored (use `null` to clear).
  */
-export function saveSettings(settings: Partial<Settings>): Settings {
-  try {
-    mkdirSync(SETTINGS_DIR, { recursive: true });
+export const saveSettings = defaultStorage.saveSettings;
 
-    let current: Record<string, unknown> = {};
-    if (existsSync(SETTINGS_PATH)) {
-      try {
-        current = JSON.parse(readFileSync(SETTINGS_PATH, "utf-8"));
-      } catch {
-        // ignore malformed file — start fresh
-      }
-    }
-
-    const merged = settingsSchema.parse(
-      deepMerge(current, settings as Record<string, unknown>),
-    );
-    writeFileSync(SETTINGS_PATH, JSON.stringify(merged, null, 2), "utf-8");
-    return merged;
-  } catch (error) {
-    console.error("[settings] Failed to save settings:", error);
-    throw error;
-  }
-}
+/**
+ * @internal
+ * Test-only export — not part of the public API. Lets unit tests exercise
+ * the full save/load round-trip against a tmp dir without writing to the
+ * real `~/.provar/settings.json`.
+ */
+export const __test__ = {
+  buildStorage,
+  deepMerge,
+};

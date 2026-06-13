@@ -13,7 +13,8 @@
     "dev": "bun --filter '*' dev",
     "build": "bun --filter '*' build",
     "lint": "bun --filter '*' lint",
-    "lint:fix": "bun --filter '*' lint:fix"
+    "lint:fix": "bun --filter '*' lint:fix",
+    "test": "bun --filter '*' test"
   },
   "devDependencies": {
     "@types/bun": "latest",
