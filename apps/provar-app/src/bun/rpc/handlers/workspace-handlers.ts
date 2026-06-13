@@ -9,25 +9,30 @@ export function registerUpdateMenuCallback(cb: () => void) {
 }
 
 /**
- * openWorkspace changes the active workspace directory, updates settings, and updates the application menu.
+ * openWorkspace opens the specified workspace directory and updates settings.
  */
-export async function openWorkspace(params: { path: string }) {
-  const { path: workspacePath } = params;
-  if (!workspacePath) return { success: false };
+export async function openWorkspace({
+  path,
+}: {
+  path: string;
+}): Promise<{ success: boolean }> {
+  if (!path) {
+    return { success: false };
+  }
 
-  setWorkspaceDir(workspacePath);
+  setWorkspaceDir(path);
   const mainWindow = getMainWindow();
   mainWindow.webview.rpc?.send.workspaceSelected({
-    params: { path: workspacePath },
+    params: { path },
   });
 
   try {
     const settings = loadSettings();
     const recents = settings.recentWorkspaces || [];
-    const updatedRecents = [
-      workspacePath,
-      ...recents.filter((p) => p !== workspacePath),
-    ].slice(0, 3);
+    const updatedRecents = [path, ...recents.filter((p) => p !== path)].slice(
+      0,
+      3,
+    );
 
     saveSettings({
       recentWorkspaces: updatedRecents,
@@ -36,11 +41,11 @@ export async function openWorkspace(params: { path: string }) {
     if (updateMenuCallback) {
       updateMenuCallback();
     }
+    return { success: true };
   } catch (e) {
     console.error("Failed to update recent workspaces settings:", e);
+    return { success: false };
   }
-
-  return { success: true };
 }
 
 export const selectWorkspace = async () => {

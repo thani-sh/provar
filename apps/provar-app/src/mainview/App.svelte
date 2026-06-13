@@ -411,7 +411,7 @@
                 <li>
                   <button
                     onclick={async () => {
-                      await ProvarAPI.openWorkspace(path);
+                      await ProvarAPI.openWorkspace({ path });
                     }}
                     class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
                     title={path}

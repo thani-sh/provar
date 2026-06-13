@@ -37,9 +37,9 @@ export const ProvarAPI = {
   /**
    * openWorkspace changes the active workspace directory in the backend.
    */
-  async openWorkspace(path: string): Promise<{ success: boolean }> {
-    console.log("[RPC Client] openWorkspace request:", path);
-    const res = await electroview.rpc!.request.openWorkspace({ path });
+  async openWorkspace(params: { path: string }): Promise<{ success: boolean }> {
+    console.log("[RPC Client] openWorkspace request:", params);
+    const res = await electroview.rpc!.request.openWorkspace(params);
     console.log("[RPC Client] openWorkspace response:", res);
     return res;
   },
