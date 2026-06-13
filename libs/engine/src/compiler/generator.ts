@@ -3,7 +3,7 @@ import type { Page } from "playwright";
 import type { Task } from "@libs/domain";
 import { loadProject } from "../loader";
 import { expect } from "@playwright/test";
-import type { Session, Attachment } from "@libs/models";
+import type { Session, Attachment, Message } from "@libs/models";
 import type { CompilerPerformanceTracker } from "./tracker";
 import type { TestAPI, GroundingContext } from "../types";
 import {
@@ -12,6 +12,12 @@ import {
   runGroundingSandbox,
 } from "./sandbox";
 import { saveScreenshotToTmp } from "../screenshot";
+import {
+  SelfHealingLoop,
+  type LLMAdapter,
+  type LLMMessage,
+  type SandboxResult,
+} from "@thani-sh/duct-tape";
 
 export { CompilerGroundingSession };
 
@@ -203,37 +209,37 @@ Guidelines for the code:
     }
   }
 
-  let responseText = "";
-  for await (const chunk of session.prompt([
-    { role: "user", content: blocks },
-  ])) {
-    if (chunk.type === "text" && chunk.text) {
-      responseText += chunk.text;
-    }
-  }
-  generatedBody = cleanCode(responseText);
-  if (tracker) {
-    tracker.recordTaskTiming(nodeId, "agent", performance.now() - agentStart);
-  }
+  let processedCount = 0;
+  const llm: LLMAdapter = {
+    prompt: async function* (messages: LLMMessage[]) {
+      let newLLMMessages = messages.slice(processedCount);
+      processedCount = messages.length + 1;
 
-  // Verification & Self-Healing loop
-  let finalBody = generatedBody;
-  const maxTries = 3;
-  let tryCount = 0;
-  let success = false;
-  let currentCode = generatedBody;
+      if ((session as any).hasSystemPrompt) {
+        newLLMMessages = newLLMMessages.filter((msg) => msg.role !== "system");
+      } else {
+        if (newLLMMessages.some((msg) => msg.role === "system")) {
+          (session as any).hasSystemPrompt = true;
+        }
+      }
 
-  while (tryCount < maxTries && !success) {
-    tryCount++;
-    if (tryCount > 1 && tracker) {
-      tracker.recordTaskRetry(nodeId);
-    }
+      const sessionMessages: Message[] = newLLMMessages.map((msg) => ({
+        role: msg.role as "user" | "assistant" | "system",
+        content: msg.content as any,
+      }));
 
-    console.log(
-      `[Self-Healing Loop] Task ${nodeId}: testing candidate try ${tryCount}...`,
-    );
+      for await (const chunk of session.prompt(sessionMessages)) {
+        if (chunk.type === "text" && chunk.text) {
+          yield chunk.text;
+        }
+      }
+    },
+  };
 
-    // Fast-path: If stateful session is active, try executing directly on the active page!
+  const executor = async (
+    currentCode: string,
+  ): Promise<SandboxResult<GroundingContext>> => {
+    // 1. Fast-path: If stateful session is active, try executing directly on the active page!
     if (groundingSession) {
       let statefulMutated = false;
       const originals = new Map<
@@ -278,7 +284,6 @@ Guidelines for the code:
 
         const sandboxTasks: Record<string, (api: TestAPI) => Promise<void>> =
           {};
-
         prefixNodeIds.forEach((pid) => {
           const cached = cache.get(pid);
           if (cached) {
@@ -326,15 +331,22 @@ Guidelines for the code:
           );
         }
 
-        success = true;
-        finalBody = currentCode;
+        const pageContent = await page.content();
+        let screenshot: string | undefined;
+        try {
+          const buf = await page.screenshot({ type: "png" });
+          screenshot = saveScreenshotToTmp(buf, `compile-${nodeId}`);
+        } catch (e) {}
+
         console.log(
           `⚡ [Stateful Fast-Path] Task ${nodeId} executed successfully directly on active page!`,
         );
-        break;
+        return {
+          success: true,
+          context: { pageContent, screenshot },
+        };
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        // Restore original page methods if catch occurred before finally block executed (e.g. during initialization)
         if (page) {
           originals.forEach((orig, method) => {
             pageRecord[method] = orig;
@@ -361,7 +373,7 @@ Guidelines for the code:
       }
     }
 
-    // Safe-path: Full sandbox execution verify and self-heal
+    // 2. Safe-path: Full sandbox execution verify
     const sandboxStart = performance.now();
     const testResult = await runGroundingSandbox(
       targetFilePath,
@@ -381,43 +393,35 @@ Guidelines for the code:
     }
 
     if (!testResult.error) {
-      success = true;
-      finalBody = currentCode;
-      console.log(
-        `[Self-Healing Loop] Task ${nodeId} successfully compiled and executed on try ${tryCount}!`,
-      );
-      break;
-    } else {
-      const errMsg =
+      return {
+        success: true,
+        context: testResult.context ?? undefined,
+      };
+    }
+
+    return {
+      success: false,
+      error:
         testResult.error instanceof Error
-          ? testResult.error.message
-          : String(testResult.error);
-      console.error(
-        `  ⚠️ [Self-Healing Loop] Try ${tryCount} failed for Task ${nodeId}: ${errMsg}`,
-      );
-      if (tryCount >= maxTries) {
-        console.warn(
-          `  ⚠️ [Self-Healing Loop] Max retries reached for Task ${nodeId}. Using last generated code.`,
-        );
-        if (tracker) {
-          tracker.setTaskStatus(nodeId, "FAILED");
-        }
-        finalBody = currentCode;
-        break;
-      }
+          ? testResult.error
+          : new Error(String(testResult.error)),
+      context: testResult.context ?? undefined,
+    };
+  };
 
-      if (tracker) {
-        tracker.setTaskStatus(nodeId, "HEALED");
-      }
-
-      const feedbackPrompt = `The generated Playwright code failed execution during grounding checks.
+  const loop = new SelfHealingLoop<GroundingContext>(llm, executor, {
+    maxRetries: 3,
+    systemPrompt:
+      "You are a code generation agent. Output ONLY the raw executable code without markdown fences or backticks. No explanation.",
+    buildHealerPrompt: ({ code, error, context }) => {
+      const basePrompt = `The generated Playwright code failed execution during grounding checks.
 Here is the code you generated:
 \`\`\`typescript
-${currentCode}
+${code}
 \`\`\`
 
 It threw the following error:
-${errMsg}
+${error}
 
 Please analyze the error and the new DOM state/screenshot below. Output a corrected, more robust version of the Playwright code block.
 
@@ -428,35 +432,26 @@ STRICTLY follow these constraints in your correction:
 4. Use api.expect for assertions.
 5. ONLY output the raw code block (no markdown blocks or fences).${
         Object.keys(variables).length > 0
-          ? `\n6. Use project variables from the \`api.var\` object when they match values or URLs in the task description, info, or target page. Do NOT hardcode these values. For example, if a variable \`BASE_URL\` is \`http://localhost:6001\`, write \`await api.page.goto(api.var.BASE_URL)\` instead of \`await api.page.goto('http://localhost:6001')\`.
+          ? `\n6. Use project variables from the \`api.var\` object when they match values or URLs in the task description, info, or target page. Do NOT hardcode these values.
    Available project variables (reference them as \`api.var.KEY_NAME\`):
    ${JSON.stringify(variables, null, 2)}`
           : ""
       }`;
 
-      const feedbackBlocks: Attachment[] = [
-        { type: "text", text: feedbackPrompt },
-      ];
+      const feedbackBlocks: Attachment[] = [{ type: "text", text: basePrompt }];
 
-      if (testResult.context) {
-        if (testResult.context.pageContent) {
+      if (context) {
+        if (context.pageContent) {
           feedbackBlocks.push({
             type: "text",
-            text: `--- CURRENT DOM STATE AT FAILURE ---\n${testResult.context.pageContent}`,
+            text: `--- CURRENT DOM STATE AT FAILURE ---\n${context.pageContent}`,
           });
         }
-        if (testResult.context.screenshot) {
+        if (context.screenshot) {
           let base64Data = "";
           try {
-            base64Data = fs
-              .readFileSync(testResult.context.screenshot)
-              .toString("base64");
-          } catch (e) {
-            console.warn(
-              `[Compiler Warning] Failed to read self-healing screenshot from disk:`,
-              e,
-            );
-          }
+            base64Data = fs.readFileSync(context.screenshot).toString("base64");
+          } catch (e) {}
           if (base64Data) {
             feedbackBlocks.push({
               type: "image",
@@ -467,29 +462,39 @@ STRICTLY follow these constraints in your correction:
         }
       }
 
-      const feedbackStart = performance.now();
-      let responseText = "";
-      for await (const chunk of session.prompt([
-        { role: "user", content: feedbackBlocks },
-      ])) {
-        if (chunk.type === "text" && chunk.text) {
-          responseText += chunk.text;
-        }
-      }
-      currentCode = cleanCode(responseText);
+      return feedbackBlocks as any;
+    },
+    onRetry: ({ retryCount, error }) => {
       if (tracker) {
-        tracker.recordTaskTiming(
-          nodeId,
-          "agent",
-          performance.now() - feedbackStart,
-        );
+        tracker.recordTaskRetry(nodeId);
+        tracker.setTaskStatus(nodeId, "HEALED");
       }
-    }
-  }
+      console.warn(
+        `  ⚠️ [Self-Healing Loop] Try ${retryCount} failed for Task ${nodeId}: ${error}`,
+      );
+    },
+    onSuccess: ({ retryCount }) => {
+      console.log(
+        `[Self-Healing Loop] Task ${nodeId} successfully compiled and executed on try ${retryCount + 1}!`,
+      );
+    },
+    onFailure: ({ error }) => {
+      console.error(
+        `  ⚠️ [Self-Healing Loop] Max retries reached for Task ${nodeId}. Using last generated code.`,
+      );
+      if (tracker) {
+        tracker.setTaskStatus(nodeId, "FAILED");
+      }
+    },
+  });
+
+  const agentTime = performance.now() - agentStart;
+  const loopResult = await loop.run(blocks as any);
 
   if (tracker) {
+    tracker.recordTaskTiming(nodeId, "agent", agentTime);
     tracker.endTaskTimer(nodeId, taskStart);
   }
 
-  return finalBody;
+  return loopResult.finalCode;
 }

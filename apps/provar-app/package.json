@@ -12,11 +12,12 @@
     "lint:fix": "prettier --write src"
   },
   "dependencies": {
-    "@libs/models": "workspace:*",
-    "@libs/engine": "workspace:*",
-    "@libs/domain": "workspace:*",
     "@libs/config": "workspace:*",
+    "@libs/domain": "workspace:*",
+    "@libs/engine": "workspace:*",
+    "@libs/models": "workspace:*",
     "@playwright/test": "^1.60.0",
+    "@thani-sh/steam-bun": "^1.0.5",
     "electrobun": "1.18.1",
     "lucide-svelte": "^0.474.0",
     "pixi.js": "^8.18.1",

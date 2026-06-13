@@ -1,4 +1,3 @@
-import { registerRPCHandlers } from "../api/rpc";
 import { ProvarAPI } from "../api/provar";
 import {
   addNodeToGraph,
@@ -82,9 +81,6 @@ class EditorStore {
     {},
   );
 
-  /** runFinishedResolve is set by runPath and called when run-finished fires. */
-  private runFinishedResolve: (() => void) | null = null;
-
   /** currentPathIndex tracks which path is currently being executed. */
   private currentPathIndex = $state(0);
 
@@ -117,22 +113,80 @@ class EditorStore {
     return path ? new Set(path) : new Set();
   });
 
-  constructor() {
-    registerRPCHandlers({
-      testRunEvent: (event) => {
-        console.log(
-          "[EditorStore] Received testRunEvent:",
-          event.type,
-          "taskId:",
-          event.taskId,
-          "isRunning before:",
-          this.isRunning,
-        );
+  /**
+   * compileCurrentTest triggers background TS/Playwright compilation for the active file.
+   */
+  async compileCurrentTest(): Promise<boolean> {
+    if (!this.selectedFilePath) return false;
+    this.isCompiling = true;
+    this.compilationStates = {};
+    if (this.currentFile?.graph?.nodes) {
+      for (const id of Object.keys(this.currentFile.graph.nodes)) {
+        this.compilationStates[id] = "idle";
+      }
+    }
 
+    try {
+      const stream = ProvarAPI.compileTest(this.selectedFilePath);
+      let success = false;
+      for await (const event of stream) {
+        if (event.type === "compile-started") {
+          this.isCompiling = true;
+          continue;
+        }
+        if (event.type === "compile-finished") {
+          success = true;
+          continue;
+        }
+        if (event.nodeId) {
+          let stateVal: "compiling" | "compiled" | "failed" | "idle" = "idle";
+          if (event.type === "node-started") {
+            stateVal = "compiling";
+          } else if (event.type === "node-succeeded") {
+            stateVal = "compiled";
+          } else if (event.type === "node-failed") {
+            stateVal = "failed";
+          }
+          this.compilationStates = {
+            ...this.compilationStates,
+            [event.nodeId]: stateVal,
+          };
+        }
+      }
+      this.isCompiling = false;
+      if (success && this.currentFile) {
+        this.currentFile.code = { valid: true };
+      }
+      return success;
+    } catch (e) {
+      console.error("EditorStore: Compile failed:", e);
+      this.isCompiling = false;
+      return false;
+    }
+  }
+
+  /** runAllPaths runs every path in the file sequentially, accumulating results. */
+  async runAllPaths(): Promise<void> {
+    if (!this.selectedFilePath || this.isRunning) return;
+    if (!this.currentFile?.code?.valid) {
+      alert(
+        "Cannot run test: compiled code is missing or invalid. Please compile first.",
+      );
+      return;
+    }
+    this.taskPathStates = {};
+    const paths = this.allPaths;
+    for (let i = 0; i < paths.length; i++) {
+      await this.runPath(i);
+    }
+  }
+
+  private async runStream(stream: ReadableStream<any>) {
+    try {
+      for await (const event of stream) {
         if (event.type === "run-started") {
           this.isRunning = true;
           this.compilationStates = {};
-          // Reset this path's slot for all known nodes; other paths are preserved.
           if (this.currentFile?.graph?.nodes) {
             const updated = { ...this.taskPathStates };
             for (const id of Object.keys(this.currentFile.graph.nodes)) {
@@ -143,23 +197,12 @@ class EditorStore {
             }
             this.taskPathStates = updated;
           }
-          console.log("[EditorStore] isRunning updated to:", this.isRunning);
-          return;
+          continue;
         }
 
         if (event.type === "run-finished") {
           this.isRunning = false;
-          console.log("[EditorStore] isRunning updated to:", this.isRunning);
-          this.runFinishedResolve?.();
-          this.runFinishedResolve = null;
-          return;
-        }
-
-        if (!this.currentFile) {
-          console.warn(
-            "[EditorStore] Warning: currentFile is not loaded, skipping task state updates",
-          );
-          return;
+          continue;
         }
 
         switch (event.type) {
@@ -204,94 +247,15 @@ class EditorStore {
             }
             break;
         }
-      },
-      compileProgressEvent: (event) => {
-        console.log(
-          "[EditorStore] Received compileProgressEvent:",
-          event.type,
-          "nodeId:",
-          event.nodeId,
-        );
-
-        if (event.type === "compile-started") {
-          this.isCompiling = true;
-          this.compilationStates = {};
-          if (this.currentFile?.graph?.nodes) {
-            for (const id of Object.keys(this.currentFile.graph.nodes)) {
-              this.compilationStates[id] = "idle";
-            }
-          }
-          return;
-        }
-
-        if (event.type === "compile-finished") {
-          this.isCompiling = false;
-          return;
-        }
-
-        if (event.nodeId) {
-          let stateVal: "compiling" | "compiled" | "failed" | "idle" = "idle";
-          if (event.type === "node-started") {
-            stateVal = "compiling";
-          } else if (event.type === "node-succeeded") {
-            stateVal = "compiled";
-          } else if (event.type === "node-failed") {
-            stateVal = "failed";
-          }
-          this.compilationStates = {
-            ...this.compilationStates,
-            [event.nodeId]: stateVal,
-          };
-        }
-      },
-    });
-  }
-
-  /**
-   * compileCurrentTest triggers background TS/Playwright compilation for the active file.
-   */
-  async compileCurrentTest(): Promise<boolean> {
-    if (!this.selectedFilePath) return false;
-    this.isCompiling = true;
-    this.compilationStates = {};
-    try {
-      const res = await ProvarAPI.compileTest(this.selectedFilePath);
-      this.isCompiling = false;
-      if (res.success && this.currentFile) {
-        this.currentFile.code = { valid: true };
       }
-      return res.success;
     } catch (e) {
-      console.error("EditorStore: Compile failed:", e);
-      this.isCompiling = false;
-      return false;
+      console.error("EditorStore: Run stream failed:", e);
+    } finally {
+      this.isRunning = false;
     }
   }
 
-  /** runAllPaths runs every path in the file sequentially, accumulating results. */
-  /**
-   * runAllPaths runs every path in the file sequentially, accumulating results.
-   */
-  async runAllPaths(): Promise<void> {
-    if (!this.selectedFilePath || this.isRunning) return;
-    if (!this.currentFile?.code?.valid) {
-      alert(
-        "Cannot run test: compiled code is missing or invalid. Please compile first.",
-      );
-      return;
-    }
-    // Clear all prior results so multi-path accumulation starts fresh.
-    this.taskPathStates = {};
-    const paths = this.allPaths;
-    for (let i = 0; i < paths.length; i++) {
-      await this.runPath(i);
-    }
-  }
-
-  /** runPath runs a single path by its index and resolves when execution finishes. */
-  /**
-   * runPath runs a single path by its index and resolves when execution finishes.
-   */
+  /** runPath triggers execution of a single path. */
   async runPath(pathIndex: number): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     if (!this.currentFile?.code?.valid) {
@@ -301,38 +265,16 @@ class EditorStore {
       return;
     }
     this.currentPathIndex = pathIndex;
-    this.isRunning = true;
-
-    return new Promise<void>(async (resolve) => {
-      // Store resolve so the run-finished RPC event can unblock the caller.
-      this.runFinishedResolve = resolve;
-
-      try {
-        const res = await ProvarAPI.runTestPath(
-          this.selectedFilePath!,
-          pathIndex,
-          undefined,
-          true,
-        );
-        if (!res.success) {
-          this.isRunning = false;
-          this.runFinishedResolve = null;
-          resolve();
-          alert(`Test execution failed to start: ${res.error}`);
-        }
-      } catch (e) {
-        console.error("EditorStore: Run failed:", e);
-        this.isRunning = false;
-        this.runFinishedResolve = null;
-        resolve();
-      }
-    });
+    const stream = ProvarAPI.runTestPath(
+      this.selectedFilePath!,
+      pathIndex,
+      undefined,
+      true,
+    );
+    await this.runStream(stream);
   }
 
   /** runPathUpTo runs a path stopping execution at the given task node. */
-  /**
-   * runPathUpTo runs a path stopping execution at the given task node.
-   */
   async runPathUpTo(pathIndex: number, upToTaskId: string): Promise<void> {
     if (!this.selectedFilePath || this.isRunning) return;
     if (!this.currentFile?.code?.valid) {
@@ -342,37 +284,16 @@ class EditorStore {
       return;
     }
     this.currentPathIndex = pathIndex;
-    this.isRunning = true;
-
-    return new Promise<void>(async (resolve) => {
-      this.runFinishedResolve = resolve;
-
-      try {
-        const res = await ProvarAPI.runTestPath(
-          this.selectedFilePath!,
-          pathIndex,
-          upToTaskId,
-          true,
-        );
-        if (!res.success) {
-          this.isRunning = false;
-          this.runFinishedResolve = null;
-          resolve();
-          alert(`Test execution failed to start: ${res.error}`);
-        }
-      } catch (e) {
-        console.error("EditorStore: Run failed:", e);
-        this.isRunning = false;
-        this.runFinishedResolve = null;
-        resolve();
-      }
-    });
+    const stream = ProvarAPI.runTestPath(
+      this.selectedFilePath!,
+      pathIndex,
+      upToTaskId,
+      true,
+    );
+    await this.runStream(stream);
   }
 
   /** clearRunStates removes all per-path execution results from the display. */
-  /**
-   * clearRunStates removes all per-path execution results from the display.
-   */
   clearRunStates(): void {
     this.taskPathStates = {};
   }

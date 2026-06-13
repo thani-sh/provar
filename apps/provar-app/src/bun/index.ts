@@ -15,7 +15,7 @@ onWorkspaceChanged(() => {
 });
 
 if (WORKSPACE_DIR) {
-  await openWorkspace(WORKSPACE_DIR);
+  await openWorkspace({ path: WORKSPACE_DIR });
 } else {
   updateApplicationMenu();
 }

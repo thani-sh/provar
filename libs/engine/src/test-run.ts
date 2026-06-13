@@ -15,6 +15,11 @@ import type {
 } from "./types";
 import { launchBrowserSession } from "./browser";
 import { saveScreenshotToTmp } from "./screenshot";
+import { StepRunner, type Step } from "@thani-sh/taskmaster";
+import {
+  createAsyncIterable,
+  type AsyncIterableController,
+} from "@thani-sh/iterables";
 
 /**
  * PathRunner executes a linear sequence of tasks representing a single test path.
@@ -25,18 +30,12 @@ export class PathRunner implements Runner {
     errors: [],
     pageMutated: false,
   };
-  private eventQueue: RunnerEvent[] = [];
-  private resolveNextEvent:
-    | ((value: IteratorResult<RunnerEvent>) => void)
-    | null = null;
-  private isFinished = false;
   private browser: Browser | null = null;
-  private activePage: Page | null = null;
+  public activePage: Page | null = null;
 
-  private resumeSignal: { resolve: () => void; promise: Promise<void> } | null =
-    null;
-  private cancelSignal = false;
   private startTime = 0;
+  private controller: AsyncIterableController<RunnerEvent>;
+  private taskmasterRunner: StepRunner<TestAPI> | null = null;
 
   private waitResolve: ((value: RunnerResult) => void) | null = null;
   private waitPromise: Promise<RunnerResult>;
@@ -45,6 +44,7 @@ export class PathRunner implements Runner {
     private path: Path,
     private options: ExecuteOptions = {},
   ) {
+    this.controller = createAsyncIterable<RunnerEvent>();
     let resolveFn: (value: RunnerResult) => void = () => {};
     this.waitPromise = new Promise<RunnerResult>((resolve) => {
       resolveFn = resolve;
@@ -56,38 +56,28 @@ export class PathRunner implements Runner {
     const elapsed = this.startTime
       ? Math.round(Date.now() - this.startTime)
       : 0;
+
+    const tmState = this.taskmasterRunner?.getState();
+    const status = tmState
+      ? (tmState.status as RunnerState["status"])
+      : this.state.status;
+    const current = tmState ? tmState.currentStepId : this.state.current;
+
     return {
       ...this.state,
+      status,
+      current,
       elapsed,
     };
   }
 
-  async *events(): AsyncGenerator<RunnerEvent, void> {
-    while (!this.isFinished || this.eventQueue.length > 0) {
-      if (this.eventQueue.length > 0) {
-        yield this.eventQueue.shift()!;
-      } else {
-        const nextPromise = new Promise<IteratorResult<RunnerEvent>>(
-          (resolve) => {
-            this.resolveNextEvent = resolve;
-          },
-        );
-        const result = await nextPromise;
-        if (result.done) break;
-        yield result.value;
-      }
-    }
+  events(): AsyncGenerator<RunnerEvent, void> {
+    return this.controller.iterable;
   }
 
   private pushEvent(event: RunnerEvent) {
     this.updateState(event);
-    if (this.resolveNextEvent) {
-      const resolve = this.resolveNextEvent;
-      this.resolveNextEvent = null;
-      resolve({ value: event, done: false });
-    } else {
-      this.eventQueue.push(event);
-    }
+    this.controller.push(event);
   }
 
   private updateState(event: RunnerEvent) {
@@ -112,45 +102,20 @@ export class PathRunner implements Runner {
         break;
       case "run-finished":
         this.state.status = event.status;
-        this.isFinished = true;
-        if (this.resolveNextEvent) {
-          this.resolveNextEvent({ value: undefined, done: true });
-        }
         break;
     }
   }
 
   async pause(): Promise<void> {
-    if (this.state.status !== "running") return;
-
-    let resolveFn: () => void = () => {};
-    const promise = new Promise<void>((resolve) => {
-      resolveFn = resolve;
-    });
-
-    this.resumeSignal = {
-      resolve: resolveFn,
-      promise,
-    };
-
-    this.state.status = "paused";
-    this.pushEvent({ type: "run-finished", status: "paused" });
-    this.state.status = "paused";
+    await this.taskmasterRunner?.pause();
   }
 
   async resume(): Promise<void> {
-    if (this.state.status !== "paused") return;
-    this.state.status = "running";
-    this.pushEvent({ type: "run-started" });
-    this.resumeSignal?.resolve();
-    this.resumeSignal = null;
+    await this.taskmasterRunner?.resume();
   }
 
   async cancel(): Promise<void> {
-    this.cancelSignal = true;
-    if (this.state.status === "paused") {
-      this.resumeSignal?.resolve();
-    }
+    await this.taskmasterRunner?.cancel();
   }
 
   async wait(): Promise<RunnerResult> {
@@ -159,7 +124,6 @@ export class PathRunner implements Runner {
 
   async start(): Promise<void> {
     this.startTime = Date.now();
-    this.pushEvent({ type: "run-started" });
 
     let runSuccess = true;
     try {
@@ -212,68 +176,89 @@ export class PathRunner implements Runner {
         expect,
       };
 
-      for (const task of this.path.tasks) {
-        if (this.cancelSignal) {
-          this.state.status = "cancelled";
-          runSuccess = false;
-          break;
-        }
-
-        if (this.state.status === "paused" && this.resumeSignal) {
-          await this.resumeSignal.promise;
-        }
-
-        if (this.cancelSignal) {
-          this.state.status = "cancelled";
-          runSuccess = false;
-          break;
-        }
-
-        this.pushEvent({
-          type: "task-started",
-          taskId: task.id,
-          title: task.title,
-        });
-
-        try {
+      const steps: Step<TestAPI>[] = this.path.tasks.map((task) => ({
+        id: task.id,
+        title: task.title,
+        execute: async ({ context, emitCustomEvent }) => {
           const executableTask = task as ExecutableTask<TestAPI>;
           if (typeof executableTask.execute !== "function") {
             throw new Error(
               `Task '${task.id}' does not have a compiled execute function bound.`,
             );
           }
-          await executableTask.execute(api);
+          await executableTask.execute(context);
 
           try {
-            const buf = await page.screenshot({ type: "png" });
-            this.pushEvent({
-              type: "visual-comparison-triggered",
-              taskId: task.id,
+            const buf = await context.page.screenshot({ type: "png" });
+            emitCustomEvent("visual-comparison-triggered", {
               screenshotBase64: buf.toString("base64"),
               visualCompare: task.config?.visualCompare === true,
             });
           } catch (e) {
             // Ignore screenshot capture/trigger failures
           }
+        },
+      }));
 
-          this.pushEvent({
-            type: "task-finished",
-            taskId: task.id,
-          });
-        } catch (err: unknown) {
-          runSuccess = false;
-          this.pushEvent({
-            type: "task-failed",
-            taskId: task.id,
-            error: err,
-          });
-          break;
-        }
+      const taskmasterRunner = new StepRunner<TestAPI>(
+        { steps },
+        {
+          context: api,
+          upToStepId: this.options.upToTaskId,
+        },
+      );
+      this.taskmasterRunner = taskmasterRunner;
 
-        if (this.options.upToTaskId && task.id === this.options.upToTaskId) {
-          break;
+      // Asynchronously handle events from taskmaster and stream them
+      (async () => {
+        for await (const event of taskmasterRunner.events()) {
+          switch (event.type) {
+            case "sequence-started":
+              this.pushEvent({ type: "run-started" });
+              break;
+            case "step-started":
+              this.pushEvent({
+                type: "task-started",
+                taskId: event.stepId,
+                title: event.title,
+              });
+              break;
+            case "step-finished":
+              this.pushEvent({
+                type: "task-finished",
+                taskId: event.stepId,
+              });
+              break;
+            case "step-failed":
+              this.pushEvent({
+                type: "task-failed",
+                taskId: event.stepId,
+                error: event.error,
+              });
+              break;
+            case "step-custom":
+              if (event.eventName === "visual-comparison-triggered") {
+                const payload = event.payload as {
+                  screenshotBase64: string;
+                  visualCompare: boolean;
+                };
+                this.pushEvent({
+                  type: "visual-comparison-triggered",
+                  taskId: event.stepId,
+                  screenshotBase64: payload.screenshotBase64,
+                  visualCompare: payload.visualCompare,
+                });
+              }
+              break;
+          }
         }
-      }
+      })().catch((err) => {
+        console.error("Error in taskmaster event loop:", err);
+      });
+
+      await taskmasterRunner.start();
+      const tmResult = await taskmasterRunner.wait();
+      runSuccess = tmResult.status === "success";
     } catch (err: unknown) {
       runSuccess = false;
       this.pushEvent({
@@ -300,10 +285,11 @@ export class PathRunner implements Runner {
         this.activePage = null;
       }
 
+      const tmState = this.taskmasterRunner?.getState();
       let finalStatus: RunnerState["status"] = "success";
-      if (this.cancelSignal) {
-        finalStatus = "cancelled";
-      } else if (!runSuccess || this.state.errors.length > 0) {
+      if (tmState) {
+        finalStatus = tmState.status as RunnerState["status"];
+      } else if (!runSuccess) {
         finalStatus = "failed";
       }
 
@@ -313,10 +299,19 @@ export class PathRunner implements Runner {
       });
 
       const result: RunnerResult = {
-        status: finalStatus as RunnerResult["status"],
+        status:
+          finalStatus === "success" ||
+          finalStatus === "failed" ||
+          finalStatus === "cancelled"
+            ? finalStatus
+            : "failed",
         errors: this.state.errors,
+        pageContent: this.state.pageContent,
+        pageScreenshot: this.state.pageScreenshot,
+        pageMutated: this.state.pageMutated,
       };
       this.waitResolve?.(result);
+      this.controller.complete();
     }
   }
 }

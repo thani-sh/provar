@@ -8,8 +8,12 @@ export function registerUpdateMenuCallback(cb: () => void) {
   updateMenuCallback = cb;
 }
 
-export async function openWorkspace(workspacePath: string) {
-  if (!workspacePath) return;
+/**
+ * openWorkspace changes the active workspace directory, updates settings, and updates the application menu.
+ */
+export async function openWorkspace(params: { path: string }) {
+  const { path: workspacePath } = params;
+  if (!workspacePath) return { success: false };
 
   setWorkspaceDir(workspacePath);
   const mainWindow = getMainWindow();
@@ -35,6 +39,8 @@ export async function openWorkspace(workspacePath: string) {
   } catch (e) {
     console.error("Failed to update recent workspaces settings:", e);
   }
+
+  return { success: true };
 }
 
 export const selectWorkspace = async () => {
@@ -47,7 +53,7 @@ export const selectWorkspace = async () => {
 
   if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
     const newWorkspace = chosenPaths[0];
-    await openWorkspace(newWorkspace);
+    await openWorkspace({ path: newWorkspace });
     return { success: true, path: newWorkspace };
   }
   return { success: false };

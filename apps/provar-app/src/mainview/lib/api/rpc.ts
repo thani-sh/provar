@@ -1,5 +1,6 @@
 import { Electroview } from "electrobun/view";
 import type { ProvarRPCSchema } from "../../../shared/rpc";
+import { SteamBun } from "@thani-sh/steam-bun/web";
 
 /**
  * rpc is the WebView RPC instance defining how incoming messaging callbacks are handled.
@@ -14,29 +15,13 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
       workspaceChanged: () => {
         handlers.workspaceChanged?.();
       },
-      assistantChunk: (params) => {
-        handlers.assistantChunk?.(params.params);
-      },
-      testRunEvent: (params) => {
-        console.log(
-          "[RPC Client] Received testRunEvent notification:",
-          params.params,
-        );
-        handlers.testRunEvent?.(params.params);
-      },
-      compileProgressEvent: (params) => {
-        console.log(
-          "[RPC Client] Received compileProgressEvent notification:",
-          params.params,
-        );
-        handlers.compileProgressEvent?.(params.params);
-      },
       openSettings: () => {
         handlers.openSettings?.();
       },
       settingsChanged: () => {
         handlers.settingsChanged?.();
       },
+      steamBunMessage: SteamBun.messages.steamBunMessage,
     },
   },
 });
@@ -46,41 +31,12 @@ export const rpc = Electroview.defineRPC<ProvarRPCSchema>({
  */
 export const electroview = new Electroview({ rpc });
 
+// Bind the electroview context to the SteamBun RPC streaming instance
+SteamBun.bind(electroview);
+
 type Handlers = {
   workspaceSelected?: (path: string) => void;
   workspaceChanged?: () => void;
-  assistantChunk?: (params: {
-    text: string;
-    status: "pending" | "completed" | "error";
-  }) => void;
-  testRunEvent?: (params: {
-    runId: string;
-    type:
-      | "run-started"
-      | "task-started"
-      | "task-finished"
-      | "task-failed"
-      | "visual-comparison-triggered"
-      | "run-finished";
-    taskId?: string;
-    title?: string;
-    error?: string;
-    screenshotBase64?: string;
-    visualCompare?: boolean;
-    status?: string;
-  }) => void;
-  compileProgressEvent?: (params: {
-    yamlPath: string;
-    type:
-      | "compile-started"
-      | "node-started"
-      | "node-succeeded"
-      | "node-failed"
-      | "compile-finished";
-    nodeId?: string;
-    title?: string;
-    error?: string;
-  }) => void;
   openSettings?: () => void;
   settingsChanged?: () => void;
 };

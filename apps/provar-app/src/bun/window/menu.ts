@@ -79,11 +79,11 @@ export function registerMenuClickListener() {
 
       if (chosenPaths && chosenPaths.length > 0 && chosenPaths[0]) {
         const newWorkspace = chosenPaths[0];
-        await openWorkspace(newWorkspace);
+        await openWorkspace({ path: newWorkspace });
       }
     } else if (e.data.action.startsWith("open-recent:")) {
       const path = e.data.action.substring("open-recent:".length);
-      await openWorkspace(path);
+      await openWorkspace({ path });
     } else if (e.data.action === "clear-recents") {
       try {
         saveSettings({ recentWorkspaces: [] });

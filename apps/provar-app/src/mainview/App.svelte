@@ -55,14 +55,6 @@
     workspaceStore.initialize();
 
     registerRPCHandlers({
-      assistantChunk: ({ text, status }) => {
-        if (!activeAssistantMsgId) return;
-        assistantMessages = assistantMessages.map((msg) =>
-          msg.id === activeAssistantMsgId
-            ? { ...msg, content: msg.content + text, status }
-            : msg,
-        );
-      },
       openSettings: () => {
         uiStore.isSettingsModalOpen = true;
       },
@@ -137,21 +129,20 @@
     assistantBusy = true;
 
     try {
-      const res = await ProvarAPI.assistEditor(
+      const stream = ProvarAPI.assistEditor(
         prompt,
         history,
         editorStore.selectedFilePath || undefined,
       );
 
-      // Final replacement in case the RPC resolves with full message text
-      assistantMessages = assistantMessages.map((msg) =>
-        msg.id === assistantMsgId
-          ? { ...msg, content: res.message || msg.content, status: "completed" }
-          : msg,
-      );
-
-      if (res.action?.type === "selectFile") {
-        await editorStore.loadFile(res.action.path);
+      let fullResponseText = "";
+      for await (const chunk of stream) {
+        fullResponseText += chunk.text;
+        assistantMessages = assistantMessages.map((msg) =>
+          msg.id === assistantMsgId
+            ? { ...msg, content: fullResponseText, status: chunk.status }
+            : msg,
+        );
       }
     } catch (e) {
       console.error("App: AI Assist failed:", e);

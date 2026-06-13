@@ -1,6 +1,12 @@
 import { electroview } from "./rpc";
 import type { ProvarConfig, TestFile } from "@libs/domain/zod";
 import type { Settings } from "../../../bun/lib/settings";
+import { SteamBun } from "@thani-sh/steam-bun/web";
+import {
+  assistEditorStream,
+  compileTestStream,
+  runTestPathStream,
+} from "../../../shared/streams";
 
 /**
  * ProvarAPI provides WebView client wrappers for interacting with Bun backend RPC methods.
@@ -142,62 +148,59 @@ export const ProvarAPI = {
   },
 
   /**
-   * assistEditor dispatches prompt and history to the AI agent.
+   * assistEditor dispatches prompt and history to the AI agent and returns a stream.
    */
-  async assistEditor(
+  assistEditor(
     prompt: string,
     history?: { role: "user" | "assistant"; content: string }[],
     path?: string,
-  ): Promise<{
-    message: string;
-    action?: { type: "selectFile"; path: string };
-  }> {
-    console.log("[RPC Client] assistEditor request:", prompt, history, path);
-    const res = await electroview.rpc!.request.assistEditor({
+  ) {
+    console.log(
+      "[RPC Client] assistEditor Stream request:",
       prompt,
       history,
       path,
-    });
-    console.log("[RPC Client] assistEditor response:", res);
-    return res;
+    );
+    const { rx, tx } = SteamBun.create(assistEditorStream);
+    const writer = tx.getWriter();
+    writer.write({ prompt, history, path });
+    writer.close();
+    return rx;
   },
 
   /**
-   * compileTest triggers task compilation on the given test file.
+   * compileTest triggers task compilation on the given test file and returns a stream.
    */
-  async compileTest(
-    path: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    console.log("[RPC Client] compileTest request:", path);
-    const res = await electroview.rpc!.request.compileTest({ path });
-    console.log("[RPC Client] compileTest response:", res);
-    return res;
+  compileTest(path: string) {
+    console.log("[RPC Client] compileTest Stream request:", path);
+    const { rx, tx } = SteamBun.create(compileTestStream);
+    const writer = tx.getWriter();
+    writer.write({ path });
+    writer.close();
+    return rx;
   },
 
   /**
-   * runTestPath runs a single resolved path in a test graph.
+   * runTestPath runs a single resolved path in a test graph and returns a stream.
    */
-  async runTestPath(
+  runTestPath(
     path: string,
     pathIndex: number,
     upToTaskId?: string,
     headless?: boolean,
-  ): Promise<{ success: boolean; runId?: string; error?: string }> {
+  ) {
     console.log(
-      "[RPC Client] runTestPath request:",
+      "[RPC Client] runTestPath Stream request:",
       path,
       pathIndex,
       upToTaskId,
       headless,
     );
-    const res = await electroview.rpc!.request.runTestPath({
-      path,
-      pathIndex,
-      upToTaskId,
-      headless,
-    });
-    console.log("[RPC Client] runTestPath response:", res);
-    return res;
+    const { rx, tx } = SteamBun.create(runTestPathStream);
+    const writer = tx.getWriter();
+    writer.write({ path, pathIndex, upToTaskId, headless });
+    writer.close();
+    return rx;
   },
 
   /**

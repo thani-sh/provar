@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import * as path from "path";
-import vm from "node:vm";
+import { compileCodeToFunction as compileVM } from "@thani-sh/duct-tape";
 import type { Page } from "playwright";
 import type { Task, Path, Project, ExecutableTask } from "@libs/domain";
 import { loadProject } from "../loader";
@@ -42,22 +42,7 @@ export function compileCodeToFunction(
   tasksObj: Record<string, (api: TestAPI) => Promise<void>>,
 ): (api: TestAPI) => Promise<void> {
   let cleanCode = codeStr.replace(/\(api:\s*TestAPI\)/g, "(api)").trim();
-
-  const wrappedCode = `(${cleanCode})`;
-  const sandbox = {
-    console,
-    setTimeout,
-    clearTimeout,
-    setInterval,
-    clearInterval,
-    Promise,
-    Buffer,
-    tasks: tasksObj,
-  };
-  const context = vm.createContext(sandbox);
-  return vm.runInContext(wrappedCode, context) as (
-    api: TestAPI,
-  ) => Promise<void>;
+  return compileVM<Promise<void>, [TestAPI]>(cleanCode, { tasks: tasksObj });
 }
 
 // Spawns Playwright test execution on the prefix path to acquire grounding DOM and screenshot context

@@ -1,6 +1,7 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
 import { provarRPC } from "../rpc";
 import { setMainWindow } from "./window-registry";
+import { SteamBun } from "@thani-sh/steam-bun/bun";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -37,6 +38,9 @@ export async function createMainWindow(): Promise<BrowserWindow> {
     rpc: provarRPC,
     titleBarStyle: "hiddenInset",
   });
+
+  // Bind the WKWebView to the SteamBun RPC streaming instance
+  SteamBun.bind(mainWindow.webview);
 
   setMainWindow(mainWindow);
   return mainWindow;

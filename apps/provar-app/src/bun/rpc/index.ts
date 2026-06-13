@@ -1,11 +1,8 @@
 import { BrowserView } from "electrobun/bun";
 import { type ProvarRPCSchema } from "../../shared/rpc";
 
-import { compileTest } from "./handlers/compile-test";
-import { runTestPath } from "./handlers/run-test-path";
 import { acceptVisualState } from "./handlers/accept-visual-state";
 import { getScreenshots } from "./handlers/get-screenshots";
-import { assistEditor } from "./handlers/assist-editor";
 import {
   openWorkspace,
   selectWorkspace,
@@ -26,6 +23,12 @@ import {
   deletePath,
 } from "./handlers/file-handlers";
 
+import { SteamBun } from "@thani-sh/steam-bun/bun";
+import { registerStreams } from "./streams";
+
+// Initialize and register all SteamBun RPC streams
+registerStreams();
+
 export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
   maxRequestTime: 120000,
   handlers: {
@@ -43,11 +46,11 @@ export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       createFile,
       createDirectory,
       deletePath,
-      compileTest,
-      runTestPath,
       acceptVisualState,
       getScreenshots,
-      assistEditor,
+    },
+    messages: {
+      steamBunMessage: SteamBun.messages.steamBunMessage,
     },
   },
 });

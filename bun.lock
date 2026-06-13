@@ -36,6 +36,7 @@
         "@libs/engine": "workspace:*",
         "@libs/models": "workspace:*",
         "@playwright/test": "^1.60.0",
+        "@thani-sh/steam-bun": "^1.0.5",
         "electrobun": "1.18.1",
         "lucide-svelte": "^0.474.0",
         "pixi.js": "^8.18.1",
@@ -112,6 +113,9 @@
         "@libs/domain": "workspace:*",
         "@libs/models": "workspace:*",
         "@playwright/test": "^1.60.0",
+        "@thani-sh/duct-tape": "^1.0.1",
+        "@thani-sh/iterables": "^1.0.2",
+        "@thani-sh/taskmaster": "^1.0.1",
         "ai": "^6.0.197",
         "playwright": "^1.60.0",
         "playwright-core": "^1.60.0",
@@ -261,6 +265,14 @@
     "@tailwindcss/oxide-win32-x64-msvc": ["@tailwindcss/oxide-win32-x64-msvc@4.3.0", "", { "os": "win32", "cpu": "x64" }, "sha512-Mvrf2kXW/yeW/OTezZlCGOirXRcUuLIBx/5Y12BaPM7wJoryG6dfS/NJL8aBPqtTEx/Vm4T4vKzFUcKDT+TKUA=="],
 
     "@tailwindcss/vite": ["@tailwindcss/vite@4.3.0", "", { "dependencies": { "@tailwindcss/node": "4.3.0", "@tailwindcss/oxide": "4.3.0", "tailwindcss": "4.3.0" }, "peerDependencies": { "vite": "^5.2.0 || ^6 || ^7 || ^8" } }, "sha512-t6J3OrB5Fc0ExuhohouH0fWUGMYL6PTLhW+E7zIk/pdbnJARZDCwjBznFnkh5ynRnIRSI4YjtTH0t6USjJISrw=="],
+
+    "@thani-sh/duct-tape": ["@thani-sh/duct-tape@1.0.1", "", { "peerDependencies": { "typescript": "^6" } }, "sha512-H2Oomeq5xi49nysc9L+RE1F/poF3OBEQsUY1z4DFy30JySjfOgA0eAKXhfvc0xa4DPO7fI+tMOELtoCr8ob6aw=="],
+
+    "@thani-sh/iterables": ["@thani-sh/iterables@1.0.2", "", {}, "sha512-ewzE6Sfos2exGkwOgFJhuE3KKItww1aSO73OOVLQbMEiJGYfyJdLnlQty8im1Kpj3l+5OyAhega1RjgIUBGVFg=="],
+
+    "@thani-sh/steam-bun": ["@thani-sh/steam-bun@1.0.5", "", { "dependencies": { "zod": "^4.4.3" } }, "sha512-xn16L4b4s6Oyd/VTOVvq6Rs/dFemgSkpuZ2i10q2J5lFy8EmwRqKdtyUePrfub8QxpCljs/RZwEwnVxfQMEnoA=="],
+
+    "@thani-sh/taskmaster": ["@thani-sh/taskmaster@1.0.1", "", {}, "sha512-ZTZEVybb5C+hCQky8CtDMxq7LNKd1SRbXzQMxR8MLdzokkBmraC8jRFYYf0V+Fwx/g7e+aHEB3w26w9YvGBZHA=="],
 
     "@tootallnate/quickjs-emscripten": ["@tootallnate/quickjs-emscripten@0.23.0", "", {}, "sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA=="],
 
