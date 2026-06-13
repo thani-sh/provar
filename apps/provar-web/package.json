@@ -1,0 +1,30 @@
+{
+  "name": "@apps/provar-web",
+  "version": "1.0.0",
+  "description": "Provar product website (static, SSG)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "lint": "prettier --check .",
+    "lint:fix": "prettier --write ."
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.30.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.3",
+    "@tailwindcss/vite": "^4.3.0",
+    "@types/bun": "latest",
+    "@types/node": "^25.9.3",
+    "prettier": "^3.8.3",
+    "prettier-plugin-svelte": "^3.5.2",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "svelte": "^5.56.0",
+    "svelte-check": "^4.4.8",
+    "tailwindcss": "^4.3.0",
+    "typescript": "^6.0.3",
+    "vite": "^6.0.0"
+  }
+}

@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+/* Provar design tokens — see docs/DESIGN.md */
+@theme {
+	--color-surface: #10131a;
+	--color-surface-dim: #10131a;
+	--color-surface-bright: #363941;
+	--color-surface-container-lowest: #0b0e15;
+	--color-surface-container-low: #191b23;
+	--color-surface-container: #1d2027;
+	--color-surface-container-high: #272a31;
+	--color-surface-container-highest: #32353c;
+	--color-on-surface: #e1e2ec;
+	--color-on-surface-variant: #c2c6d6;
+	--color-inverse-surface: #e1e2ec;
+	--color-inverse-on-surface: #2e3038;
+	--color-outline: #8c909f;
+	--color-outline-variant: #424754;
+	--color-surface-tint: #adc6ff;
+	--color-primary: #adc6ff;
+	--color-on-primary: #002e6a;
+	--color-primary-container: #4d8eff;
+	--color-on-primary-container: #00285d;
+	--color-inverse-primary: #005ac2;
+	--color-secondary: #c0c1ff;
+	--color-on-secondary: #1000a9;
+	--color-tertiary: #ffb786;
+	--color-on-tertiary: #502400;
+	--color-error: #ffb4ab;
+	--color-on-error: #690005;
+	--color-background: #10131a;
+	--color-on-background: #e1e2ec;
+	--color-surface-variant: #32353c;
+
+	--font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+	--font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+html,
+body {
+	background-color: var(--color-surface);
+	color: var(--color-on-surface);
+	font-family: var(--font-sans);
+	font-feature-settings:
+		"ss01" 1,
+		"cv11" 1;
+}
+
+/* Subtle dotted grid backdrop — anchors the "workbench" feel from the design system */
+.dot-grid {
+	background-image: radial-gradient(rgba(140, 144, 159, 0.12) 1px, transparent 1px);
+	background-size: 20px 20px;
+	background-position: 0 0;
+}
+
+/* Soft radial glow used behind the hero */
+.hero-glow {
+	background:
+		radial-gradient(60% 60% at 50% 0%, rgba(77, 142, 255, 0.18) 0%, transparent 60%),
+		radial-gradient(40% 40% at 80% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 60%);
+}
+
+/* Subtle beam under the hero heading */
+.beam {
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgba(173, 198, 255, 0.5) 50%,
+		transparent 100%
+	);
+	height: 1px;
+}
