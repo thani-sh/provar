@@ -70,7 +70,9 @@ export function registerMenuClickListener() {
   Electrobun.events.on("application-menu-clicked", async (e) => {
     const mainWindow = getMainWindow();
     if (e.data.action === "settings") {
-      (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.openSettings({ params: {} });
+      (
+        mainWindow.webview.rpc as typeof provarRPC | undefined
+      )?.send.openSettings({ params: {} });
     } else if (e.data.action === "open") {
       const chosenPaths = await Utils.openFileDialog({
         canChooseFiles: false,
@@ -89,7 +91,9 @@ export function registerMenuClickListener() {
       try {
         saveSettings({ recentProjects: [] });
         updateApplicationMenu();
-        (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.settingsChanged({ params: {} });
+        (
+          mainWindow.webview.rpc as typeof provarRPC | undefined
+        )?.send.settingsChanged({ params: {} });
       } catch (e) {
         console.error("Failed to clear recent projects settings:", e);
       }

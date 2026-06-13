@@ -130,9 +130,7 @@ export class AISDKClient implements Client {
     this.model = resolveModel(config);
   }
 
-  async session(options?: {
-    tools?: ToolSet;
-  }): Promise<Session> {
+  async session(options?: { tools?: ToolSet }): Promise<Session> {
     return new AISDKSession(crypto.randomUUID(), this.model, options?.tools);
   }
 

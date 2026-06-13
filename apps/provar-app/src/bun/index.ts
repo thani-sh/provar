@@ -12,7 +12,9 @@ import { provarRPC } from "./rpc";
 const mainWindow = await createMainWindow();
 
 onProjectChanged(() => {
-  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.projectChanged({ params: {} });
+  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.projectChanged(
+    { params: {} },
+  );
 });
 
 if (PROJECT_DIR) {

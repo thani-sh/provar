@@ -30,9 +30,7 @@ export function addNodeToGraph(
       } else if (Array.isArray(node.next)) {
         const currentNexts = node.next;
         if (toId) {
-          node.next = currentNexts.map((id) =>
-            id === toId ? newNodeId : id,
-          );
+          node.next = currentNexts.map((id) => (id === toId ? newNodeId : id));
         } else {
           node.next.push(newNodeId);
         }
@@ -97,9 +95,7 @@ export function deleteNodeFromGraph(file: TestFile, id: string): TestFile {
   (Object.values(newFile.graph.nodes) as TestNode[]).forEach((node) => {
     if (Array.isArray(node.next)) {
       const currentNexts = node.next;
-      node.next = currentNexts.filter(
-        (nextId) => !idsToDelete.has(nextId),
-      );
+      node.next = currentNexts.filter((nextId) => !idsToDelete.has(nextId));
       if (node.next.length === 0) delete node.next;
     } else if (node.next && idsToDelete.has(node.next)) {
       delete node.next;
