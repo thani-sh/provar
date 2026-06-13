@@ -15,6 +15,7 @@ Project status: early development (prefer breaking changes to API over complexit
 ## Version Control
 
 - **NEVER** commit without explicit user approval after they have tested and verified.
+- **NEVER** create merge commits, rebase instead. Keep the history linear.
 - **STRICTLY** follow **Conventional Commits** for commit messages.
   - **ALWAYS** add a `type` and a short `description` to the commit message.
   - **NEVER** use scopes in commit messages.
