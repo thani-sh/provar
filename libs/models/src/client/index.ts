@@ -55,29 +55,54 @@ export class AISDKSession implements Session {
 
     const addedMessagesCount = stuff.length;
 
-    // Map and push the new conversation turns to our history
+    // Separate the system prompt from the conversation turns.
+    // The AI SDK requires `system` to be passed as a top-level option
+    // (not inside the `messages` array) to avoid prompt-injection warnings.
+    const systemParts: string[] = [];
+    const conversation: Message[] = [];
+
     for (const msg of stuff) {
+      if (msg.role === "system") {
+        // System content can be a plain string or a list of text attachments.
+        if (typeof msg.content === "string") {
+          systemParts.push(msg.content);
+        } else {
+          for (const part of msg.content) {
+            if (part.type === "text") systemParts.push(part.text);
+          }
+        }
+      } else {
+        conversation.push(msg);
+      }
+    }
+
+    const systemPrompt =
+      systemParts.length > 0 ? systemParts.join("\n\n") : undefined;
+
+    // Map and push the new conversation turns to our history
+    for (const msg of conversation) {
       if (typeof msg.content === "string") {
         this.messages.push({
-          role: msg.role as "user" | "assistant" | "system",
+          role: msg.role as "user" | "assistant",
           content: msg.content,
-        } as unknown as ModelMessage);
+        });
       } else {
         const contentParts = msg.content.map(mapAttachment);
         this.messages.push({
-          role: msg.role as "user" | "assistant" | "system",
+          role: msg.role as "user" | "assistant",
           content: contentParts as unknown as string,
-        } as unknown as ModelMessage);
+        });
       }
     }
 
     const result = streamText({
       model: this.model,
+      system: systemPrompt,
       messages: this.messages,
       tools: this.tools,
       maxSteps: 5,
       stopWhen: stepCountIs(5),
-    } as any);
+    });
 
     let fullText = "";
     try {

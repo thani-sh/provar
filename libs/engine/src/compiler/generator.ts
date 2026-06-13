@@ -215,14 +215,6 @@ Guidelines for the code:
       let newLLMMessages = messages.slice(processedCount);
       processedCount = messages.length + 1;
 
-      if ((session as any).hasSystemPrompt) {
-        newLLMMessages = newLLMMessages.filter((msg) => msg.role !== "system");
-      } else {
-        if (newLLMMessages.some((msg) => msg.role === "system")) {
-          (session as any).hasSystemPrompt = true;
-        }
-      }
-
       const sessionMessages: Message[] = newLLMMessages.map((msg) => ({
         role: msg.role as "user" | "assistant" | "system",
         content: msg.content as any,
