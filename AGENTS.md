@@ -1,6 +1,6 @@
 # Agent Instructions
 
-Project status: early development (breaking changes are acceptable)
+Project status: early development (prefer breaking changes to API over complexity)
 
 ## Tooling
 
@@ -27,12 +27,8 @@ Project status: early development (breaking changes are acceptable)
 
 ## Monorepo Structure
 
-- `apps/`
-  - `editor`: Frontend workspace and editor interface.
-- `libs/`
-  - `agents`: Core AI agent frameworks and helpers.
-- `demo/`
-  - `todolist`: Mock application used to verify and test E2E tests.
+- `apps/`: Applications
+- `libs/`: Shared libraries
 - `docs/`:
   - `adrs`: Architecture decision records (ADRs)
   - `pdrs`: Product decision records (PDRs)
