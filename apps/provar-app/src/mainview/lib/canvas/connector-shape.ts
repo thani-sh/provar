@@ -7,6 +7,16 @@ export class ConnectorShape extends PIXI.Container {
   private readonly addButton: PIXI.Container;
   private readonly onAdd?: () => void;
 
+  // Cached path geometry for setState — avoids the line-stroke accumulation
+  // that would happen if we re-issued .stroke() on each state change.
+  private readonly pathData: {
+    type: "horizontal" | "vertical";
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+  };
+
   constructor(
     startX: number,
     startY: number,
@@ -18,55 +28,26 @@ export class ConnectorShape extends PIXI.Container {
   ) {
     super();
     this.onAdd = onAdd;
+    this.pathData = { type, startX, startY, endX, endY };
 
-    const lineColor = state === "success" ? 0x10b981 : COLOURS.connector;
-    const lineAlpha = state === "success" ? 0.8 : 1.0;
+    const { lineColor, lineAlpha } = this.resolveStyle(state);
     this.addChild(this.hitAreaLine);
     this.addChild(this.line);
 
-    this.line.moveTo(startX, startY);
+    this.drawLine(lineColor, lineAlpha);
 
     let midX = (startX + endX) / 2;
     let midY = (startY + endY) / 2;
 
     if (type === "horizontal") {
       const curveStrength = Math.abs(endX - startX) / 2;
-      this.line.bezierCurveTo(
-        startX + curveStrength,
-        startY,
-        endX - curveStrength,
-        endY,
-        endX,
-        endY,
-      );
-
-      this.line.lineTo(endX - CONNECTOR.arrowSize, endY - CONNECTOR.arrowSize);
-      this.line.moveTo(endX, endY);
-      this.line.lineTo(endX - CONNECTOR.arrowSize, endY + CONNECTOR.arrowSize);
-
-      // Calculate midpoint of cubic bezier at t=0.5
-      const p0x = startX,
-        p0y = startY;
-      const p1x = startX + curveStrength,
-        p1y = startY;
-      const p2x = endX - curveStrength,
-        p2y = endY;
-      const p3x = endX,
-        p3y = endY;
-
-      midX = 0.125 * p0x + 0.375 * p1x + 0.375 * p2x + 0.125 * p3x;
-      midY = 0.125 * p0y + 0.375 * p1y + 0.375 * p2y + 0.125 * p3y;
-    } else {
-      this.line.lineTo(endX, endY);
+      midX =
+        0.125 * startX +
+        0.375 * (startX + curveStrength) +
+        0.375 * (endX - curveStrength) +
+        0.125 * endX;
+      midY = 0.125 * startY + 0.375 * startY + 0.375 * endY + 0.125 * endY;
     }
-
-    this.line.stroke({
-      color: lineColor,
-      width: CONNECTOR.lineWidth,
-      cap: "round",
-      join: "round",
-    });
-    this.line.alpha = lineAlpha;
 
     // Friendly hit area
     this.hitAreaLine.moveTo(startX, startY);
@@ -99,20 +80,98 @@ export class ConnectorShape extends PIXI.Container {
 
     this.on("pointerover", () => {
       this.addButton.visible = true;
-      this.line.stroke({
-        color: COLOURS.primary,
-        width: CONNECTOR.lineWidth + 1,
-      });
+      this.drawLine(COLOURS.primary, 1.0, CONNECTOR.lineWidth + 1);
     });
 
     this.on("pointerout", () => {
       this.addButton.visible = false;
-      this.line.stroke({
-        color: lineColor,
-        width: CONNECTOR.lineWidth,
-      });
-      this.line.alpha = lineAlpha;
+      this.drawLine(this.currentLineColor, this.currentLineAlpha);
     });
+  }
+
+  private currentLineColor: number = COLOURS.connector;
+  private currentLineAlpha: number = 1.0;
+
+  /**
+   * resolveStyle maps a TaskState to the (color, alpha) pair used for the
+   * connector line. The palette mirrors the node palette exactly so a
+   * connector always reads as "the state of the edge between two nodes":
+   *   - compiling → yellow (in-flight compile)
+   *   - running   → blue   (in-flight test run)
+   *   - success   → green
+   *   - failed    → red
+   *   - anything else → neutral connector colour
+   */
+  private resolveStyle(state: TaskState): {
+    lineColor: number;
+    lineAlpha: number;
+  } {
+    switch (state) {
+      case "compiling":
+        return { lineColor: 0xf59e0b, lineAlpha: 1.0 };
+      case "running":
+        return { lineColor: 0x3b82f6, lineAlpha: 1.0 };
+      case "success":
+        return { lineColor: 0x10b981, lineAlpha: 0.8 };
+      case "failed":
+        return { lineColor: 0xef4444, lineAlpha: 1.0 };
+      default:
+        return { lineColor: COLOURS.connector, lineAlpha: 1.0 };
+    }
+  }
+
+  /**
+   * drawLine re-issues the cached path with a new stroke style. We always
+   * call clear() first because PIXI 8's Graphics accumulates geometry on
+   * every stroke, and we want to avoid that leak.
+   */
+  private drawLine(
+    color: number,
+    alpha: number,
+    width: number = CONNECTOR.lineWidth,
+  ): void {
+    const { type, startX, startY, endX, endY } = this.pathData;
+    this.line.clear();
+    this.line.moveTo(startX, startY);
+
+    if (type === "horizontal") {
+      const curveStrength = Math.abs(endX - startX) / 2;
+      this.line.bezierCurveTo(
+        startX + curveStrength,
+        startY,
+        endX - curveStrength,
+        endY,
+        endX,
+        endY,
+      );
+      this.line.lineTo(endX - CONNECTOR.arrowSize, endY - CONNECTOR.arrowSize);
+      this.line.moveTo(endX, endY);
+      this.line.lineTo(endX - CONNECTOR.arrowSize, endY + CONNECTOR.arrowSize);
+    } else {
+      this.line.lineTo(endX, endY);
+    }
+
+    this.line.stroke({
+      color,
+      width,
+      cap: "round",
+      join: "round",
+    });
+    this.line.alpha = alpha;
+  }
+
+  /**
+   * setState updates the line color in-place when the connector's effective
+   * state changes. The PIXI.Graphics object is reused; we clear+re-stroke
+   * with cached path coordinates. The browser still has to re-upload the
+   * GPU buffer, but the PIXI object is the same — much cheaper than the
+   * full GraphRenderer rebuild we used to do on every state change.
+   */
+  public setState(state: TaskState): void {
+    const { lineColor, lineAlpha } = this.resolveStyle(state);
+    this.currentLineColor = lineColor;
+    this.currentLineAlpha = lineAlpha;
+    this.drawLine(lineColor, lineAlpha);
   }
 
   private createAddButton(): PIXI.Container {

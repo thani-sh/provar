@@ -345,7 +345,7 @@
                 disabled={editorStore.isCompiling || editorStore.isRunning}
                 onclick={() => {
                   runMenuOpen = false;
-                  editorStore.compileCurrentTest();
+                  editorStore.compileCurrentTest({ autoRun: false });
                 }}
                 class="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-xs transition-colors
                   {editorStore.isCompiling || editorStore.isRunning

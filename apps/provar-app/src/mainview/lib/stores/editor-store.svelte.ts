@@ -115,9 +115,18 @@ class EditorStore {
 
   /**
    * compileCurrentTest triggers background TS/Playwright compilation for the active file.
+   *
+   * @param options.autoRun when true (default), the test file is automatically
+   *   executed after a successful compile so the user can immediately verify
+   *   the generated code actually works. Pass `{ autoRun: false }` for
+   *   pure-recompile flows (e.g. the "Regenerate" menu) where the user just
+   *   wants the TypeScript emitted without running it.
    */
-  async compileCurrentTest(): Promise<boolean> {
+  async compileCurrentTest(
+    options: { autoRun?: boolean } = {},
+  ): Promise<boolean> {
     if (!this.selectedFilePath) return false;
+    const autoRun = options.autoRun ?? true;
     this.isCompiling = true;
     this.compilationStates = {};
     if (this.currentFile?.graph?.nodes) {
@@ -156,6 +165,15 @@ class EditorStore {
       this.isCompiling = false;
       if (success && this.currentFile) {
         this.currentFile.code = { valid: true };
+      }
+      // Verify the freshly compiled code by running every path right after a
+      // successful compile. Errors during the run surface in the canvas as
+      // per-node failures, so the user can see exactly which step broke.
+      // We deliberately do not `await` this — the run can take a while and
+      // the UI should remain responsive. `runAllPaths` itself is a no-op
+      // when `isRunning` is true, so re-entrancy is safe.
+      if (success && autoRun && this.currentFile) {
+        void this.runAllPaths();
       }
       return success;
     } catch (e) {

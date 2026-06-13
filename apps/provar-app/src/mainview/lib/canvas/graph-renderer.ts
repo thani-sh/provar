@@ -8,13 +8,92 @@ import { GRAPH_START_ID, LAYOUT, CONNECTOR, type TaskState } from "./constants";
 import { getNextNodes } from "../../../shared/utils";
 
 /**
+ * Canonical lifecycle states used for connector and Start/End rendering.
+ * The store's TaskState union also includes "mixed" and "compiled" as
+ * node-only aggregates, but those don't make sense for an edge — a single
+ * connector can't be "mixed across paths" and "compiled" is the compile-pass
+ * indicator. We collapse them onto the canonical five here so the connector
+ * rule can stay one line.
+ */
+type ConnectorState = "idle" | "compiling" | "running" | "success" | "failed";
+
+function normalizeState(state: TaskState): ConnectorState {
+  switch (state) {
+    case "compiling":
+    case "running":
+    case "failed":
+    case "idle":
+      return state;
+    case "success":
+    case "compiled":
+      // "compiled" is a successful compile pass — same visual semantics as success.
+      return "success";
+    case "mixed":
+      // "mixed" means some paths failed → treat as a failure for edge/Start/End.
+      return "failed";
+  }
+}
+
+/**
+ * resolveNodeState returns the effective ConnectorState for any node id —
+ * real, virtual Start, or virtual End. Centralising the rules here keeps
+ * the connector logic a one-liner and guarantees Start, End, and the
+ * connector leading to/from them all agree.
+ *
+ *   Start:   "success" iff the first real node is non-idle, else "idle".
+ *   End:     "success" iff the preceding real node is "success", else "idle".
+ *   Real:    the normalized state of taskStates[id] (or "idle" if missing).
+ */
+function resolveNodeState(
+  id: string,
+  graph: Graph,
+  taskStates: Record<string, TaskState>,
+): ConnectorState {
+  if (id === GRAPH_START_ID) {
+    if (!graph.start) return "idle";
+    const firstState = taskStates[graph.start] ?? "idle";
+    return firstState === "idle" ? "idle" : "success";
+  }
+  if (id.startsWith("end_")) {
+    const taskId = id.substring(4);
+    return taskStates[taskId] === "success" ? "success" : "idle";
+  }
+  return normalizeState(taskStates[id] ?? "idle");
+}
+
+/**
+ * computeConnectorState returns the visual state of the connector between
+ * two node ids. The rule is the strict one-liner:
+ *
+ *   connector = SA == SB ? SA : SB
+ *
+ * where SA / SB are the ConnectorState of the source and target node
+ * (resolved via resolveNodeState so virtual Start / End are handled
+ * consistently). On a mismatch the target's state wins, which reads as
+ * "the wave has reached B" since the connector's purpose is to show
+ * what is happening between A and B.
+ */
+function computeConnectorState(
+  from: string,
+  to: string,
+  graph: Graph,
+  taskStates: Record<string, TaskState>,
+): ConnectorState {
+  const sa = resolveNodeState(from, graph, taskStates);
+  const sb = resolveNodeState(to, graph, taskStates);
+  return sa === sb ? sa : sb;
+}
+
+/**
  * GraphRenderer compiles the test task definitions into visual PIXI containers and aligns positions.
  */
 export class GraphRenderer extends PIXI.Container {
   private readonly taskShapes = new Map<string, TaskShape>();
   private readonly endShapes = new Map<string, EndShape>();
+  private readonly connectorShapes = new Map<string, ConnectorShape>();
   private readonly linksContainer = new PIXI.Container();
   private startShape!: StartShape;
+  private graph: Graph | null = null;
   private readonly onNodeSelect: (id: string) => void;
   private readonly onAddNode: (
     fromId: string | null,
@@ -33,38 +112,117 @@ export class GraphRenderer extends PIXI.Container {
     this.onNodeSelect = onNodeSelect;
     this.onAddNode = onAddNode;
     this.addChild(this.linksContainer);
-    this.build(testFile.graph, taskStates, runningPathNodeIds, ticker);
+    this.graph = testFile.graph;
+    this.build(testFile.graph, taskStates, runningPathNodeIds, {}, ticker);
   }
 
   private build(
     graph: Graph,
     taskStates: Record<string, TaskState>,
     runningPathNodeIds: Set<string>,
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    >,
     ticker: PIXI.Ticker,
   ) {
-    this.createShapes(graph, taskStates, runningPathNodeIds, ticker);
+    this.createShapes(
+      graph,
+      taskStates,
+      runningPathNodeIds,
+      compilationStates,
+      ticker,
+    );
     const depths = this.computeDepths(graph);
     this.assignPositions(graph, depths);
     this.drawConnections(graph, taskStates);
+  }
+
+  /**
+   * setState updates the visual state of every existing shape in-place
+   * without destroying or recreating PIXI objects. This is the key to
+   * avoiding WebGL context loss during long test runs — full graph rebuilds
+   * destroy and recreate dozens of Graphics/Text/Container per task event,
+   * which stresses the WebGL context and can cause it to be lost.
+   *
+   * Re-issuing stroke/fill on an existing PIXI.Graphics is cheap: the
+   * underlying GPU buffers are reused, so we avoid the churn that triggers
+   * context loss.
+   */
+  public setState(
+    taskStates: Record<string, TaskState>,
+    runningPathNodeIds: Set<string>,
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    > = {},
+  ): void {
+    if (!this.graph) return;
+
+    // Update node borders
+    const startOnPath = runningPathNodeIds.size > 0;
+    const startState = resolveNodeState(GRAPH_START_ID, this.graph, taskStates);
+    this.startShape.setState(startState, startOnPath, true);
+
+    for (const [id, shape] of this.taskShapes) {
+      const state = taskStates[id] ?? "idle";
+      const onActivePath = runningPathNodeIds.has(id);
+      // A task is considered "compiled" once it has reached a definitive
+      // outcome: success, failure, or in-flight compilation. We deliberately
+      // exclude "idle" so un-compiled / never-attempted tasks render at 80%.
+      const compileResult = compilationStates[id];
+      const isCompiled =
+        compileResult === "compiled" ||
+        compileResult === "failed" ||
+        compileResult === "compiling";
+      shape.setState(state, onActivePath, isCompiled);
+    }
+
+    for (const [id, shape] of this.endShapes) {
+      // end_<taskId> — preceding task state determines End visual
+      const taskId = id.startsWith("end_") ? id.substring(4) : "";
+      const endState = resolveNodeState(id, this.graph, taskStates);
+      // End is "on path" only if its preceding task is on the active path
+      const onActivePath = runningPathNodeIds.has(taskId);
+      shape.setState(endState, onActivePath, true);
+    }
+
+    // Update connector colors via the strict SA==SB ? SA : SB rule.
+    for (const [key, connector] of this.connectorShapes) {
+      const [from, to] = key.split("|");
+      if (!from || !to) continue;
+      const state = computeConnectorState(from, to, this.graph, taskStates);
+      connector.setState(state);
+    }
   }
 
   private createShapes(
     graph: Graph,
     taskStates: Record<string, TaskState>,
     runningPathNodeIds: Set<string>,
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    >,
     ticker: PIXI.Ticker,
   ) {
     // Start node is always on the active path when any run is happening
     const startOnPath = runningPathNodeIds.size > 0;
-    const startState = graph.start
-      ? (taskStates[graph.start] ?? "idle")
-      : "idle";
+    const startState = resolveNodeState(GRAPH_START_ID, graph, taskStates);
     this.startShape = new StartShape(startState, startOnPath);
     this.addChild(this.startShape);
 
     for (const [id, node] of Object.entries(graph.nodes)) {
       const state = taskStates[id] || "idle";
       const onActivePath = runningPathNodeIds.has(id);
+      // See setState above: "compiled" / "failed" / "compiling" all count as
+      // a node that the user has seen in action. Only "idle" / missing means
+      // the node has never been compiled and should render at 80% alpha.
+      const compileResult = compilationStates[id];
+      const isCompiled =
+        compileResult === "compiled" ||
+        compileResult === "failed" ||
+        compileResult === "compiling";
       const shape = new TaskShape(
         id,
         node,
@@ -72,19 +230,15 @@ export class GraphRenderer extends PIXI.Container {
         onActivePath,
         ticker,
         this.onNodeSelect,
+        isCompiled,
       );
       this.taskShapes.set(id, shape);
       this.addChild(shape);
 
       if (getNextNodes(node).length === 0) {
         const endId = `end_${id}`;
-        // Derive end state: only highlight if the preceding task actually succeeded.
-        // A failed task never reaches End, so keep it idle in that case.
-        const precedingState = taskStates[id] ?? "idle";
-        const endState =
-          precedingState === "success" || precedingState === "mixed"
-            ? precedingState
-            : "idle";
+        // End is "success" iff the preceding task is "success", else "idle".
+        const endState = resolveNodeState(endId, graph, taskStates);
         const endOnPath = onActivePath;
         const endShape = new EndShape(endState, endOnPath);
         this.endShapes.set(endId, endShape);
@@ -210,35 +364,39 @@ export class GraphRenderer extends PIXI.Container {
 
   private drawConnections(graph: Graph, taskStates: Record<string, TaskState>) {
     this.linksContainer.removeChildren();
+    this.connectorShapes.clear();
 
     const firstShape = this.taskShapes.get(graph.start);
-    // Start → first task: green when the first task was actually reached.
-    const startConnectorState =
-      (taskStates[graph.start] ?? "idle") !== "idle" ? "success" : "idle";
     if (firstShape) {
-      this.linksContainer.addChild(
-        new ConnectorShape(
-          this.startShape.x + this.startShape.width + CONNECTOR.startGap,
-          this.startShape.y,
-          firstShape.x - CONNECTOR.endGap,
-          firstShape.y,
-          () => this.onAddNode(null, graph.start),
-          "horizontal",
-          startConnectorState,
-        ),
+      const startTo = graph.start;
+      const c = new ConnectorShape(
+        this.startShape.x + this.startShape.width + CONNECTOR.startGap,
+        this.startShape.y,
+        firstShape.x - CONNECTOR.endGap,
+        firstShape.y,
+        () => this.onAddNode(null, startTo),
+        "horizontal",
+        // Use the same strict rule as setState so the initial paint is
+        // consistent with the in-place updates that follow.
+        computeConnectorState(GRAPH_START_ID, startTo, graph, taskStates),
       );
+      this.connectorShapes.set(this.edgeKey(GRAPH_START_ID, startTo), c);
+      this.linksContainer.addChild(c);
     } else {
       const startEndShape = this.endShapes.get(`end_${GRAPH_START_ID}`);
       if (startEndShape) {
-        this.linksContainer.addChild(
-          new ConnectorShape(
-            this.startShape.x + this.startShape.width + CONNECTOR.startGap,
-            this.startShape.y,
-            startEndShape.x - CONNECTOR.endGap,
-            startEndShape.y,
-            () => this.onAddNode(null, null),
-          ),
+        const toId = `end_${GRAPH_START_ID}`;
+        const c = new ConnectorShape(
+          this.startShape.x + this.startShape.width + CONNECTOR.startGap,
+          this.startShape.y,
+          startEndShape.x - CONNECTOR.endGap,
+          startEndShape.y,
+          () => this.onAddNode(null, null),
+          "horizontal",
+          computeConnectorState(GRAPH_START_ID, toId, graph, taskStates),
         );
+        this.connectorShapes.set(this.edgeKey(GRAPH_START_ID, toId), c);
+        this.linksContainer.addChild(c);
       }
     }
 
@@ -246,57 +404,46 @@ export class GraphRenderer extends PIXI.Container {
       const shape = this.taskShapes.get(id);
       if (!shape) continue;
 
-      const sourceState = taskStates[id] ?? "idle";
-
       const nextNodes = getNextNodes(node);
       if (nextNodes.length === 0) {
         const target = this.endShapes.get(`end_${id}`);
         if (target) {
-          // Task → End: green when source succeeded or had mixed results.
-          const connectorState =
-            sourceState === "success" || sourceState === "mixed"
-              ? "success"
-              : "idle";
-          this.linksContainer.addChild(
-            new ConnectorShape(
-              shape.x + shape.width + CONNECTOR.startGap,
-              shape.y,
-              target.x - CONNECTOR.endGap,
-              target.y,
-              () => this.onAddNode(id, null),
-              "horizontal",
-              connectorState,
-            ),
+          const toId = `end_${id}`;
+          const c = new ConnectorShape(
+            shape.x + shape.width + CONNECTOR.startGap,
+            shape.y,
+            target.x - CONNECTOR.endGap,
+            target.y,
+            () => this.onAddNode(id, null),
+            "horizontal",
+            computeConnectorState(id, toId, graph, taskStates),
           );
+          this.connectorShapes.set(this.edgeKey(id, toId), c);
+          this.linksContainer.addChild(c);
         }
       } else {
         for (const nextId of nextNodes) {
           const target = this.taskShapes.get(nextId);
           if (!target) continue;
 
-          // Task A → Task B: green when A succeeded/mixed AND B was reached.
-          // This prevents unexecuted branches from lighting up green.
-          const targetState = taskStates[nextId] ?? "idle";
-          const connectorState =
-            (sourceState === "success" || sourceState === "mixed") &&
-            targetState !== "idle"
-              ? "success"
-              : "idle";
-
-          this.linksContainer.addChild(
-            new ConnectorShape(
-              shape.x + shape.width + CONNECTOR.startGap,
-              shape.y,
-              target.x - CONNECTOR.endGap,
-              target.y,
-              () => this.onAddNode(id, nextId),
-              "horizontal",
-              connectorState,
-            ),
+          const c = new ConnectorShape(
+            shape.x + shape.width + CONNECTOR.startGap,
+            shape.y,
+            target.x - CONNECTOR.endGap,
+            target.y,
+            () => this.onAddNode(id, nextId),
+            "horizontal",
+            computeConnectorState(id, nextId, graph, taskStates),
           );
+          this.connectorShapes.set(this.edgeKey(id, nextId), c);
+          this.linksContainer.addChild(c);
         }
       }
     }
+  }
+
+  private edgeKey(from: string, to: string): string {
+    return `${from}|${to}`;
   }
 
   private collectEdges(graph: Graph): { from: string; to: string }[] {

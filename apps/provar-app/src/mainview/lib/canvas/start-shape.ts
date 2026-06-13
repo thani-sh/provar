@@ -17,7 +17,7 @@ export class StartShape extends NodeShape {
   }
 
   constructor(state: TaskState = "idle", onActivePath: boolean = false) {
-    super(GRAPH_START_ID, "Start", "", state, onActivePath);
+    super(GRAPH_START_ID, "Start", "", state, onActivePath, true);
 
     this.eventMode = "none";
     this.iconRow.visible = false;

@@ -47,6 +47,10 @@ export class InfiniteCanvas {
     this.viewport.y = rect.height / 2;
 
     this.app.ticker.add(() => this.tick());
+
+    // Recover gracefully from transient WebGL context loss (driver reset,
+    // OS GPU handoff, etc.) instead of dying permanently.
+    this.attachContextLossHandlers();
   }
 
   private setupBackground() {
@@ -92,7 +96,16 @@ export class InfiniteCanvas {
     testFile: TestFile,
     taskStates: Record<string, TaskState> = {},
     runningPathNodeIds: Set<string> = new Set(),
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    > = {},
   ) {
+    // Cache the latest state so we can re-apply on WebGL context restore.
+    this.lastTaskStates = taskStates;
+    this.lastRunningPathNodeIds = new Set(runningPathNodeIds);
+    this.lastCompilationStates = { ...compilationStates };
+
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;
 
@@ -115,8 +128,99 @@ export class InfiniteCanvas {
     this.viewport.scale.set(1);
   }
 
+  /**
+   * updateGraphState updates the existing graph's visual state in-place
+   * without destroying or recreating any PIXI objects. Use this for state
+   * changes (task start/finish/fail, compile progress) — it is cheap and
+   * does NOT stress the WebGL context. Only use renderGraph when the graph
+   * structure itself changes (different testFile).
+   */
+  public updateGraphState(
+    taskStates: Record<string, TaskState> = {},
+    runningPathNodeIds: Set<string> = new Set(),
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    > = {},
+  ): void {
+    // Cache the latest state so we can re-apply on WebGL context restore.
+    this.lastTaskStates = taskStates;
+    this.lastRunningPathNodeIds = new Set(runningPathNodeIds);
+    this.lastCompilationStates = { ...compilationStates };
+
+    if (!this.currentGraphRenderer) return;
+    this.currentGraphRenderer.setState(
+      taskStates,
+      runningPathNodeIds,
+      compilationStates,
+    );
+  }
+
   public destroy() {
+    this.detachContextLossHandlers();
     this.viewport?.destroy();
     this.app?.destroy();
+  }
+
+  /**
+   * Browser-driven WebGL context loss (OS GPU reset, app focus loss,
+   * driver crash) fires webglcontextlost. We must preventDefault on the
+   * event so the browser knows we want to recover, and listen for the
+   * matching webglcontextrestored so we can re-upload scene-graph state
+   * to the new context. PIXI 8's renderer handles internal resource
+   * rebuild, but we also re-apply current graph state so colours catch
+   * up after the restore.
+   */
+  private contextLossHandler?: (e: Event) => void;
+  private contextRestoredHandler?: (e: Event) => void;
+  private lastTaskStates: Record<string, TaskState> = {};
+  private lastRunningPathNodeIds: Set<string> = new Set();
+  private lastCompilationStates: Record<
+    string,
+    "compiling" | "compiled" | "failed" | "idle"
+  > = {};
+
+  private attachContextLossHandlers(): void {
+    if (!this.app) return;
+    const canvas = this.app.canvas as HTMLCanvasElement;
+    this.contextLossHandler = (e: Event) => {
+      // Prevent default so the browser will eventually fire webglcontextrestored
+      e.preventDefault();
+      console.warn("[InfiniteCanvas] WebGL context lost — awaiting restore");
+    };
+    this.contextRestoredHandler = () => {
+      console.warn(
+        "[InfiniteCanvas] WebGL context restored — re-applying state",
+      );
+      // Re-apply the last known graph state so colours are correct.
+      if (this.currentGraphRenderer) {
+        this.currentGraphRenderer.setState(
+          this.lastTaskStates,
+          this.lastRunningPathNodeIds,
+          this.lastCompilationStates,
+        );
+      }
+    };
+    canvas.addEventListener("webglcontextlost", this.contextLossHandler);
+    canvas.addEventListener(
+      "webglcontextrestored",
+      this.contextRestoredHandler,
+    );
+  }
+
+  private detachContextLossHandlers(): void {
+    if (!this.app) return;
+    const canvas = this.app.canvas as HTMLCanvasElement;
+    if (this.contextLossHandler) {
+      canvas.removeEventListener("webglcontextlost", this.contextLossHandler);
+      this.contextLossHandler = undefined;
+    }
+    if (this.contextRestoredHandler) {
+      canvas.removeEventListener(
+        "webglcontextrestored",
+        this.contextRestoredHandler,
+      );
+      this.contextRestoredHandler = undefined;
+    }
   }
 }

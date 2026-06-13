@@ -22,8 +22,9 @@ export class TaskShape extends NodeShape {
     onActivePath: boolean,
     ticker: PIXI.Ticker,
     onClick: (id: string) => void,
+    isCompiled: boolean = false,
   ) {
-    super(nodeId, node.title, node.info, state, onActivePath);
+    super(nodeId, node.title, node.info, state, onActivePath, isCompiled);
 
     this.eventMode = "static";
     this.cursor = "pointer";
