@@ -76,4 +76,11 @@ export interface ExecuteOptions {
   upToTaskId?: string;
   existingPage?: Page;
   provarPath?: string;
+  /**
+   * maxEventQueueSize caps the in-memory event queue. Events beyond this
+   * bound are dropped (with a warning) to keep a forgotten or cancelled
+   * consumer from leaking unbounded events and screenshot bytes. Defaults
+   * to 256 when not provided.
+   */
+  maxEventQueueSize?: number;
 }
