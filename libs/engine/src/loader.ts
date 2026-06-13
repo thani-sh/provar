@@ -46,44 +46,63 @@ function resolveEnvVars(val: unknown): unknown {
 
 /**
  * buildGraphPaths dynamically resolves all linear execution paths from a task graph definition.
+ *
+ * Diamond graphs (e.g. A → B, A → C, B → D, C → D) are first-class: the
+ * traversal distinguishes a *rejoin* (a node already visited in the current
+ * path, where we stop descending and emit the current path) from a *cycle*
+ * (which is treated as a leaf for path-emission purposes too). To avoid
+ * dropping branches, we keep a path-local visited set and dedupe emitted
+ * paths by their terminal task sequence.
  */
 export function buildGraphPaths(
   start: string,
   tasks: Record<string, Task>,
 ): Path[] {
   const paths: Path[] = [];
+  // Tracks the terminal task-id sequence of every path we have already
+  // emitted so a rejoin (diamond) does not produce duplicates.
+  const emittedSignatures = new Set<string>();
 
-  function traverse(
-    currentNodeId: string,
-    currentPath: Task[],
-    visited: Set<string>,
-  ): void {
-    if (visited.has(currentNodeId)) {
-      paths.push({ tasks: [...currentPath] });
-      return;
-    }
+  const signatureOf = (pathTasks: Task[]): string =>
+    pathTasks.map((t) => t.id).join("→");
 
+  const emit = (pathTasks: Task[]): void => {
+    const sig = signatureOf(pathTasks);
+    if (emittedSignatures.has(sig)) return;
+    emittedSignatures.add(sig);
+    paths.push({ tasks: [...pathTasks] });
+  };
+
+  function traverse(currentNodeId: string, currentPath: Task[]): void {
     const task = tasks[currentNodeId];
     if (!task) {
-      paths.push({ tasks: [...currentPath] });
+      // Unknown node reference — treat as a leaf so the caller still gets a
+      // path, mirroring the previous behavior.
+      emit(currentPath);
       return;
     }
 
     const nextPath = [...currentPath, task];
-    const newVisited = new Set(visited).add(currentNodeId);
+
+    // A rejoin (the same node already on the current path) terminates this
+    // walk. We emit the path but do NOT recurse further into the cycle.
+    if (currentPath.some((t) => t.id === currentNodeId)) {
+      emit(nextPath);
+      return;
+    }
 
     if (!task.next || task.next.length === 0) {
-      paths.push({ tasks: nextPath });
+      emit(nextPath);
       return;
     }
 
     for (const nextId of task.next) {
-      traverse(nextId, nextPath, newVisited);
+      traverse(nextId, nextPath);
     }
   }
 
   if (start && tasks[start]) {
-    traverse(start, [], new Set());
+    traverse(start, []);
   }
 
   return paths;
