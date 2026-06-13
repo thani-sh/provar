@@ -1,6 +1,6 @@
 import { rm } from "fs/promises";
 import { z } from "zod";
-import { Command } from "./Command";
+import { Command } from "./command";
 import { getAbsPath } from "./utils";
 
 export type DeletePathInput = {

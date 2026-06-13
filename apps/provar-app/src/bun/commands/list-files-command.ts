@@ -1,7 +1,7 @@
 import { readdir } from "fs/promises";
 import { join } from "path";
 import { z } from "zod";
-import { Command } from "./Command";
+import { Command } from "./command";
 import { getAbsPath } from "./utils";
 import { TESTS_DIR } from "@libs/domain/zod";
 

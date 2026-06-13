@@ -77,9 +77,7 @@ export type ProvarRPCSchema = {
       };
     };
     messages: {
-      steamBunMessage: {
-        params: SteamBunMessage;
-      };
+      steamBunMessage: SteamBunMessage;
     };
   }>;
   webview: RPCSchema<{
@@ -96,9 +94,7 @@ export type ProvarRPCSchema = {
       settingsChanged: {
         params: {};
       };
-      steamBunMessage: {
-        params: SteamBunMessage;
-      };
+      steamBunMessage: SteamBunMessage;
     };
   }>;
 };

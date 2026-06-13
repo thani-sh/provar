@@ -223,7 +223,9 @@ export function registerStreams() {
                   title: "title" in event ? event.title : undefined,
                   error:
                     "error" in event
-                      ? event.error?.message || String(event.error)
+                      ? event.error instanceof Error
+                        ? event.error.message
+                        : String(event.error)
                       : undefined,
                   screenshotBase64:
                     "screenshotBase64" in event

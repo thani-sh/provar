@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Command } from "./Command";
+import { Command } from "./command";
 import { getAbsPath } from "./utils";
 import { schemaForFile } from "@libs/domain/zod";
 import { loadProject } from "@libs/engine";

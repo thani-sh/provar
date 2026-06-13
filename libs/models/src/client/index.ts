@@ -1,7 +1,7 @@
 import { streamText, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { ModelMessage, LanguageModel } from "ai";
+import type { ModelMessage, LanguageModel, ToolSet } from "ai";
 import type {
   Client,
   Session,
@@ -47,7 +47,7 @@ export class AISDKSession implements Session {
   constructor(
     public id: string,
     private model: LanguageModel,
-    private tools?: Record<string, unknown>,
+    private tools?: ToolSet,
   ) {}
 
   async *prompt(stuff: Message[]): AsyncGenerator<Attachment, void> {
@@ -100,7 +100,6 @@ export class AISDKSession implements Session {
       system: systemPrompt,
       messages: this.messages,
       tools: this.tools,
-      maxSteps: 5,
       stopWhen: stepCountIs(5),
     });
 
@@ -132,7 +131,7 @@ export class AISDKClient implements Client {
   }
 
   async session(options?: {
-    tools?: Record<string, unknown>;
+    tools?: ToolSet;
   }): Promise<Session> {
     return new AISDKSession(crypto.randomUUID(), this.model, options?.tools);
   }

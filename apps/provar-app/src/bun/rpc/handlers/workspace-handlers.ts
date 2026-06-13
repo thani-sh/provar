@@ -2,6 +2,8 @@ import { Utils } from "electrobun/bun";
 import { setWorkspaceDir, WORKSPACE_DIR } from "../../utils";
 import { loadSettings, saveSettings } from "../../lib/settings";
 import { getMainWindow } from "../../window/window-registry";
+import { provarRPC } from "..";
+import { provarRPC } from "..";
 
 let updateMenuCallback: (() => void) | null = null;
 export function registerUpdateMenuCallback(cb: () => void) {
@@ -22,7 +24,7 @@ export async function openWorkspace({
 
   setWorkspaceDir(path);
   const mainWindow = getMainWindow();
-  mainWindow.webview.rpc?.send.workspaceSelected({
+  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.workspaceSelected({
     params: { path },
   });
 

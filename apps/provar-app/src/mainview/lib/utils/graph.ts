@@ -24,18 +24,20 @@ export function addNodeToGraph(
   } else {
     const parentNode = newFile.graph.nodes[fromId];
     if (parentNode) {
-      if (!parentNode.next) {
-        parentNode.next = newNodeId;
-      } else if (Array.isArray(parentNode.next)) {
+      const node: TestNode = parentNode;
+      if (!node.next) {
+        node.next = newNodeId;
+      } else if (Array.isArray(node.next)) {
+        const currentNexts = node.next;
         if (toId) {
-          parentNode.next = parentNode.next.map((id) =>
+          node.next = currentNexts.map((id) =>
             id === toId ? newNodeId : id,
           );
         } else {
-          parentNode.next.push(newNodeId);
+          node.next.push(newNodeId);
         }
       } else {
-        parentNode.next = newNodeId;
+        node.next = newNodeId;
       }
     }
   }
@@ -92,13 +94,14 @@ export function deleteNodeFromGraph(file: TestFile, id: string): TestFile {
     newFile.graph.start = "";
   }
 
-  Object.values(newFile.graph.nodes).forEach((node) => {
+  (Object.values(newFile.graph.nodes) as TestNode[]).forEach((node) => {
     if (Array.isArray(node.next)) {
-      node.next = (node.next as string[]).filter(
+      const currentNexts = node.next;
+      node.next = currentNexts.filter(
         (nextId) => !idsToDelete.has(nextId),
       );
-      if ((node.next as string[]).length === 0) delete node.next;
-    } else if (node.next && idsToDelete.has(node.next as string)) {
+      if (node.next.length === 0) delete node.next;
+    } else if (node.next && idsToDelete.has(node.next)) {
       delete node.next;
     }
   });

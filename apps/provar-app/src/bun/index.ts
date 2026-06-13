@@ -6,12 +6,13 @@ import {
   registerMenuClickListener,
 } from "./window/menu";
 import { openWorkspace } from "./rpc/handlers/workspace-handlers";
+import { provarRPC } from "./rpc";
 
 // Boot up Electrobun window
 const mainWindow = await createMainWindow();
 
 onWorkspaceChanged(() => {
-  mainWindow.webview.rpc?.send.workspaceChanged({ params: {} });
+  (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.workspaceChanged({ params: {} });
 });
 
 if (WORKSPACE_DIR) {

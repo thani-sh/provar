@@ -1,6 +1,7 @@
 import Electrobun, { ApplicationMenu, Utils } from "electrobun/bun";
 import { loadSettings, saveSettings } from "../lib/settings";
 import { getMainWindow } from "./window-registry";
+import { provarRPC } from "../rpc";
 import {
   openWorkspace,
   registerUpdateMenuCallback,
@@ -69,7 +70,7 @@ export function registerMenuClickListener() {
   Electrobun.events.on("application-menu-clicked", async (e) => {
     const mainWindow = getMainWindow();
     if (e.data.action === "settings") {
-      mainWindow.webview.rpc?.send.openSettings({ params: {} });
+      (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.openSettings({ params: {} });
     } else if (e.data.action === "open") {
       const chosenPaths = await Utils.openFileDialog({
         canChooseFiles: false,
@@ -88,7 +89,7 @@ export function registerMenuClickListener() {
       try {
         saveSettings({ recentWorkspaces: [] });
         updateApplicationMenu();
-        mainWindow.webview.rpc?.send.settingsChanged({ params: {} });
+        (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.settingsChanged({ params: {} });
       } catch (e) {
         console.error("Failed to clear recent workspaces settings:", e);
       }

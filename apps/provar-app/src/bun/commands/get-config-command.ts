@@ -1,7 +1,7 @@
 import { readFile, access } from "fs/promises";
 import yaml from "yaml";
 import { z } from "zod";
-import { Command } from "./Command";
+import { Command } from "./command";
 import { getAbsPath } from "./utils";
 import { CONFIG_FILE, configSchema } from "@libs/domain/zod";
 

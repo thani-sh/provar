@@ -2,7 +2,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { dirname } from "path";
 import yaml from "yaml";
 import { z } from "zod";
-import { Command } from "./Command";
+import { Command } from "./command";
 import { getAbsPath } from "./utils";
 import { generateNodeId } from "../../shared/utils";
 
