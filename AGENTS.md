@@ -1,6 +1,12 @@
 # Agent Instructions
 
-Project status: early development (prefer breaking changes to API over complexity)
+Project status: Provar is a developer tool built by a single developer over weekends. It is in early development stage without any active users.
+
+- Prefer breaking changes to API to avoid complexity.
+- Use `@provar/` npmjs scope for public npm packages.
+- Use `provar.se` domain name for websites and emails.
+
+In addition, the `@thani-sh/` npmjs scope is owned by the developer and libraries published under this scope can be modified if it is necessary to support this project.
 
 ## Tooling
 
