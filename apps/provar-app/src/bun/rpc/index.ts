@@ -3,6 +3,7 @@ import { type ProvarRPCSchema } from "../../shared/rpc";
 
 import { acceptVisualState } from "./handlers/accept-visual-state";
 import { getScreenshots } from "./handlers/get-screenshots";
+import { getNodeGeneratedCodeRpc } from "./handlers/get-node-generated-code";
 import { createSampleProject } from "./handlers/sample-project";
 import { openExternal } from "./handlers/open-external";
 import {
@@ -50,6 +51,7 @@ export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       deletePath,
       acceptVisualState,
       getScreenshots,
+      getNodeGeneratedCode: getNodeGeneratedCodeRpc,
       createSampleProject,
       openExternal,
     },

@@ -81,6 +81,22 @@ class EditorStore {
     {},
   );
 
+  /**
+   * nodeGeneratedCode caches the extracted compiled-code source per node
+   * id, plus a staleness flag. The map is keyed by nodeId; the flag tells
+   * the side panel whether to show the code or a "recompile first" hint.
+   */
+  nodeGeneratedCode = $state<
+    Record<string, { code: string | null; upToDate: boolean }>
+  >({});
+
+  /**
+   * inflightGeneratedCodeLoads tracks in-flight `loadGeneratedCodeForNode`
+   * calls so a second call for the same node shares the in-progress
+   * request instead of issuing a duplicate IPC.
+   */
+  private inflightGeneratedCodeLoads = new Set<string>();
+
   /** currentPathIndex tracks which path is currently being executed. */
   private currentPathIndex = $state(0);
 
@@ -163,8 +179,14 @@ class EditorStore {
         }
       }
       this.isCompiling = false;
-      if (success && this.currentFile) {
-        this.currentFile.code = { valid: true };
+      if (success) {
+        // Recompile may have changed the source text for any node, so
+        // drop the cached extracted code; the next panel open will
+        // re-fetch and pick up the new version.
+        this.nodeGeneratedCode = {};
+        if (this.currentFile) {
+          this.currentFile.code = { valid: true };
+        }
       }
       // Verify the freshly compiled code by running every path right after a
       // successful compile. Errors during the run surface in the canvas as
@@ -337,6 +359,37 @@ class EditorStore {
   }
 
   /**
+   * loadGeneratedCodeForNode fetches the compiled code for a single node
+   * and stores it in `nodeGeneratedCode`. The result is `upToDate: false`
+   * when the YAML has changed since the last compile — the side panel
+   * surfaces that as a "recompile first" hint rather than showing stale
+   * code. Concurrent calls for the same node are deduped.
+   */
+  async loadGeneratedCodeForNode(nodeId: string): Promise<void> {
+    if (!this.selectedFilePath) return;
+    if (this.inflightGeneratedCodeLoads.has(nodeId)) return;
+    this.inflightGeneratedCodeLoads.add(nodeId);
+    try {
+      const res = await ProvarAPI.getNodeGeneratedCode(
+        this.selectedFilePath,
+        nodeId,
+      );
+      this.nodeGeneratedCode = {
+        ...this.nodeGeneratedCode,
+        [nodeId]: res,
+      };
+    } catch (e) {
+      console.error("EditorStore: Failed to get generated code:", e);
+      this.nodeGeneratedCode = {
+        ...this.nodeGeneratedCode,
+        [nodeId]: { code: null, upToDate: false },
+      };
+    } finally {
+      this.inflightGeneratedCodeLoads.delete(nodeId);
+    }
+  }
+
+  /**
    * acceptVisualStateForNode promotes the current screenshot of a node to baseline.
    */
   async acceptVisualStateForNode(nodeId: string): Promise<void> {
@@ -368,6 +421,7 @@ class EditorStore {
     this.taskPathStates = {};
     this.compilationStates = {};
     this.screenshots = {};
+    this.nodeGeneratedCode = {};
     if (this.currentFile?.graph?.nodes) {
       for (const id of Object.keys(this.currentFile.graph.nodes)) {
         this.loadScreenshotsForNode(id);

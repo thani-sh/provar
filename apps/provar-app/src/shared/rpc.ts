@@ -75,6 +75,10 @@ export type ProvarRPCSchema = {
         params: { testPath: string; pathIndex: number; taskId: string };
         response: { baseline?: string; current?: string };
       };
+      getNodeGeneratedCode: {
+        params: { testPath: string; taskId: string };
+        response: { code: string | null; upToDate: boolean };
+      };
       createSampleProject: {
         params: {};
         response: { success: boolean; path?: string; error?: string };

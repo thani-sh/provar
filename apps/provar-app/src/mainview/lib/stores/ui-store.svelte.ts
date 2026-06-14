@@ -16,9 +16,11 @@ class UIStore {
    * toast is a non-blocking error/info message. `null` when no toast is showing. Replaces the
    * ad-hoc `console.error` pattern for user-visible failures.
    */
-  toast = $state<{ id: number; kind: "error" | "info"; message: string } | null>(
-    null,
-  );
+  toast = $state<{
+    id: number;
+    kind: "error" | "info";
+    message: string;
+  } | null>(null);
 
   lastOpenSidebar = $state<"assistant" | "config" | "node">("config");
 

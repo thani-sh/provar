@@ -258,6 +258,31 @@ export const ProvarAPI = {
   },
 
   /**
+   * getNodeGeneratedCode returns the source text of the compiled execute
+   * function for a single task, extracted from the .test.ts file the
+   * compiler produced. `upToDate` is true only when the compiled file
+   * exists and its hash matches the current YAML; otherwise the caller
+   * should prompt the user to recompile before showing the code.
+   */
+  async getNodeGeneratedCode(
+    testPath: string,
+    taskId: string,
+  ): Promise<{ code: string | null; upToDate: boolean }> {
+    console.log("[RPC Client] getNodeGeneratedCode request:", testPath, taskId);
+    const res = await electroview.rpc!.request.getNodeGeneratedCode({
+      testPath,
+      taskId,
+    });
+    console.log(
+      "[RPC Client] getNodeGeneratedCode response upToDate:",
+      res.upToDate,
+      "hasCode:",
+      res.code !== null,
+    );
+    return res;
+  },
+
+  /**
    * createSampleProject prompts the user for a destination folder, clones the upstream
    * demo-social sample into it, and opens it as the active project. Returns the new project
    * path on success.

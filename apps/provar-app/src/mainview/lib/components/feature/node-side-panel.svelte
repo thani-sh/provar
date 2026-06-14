@@ -2,6 +2,8 @@
   import type { TestNode } from "@libs/domain/zod";
   import {
     Check,
+    Code as CodeIcon,
+    Copy,
     Image as ImageIcon,
     Share2,
     Trash2,
@@ -23,6 +25,41 @@
   } = $props();
 
   const hasSubGraph = $derived(!!node.graph);
+
+  // The compiled .test.ts is only inspectable when the file is compiled AND
+  // the .ts on disk is still in sync with the YAML (same hash the compiler
+  // wrote). Both conditions gate the toggle.
+  const isCodeAvailable = $derived(!!editorStore.currentFile?.code?.valid);
+  const generatedCodeEntry = $derived(editorStore.nodeGeneratedCode[nodeId]);
+  let codeCopied = $state(false);
+
+  // The Description block doubles as a read-only viewer for the compiled
+  // .test.ts body. `view = "description"` shows the editable textarea (the
+  // default); `view = "code"` swaps in a `<pre>` with the extracted body
+  // and a Copy button. The toggle button on the label row flips between
+  // the two.
+  let view = $state<"description" | "code">("description");
+
+  // Re-fetch generated code when the panel opens for a new node, so the
+  // code view is ready the moment the user clicks the toggle. The store
+  // dedupes concurrent calls so switching back and forth between two nodes
+  // doesn't issue duplicate IPCs.
+  $effect(() => {
+    if (nodeId && isCodeAvailable) {
+      editorStore.loadGeneratedCodeForNode(nodeId);
+    }
+  });
+
+  async function copyCode() {
+    if (!generatedCodeEntry?.code) return;
+    try {
+      await navigator.clipboard.writeText(generatedCodeEntry.code);
+      codeCopied = true;
+      setTimeout(() => (codeCopied = false), 1500);
+    } catch (e) {
+      console.error("Failed to copy generated code:", e);
+    }
+  }
 
   function handleTitleChange(e: Event) {
     const title = (e.target as HTMLInputElement).value;
@@ -136,6 +173,8 @@
     // Reset viewMode when node selection changes
     if (nodeId) {
       viewMode = "current";
+      view = "description";
+      codeCopied = false;
     }
   });
 </script>
@@ -192,20 +231,77 @@
       </div>
 
       <div>
-        <label
-          for="node-info"
-          class="mb-2 block text-xs font-medium tracking-wider text-zinc-500 uppercase"
-        >
-          Description
-        </label>
-        <textarea
-          id="node-info"
-          value={node.info}
-          oninput={handleInfoChange}
-          rows="3"
-          class="w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-          placeholder="Add a description..."
-        ></textarea>
+        <div class="mb-2 flex items-center justify-between">
+          <label
+            for={view === "description" ? "node-info" : undefined}
+            class="block text-xs font-medium tracking-wider text-zinc-500 uppercase"
+          >
+            Description
+          </label>
+          <button
+            type="button"
+            onclick={() =>
+              (view = view === "description" ? "code" : "description")}
+            disabled={!isCodeAvailable}
+            class="flex items-center rounded-md p-1.5 text-xs transition-colors enabled:hover:bg-zinc-800/60 enabled:hover:text-zinc-200 disabled:cursor-not-allowed disabled:opacity-40 {view ===
+            'code'
+              ? 'text-indigo-300'
+              : 'text-zinc-400'}"
+            title={isCodeAvailable
+              ? view === "description"
+                ? "Show generated code"
+                : "Show description"
+              : "Compile the test first to view generated code"}
+            aria-pressed={view === "code"}
+          >
+            <CodeIcon size={12} />
+          </button>
+        </div>
+        {#if view === "description"}
+          <textarea
+            id="node-info"
+            value={node.info}
+            oninput={handleInfoChange}
+            rows="3"
+            class="w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            placeholder="Add a description..."
+          ></textarea>
+        {:else if !generatedCodeEntry}
+          <div
+            class="rounded-lg border border-zinc-800/40 bg-zinc-900/30 p-4 text-center text-xs text-zinc-500"
+          >
+            Loading generated code…
+          </div>
+        {:else if !generatedCodeEntry.upToDate}
+          <div
+            class="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-amber-300"
+          >
+            The compiled .test.ts is out of date (the YAML has changed since the
+            last compile). Recompile to view the current generated code.
+          </div>
+        {:else if !generatedCodeEntry.code}
+          <div
+            class="rounded-lg border border-zinc-800/40 bg-zinc-900/30 p-4 text-center text-xs text-zinc-500"
+          >
+            No generated code for this node.
+          </div>
+        {:else}
+          <div class="relative">
+            <button
+              type="button"
+              onclick={copyCode}
+              class="absolute top-2 right-2 z-10 flex items-center gap-1.5 rounded-md border border-zinc-800/60 bg-zinc-900/80 px-2 py-1 text-xs text-zinc-400 backdrop-blur-sm transition-colors hover:border-zinc-700 hover:text-zinc-200"
+              title="Copy generated code"
+            >
+              <Copy size={12} />
+              {codeCopied ? "Copied" : "Copy"}
+            </button>
+            <pre
+              class="max-h-80 overflow-auto rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 pr-16 text-xs leading-relaxed text-zinc-300"><code
+                >{generatedCodeEntry.code}</code
+              ></pre>
+          </div>
+        {/if}
       </div>
     </section>
     <section>
