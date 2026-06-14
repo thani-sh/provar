@@ -41,6 +41,12 @@ In addition, the `@thani-sh/` npmjs scope is owned by the developer and librarie
 - `apps/`: Applications
 - `libs/`: Reusable code
 - `docs/`:
-  - `adrs`: Architecture decision records (ADRs)
-  - `pdrs`: Product decision records (PDRs)
+  - `PRODUCT.md`: Living product specification (single source of truth for what Provar is,
+    who it is for, the surface area, and the north-star metric). Read this before changing
+    product-facing behavior.
+  - `adrs`: Architecture decision records (ADRs) — one file per non-obvious technical choice.
+  - `pdrs`: Product decision records (PDRs) — one file per non-obvious product choice.
   - `DESIGN.md`: Design system and UI guidelines.
+  - `TODOS.md`: Active work log and known issues. The only "in motion" doc.
+
+When adding a new `.md` file, consult the doc map in `docs/PRODUCT.md` § 8 first.
