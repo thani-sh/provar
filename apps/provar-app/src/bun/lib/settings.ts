@@ -3,6 +3,8 @@
 export {
   loadSettings,
   saveSettings,
+  ensureSettings,
+  settingsExists,
   settingsSchema as SettingsSchema,
   type Settings,
 } from "@libs/config";

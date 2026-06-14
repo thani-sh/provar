@@ -17,7 +17,7 @@ export type ProvarRPCSchema = {
     requests: {
       getSettings: {
         params: {};
-        response: { settings: Settings; home: string };
+        response: { settings: Settings; home: string; settingsExists: boolean };
       };
       saveSettings: {
         params: { settings: Partial<Settings> };

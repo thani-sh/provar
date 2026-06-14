@@ -13,9 +13,14 @@ import {
  */
 export const ProvarAPI = {
   /**
-   * getSettings retrieves the application settings from disk.
+   * getSettings retrieves the application settings from disk, the user's
+   * home directory, and whether the on-disk settings file already exists.
    */
-  async getSettings(): Promise<{ settings: Settings; home: string }> {
+  async getSettings(): Promise<{
+    settings: Settings;
+    home: string;
+    settingsExists: boolean;
+  }> {
     console.log("[RPC Client] getSettings request");
     const res = await electroview.rpc!.request.getSettings({});
     console.log("[RPC Client] getSettings response:", res);

@@ -2,6 +2,7 @@ import { Utils } from "electrobun/bun";
 import {
   loadSettings,
   saveSettings as saveSettingsLib,
+  settingsExists,
 } from "../../lib/settings";
 import { createCommands } from "../../commands";
 import { PROJECT_DIR } from "../../utils";
@@ -12,7 +13,14 @@ export const getSettings = async () => {
   console.log("[RPC Server] getSettings request");
   const settings = loadSettings();
   console.log("[RPC Server] getSettings response:", settings);
-  return { settings, home: Utils.paths.home };
+  return {
+    settings,
+    home: Utils.paths.home,
+    // Tells the renderer whether ~/.provar/settings.json has ever been
+    // written to disk. The WebView uses this to decide between showing the
+    // first-run setup wizard and the regular settings modal.
+    settingsExists: settingsExists(),
+  };
 };
 
 export const saveSettings = async (params: { settings: any }) => {
