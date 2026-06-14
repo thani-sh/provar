@@ -2,7 +2,12 @@ import * as fs from "fs";
 import * as path from "path";
 import pc from "picocolors";
 import { compile, loadProject } from "@libs/engine";
-import { loadSettings } from "@libs/config";
+import {
+  loadSettings,
+  assertProviderConfigured,
+  ProviderConfigError as ConfigProviderError,
+} from "@libs/config";
+import { ProviderConfigError as ModelsProviderError } from "@libs/models";
 import { renderTraceReport } from "../../utils/telemetry";
 
 export async function handleCompile(args: string[]) {
@@ -61,6 +66,28 @@ export async function handleCompile(args: string[]) {
   let successCount = 0;
 
   const settings = loadSettings();
+
+  // Gate: refuse to start the compile pipeline if the active provider has no
+  // API key. We do this BEFORE iterating files so a single, actionable error
+  // reaches the user instead of a stream of 401s from the LLM client.
+  try {
+    assertProviderConfigured(settings.models);
+  } catch (err) {
+    if (err instanceof ConfigProviderError) {
+      const details = err.requirements
+        .map((r: { message: string }) => r.message)
+        .join(" ");
+      console.error(pc.red(`\n❌ Cannot compile tests: ${details}`));
+      console.error(
+        pc.dim(
+          `\n  Tip: edit ~/.provar/settings.json or run \`bun run provar\` and open Settings to add a key for provider "${settings.models.defaultProvider}".`,
+        ),
+      );
+      process.exit(1);
+    }
+    throw err;
+  }
+
   const provider = settings.models.defaultProvider;
   const cfg = settings.models.providers[provider];
   const agentConfig = {
@@ -84,6 +111,14 @@ export async function handleCompile(args: string[]) {
         renderTraceReport(result.trace);
       }
     } catch (err: any) {
+      if (
+        err instanceof ConfigProviderError ||
+        err instanceof ModelsProviderError
+      ) {
+        // Defense in depth — the engine calls createClient which re-checks.
+        console.error(pc.red(`\n❌ Cannot compile tests: ${err.message}`));
+        process.exit(1);
+      }
       console.error(
         `  ${pc.red("✖")} Compilation Failed: ${pc.red(err.message)}`,
       );

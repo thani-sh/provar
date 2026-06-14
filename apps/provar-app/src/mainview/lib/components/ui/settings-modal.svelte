@@ -113,6 +113,7 @@
               >
                 <option value="google-generative-ai">Google</option>
                 <option value="openai">OpenAI</option>
+                <option value="minimax">MiniMax</option>
               </select>
             </div>
 
@@ -206,9 +207,69 @@
                       bind:value={
                         settings.models.providers["google-generative-ai"].model
                       }
-                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                     />
                   </div>
+                </div>
+              {:else if settings.models.defaultProvider === "minimax"}
+                <div class="space-y-4">
+                  <div>
+                    <label
+                      for="minimax-apikey"
+                      class="mb-1.5 block text-xs font-medium text-zinc-500"
+                    >
+                      API Key <span class="text-rose-400">*</span>
+                    </label>
+                    <input
+                      id="minimax-apikey"
+                      type="text"
+                      bind:value={settings.models.providers.minimax.apiKey}
+                      class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                      placeholder="eyJ..."
+                    />
+                    <p class="mt-1 text-[11px] text-zinc-600">
+                      Required. Get one from
+                      <span class="font-mono">platform.MiniMax.io</span>.
+                    </p>
+                  </div>
+
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        for="minimax-model"
+                        class="mb-1.5 block text-xs font-medium text-zinc-500"
+                      >
+                        Model Name
+                      </label>
+                      <input
+                        id="minimax-model"
+                        type="text"
+                        bind:value={settings.models.providers.minimax.model}
+                        class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="MiniMax-M3"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        for="minimax-baseurl"
+                        class="mb-1.5 block text-xs font-medium text-zinc-500"
+                      >
+                        Base URL
+                      </label>
+                      <input
+                        id="minimax-baseurl"
+                        type="text"
+                        bind:value={settings.models.providers.minimax.baseUrl}
+                        class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        placeholder="https://api.MiniMax.io/anthropic"
+                      />
+                    </div>
+                  </div>
+                  <p class="text-[11px] text-zinc-600">
+                    MiniMax exposes an Anthropic-compatible endpoint. The base
+                    URL is pre-filled with the public endpoint; override it for
+                    self-hosted gateways.
+                  </p>
                 </div>
               {/if}
             </div>

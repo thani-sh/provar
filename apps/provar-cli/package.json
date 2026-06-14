@@ -14,6 +14,7 @@
     "@libs/domain": "workspace:*",
     "@libs/engine": "workspace:*",
     "@libs/config": "workspace:*",
+    "@libs/models": "workspace:*",
     "yaml": "^2.9.0",
     "picocolors": "^1.1.1"
   },

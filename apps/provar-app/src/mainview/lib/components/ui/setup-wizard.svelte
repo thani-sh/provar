@@ -46,6 +46,8 @@
       model = model || "gpt-4o";
     } else if (provider === "google-generative-ai") {
       model = model || "gemini-1.5-flash";
+    } else if (provider === "minimax") {
+      model = model || "MiniMax-M3";
     }
   });
 
@@ -68,6 +70,14 @@
                 provider === "google-generative-ai"
                   ? model
                   : "gemini-1.5-flash",
+            },
+            minimax: {
+              apiKey: provider === "minimax" ? apiKey : "",
+              model: provider === "minimax" ? model : "MiniMax-M3",
+              baseUrl:
+                provider === "minimax"
+                  ? baseUrl
+                  : "https://api.MiniMax.io/anthropic",
             },
           },
         };
@@ -171,6 +181,7 @@
               >
                 <option value="google-generative-ai">Google</option>
                 <option value="openai">OpenAI</option>
+                <option value="minimax">MiniMax</option>
               </select>
             </div>
 
@@ -180,13 +191,20 @@
                 class="mb-1.5 block text-xs font-medium text-zinc-500"
               >
                 API Key
+                {#if provider === "minimax"}
+                  <span class="text-rose-400">*</span>
+                {/if}
               </label>
               <input
                 id="wizard-apikey"
                 type="text"
                 bind:value={apiKey}
                 class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                placeholder={provider === "openai" ? "sk-..." : "AIzaSy..."}
+                placeholder={provider === "openai"
+                  ? "sk-..."
+                  : provider === "minimax"
+                    ? "eyJ..."
+                    : "AIzaSy..."}
               />
             </div>
 
@@ -204,7 +222,9 @@
                 class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                 placeholder={provider === "openai"
                   ? "gpt-4o"
-                  : "gemini-1.5-flash"}
+                  : provider === "minimax"
+                    ? "MiniMax-M3"
+                    : "gemini-1.5-flash"}
               />
             </div>
 
@@ -223,6 +243,28 @@
                   class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                   placeholder="https://api.openai.com/v1"
                 />
+              </div>
+            {/if}
+
+            {#if provider === "minimax"}
+              <div>
+                <label
+                  for="wizard-baseurl"
+                  class="mb-1.5 block text-xs font-medium text-zinc-500"
+                >
+                  Base URL
+                </label>
+                <input
+                  id="wizard-baseurl"
+                  type="text"
+                  bind:value={baseUrl}
+                  class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                  placeholder="https://api.MiniMax.io/anthropic"
+                />
+                <p class="mt-1 text-[11px] text-zinc-600">
+                  Pre-filled with the public MiniMax Anthropic-compatible
+                  endpoint. Override for self-hosted gateways.
+                </p>
               </div>
             {/if}
           </div>
@@ -251,7 +293,11 @@
             {#if providerChosen}
               Provar is configured to use
               <span class="font-medium text-zinc-200"
-                >{provider === "openai" ? "OpenAI" : "Google"}</span
+                >{provider === "openai"
+                  ? "OpenAI"
+                  : provider === "minimax"
+                    ? "MiniMax"
+                    : "Google"}</span
               >
               with model
               <span class="font-medium text-zinc-200">{model}</span>.

@@ -22,17 +22,23 @@ export async function handleInit(args: string[]): Promise<void> {
     console.log(
       "  --sample    Copy the bundled sample project (recommended for first-time users)",
     );
-    console.log("  --force     Overwrite an existing directory if it already exists");
+    console.log(
+      "  --force     Overwrite an existing directory if it already exists",
+    );
     return;
   }
 
   const rawTarget = positional[0];
   if (typeof rawTarget !== "string") {
-    console.error(pc.red("Project name is required. Run 'provar init --help'."));
+    console.error(
+      pc.red("Project name is required. Run 'provar init --help'."),
+    );
     process.exit(2);
   }
 
-  const target = isAbsolute(rawTarget) ? rawTarget : resolve(process.cwd(), rawTarget);
+  const target = isAbsolute(rawTarget)
+    ? rawTarget
+    : resolve(process.cwd(), rawTarget);
   const useSample = flags.has("--sample");
   const force = flags.has("--force");
 
@@ -104,13 +110,7 @@ function resolveBundledSampleDir(): string | null {
         ".provar",
       );
       if (existsSync(candidate)) {
-        return join(
-          dir,
-          "apps",
-          "provar-app",
-          "sample-projects",
-          "todo-app",
-        );
+        return join(dir, "apps", "provar-app", "sample-projects", "todo-app");
       }
       // Flat layout (sample shipped at the root of the distribution): <dir>/sample-projects/todo-app
       const flat = join(dir, "sample-projects", "todo-app", ".provar");

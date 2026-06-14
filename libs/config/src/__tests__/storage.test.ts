@@ -3,7 +3,13 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { __test__ } from "../storage";
-import { modelSettingsSchema, settingsSchema } from "../schema";
+import {
+  modelSettingsSchema,
+  settingsSchema,
+  assertProviderConfigured,
+  getActiveProviderRequirements,
+  ProviderConfigError,
+} from "../schema";
 
 const { buildStorage, deepMerge } = __test__;
 
@@ -21,6 +27,11 @@ describe("settingsSchema defaults", () => {
       apiKey: "",
       model: "gemini-1.5-flash",
     });
+    expect(parsed.models.providers.minimax).toEqual({
+      apiKey: "",
+      model: "MiniMax-M3",
+      baseUrl: "https://api.MiniMax.io/anthropic",
+    });
   });
 
   test("modelSettingsSchema defaults to google-generative-ai provider", () => {
@@ -28,13 +39,87 @@ describe("settingsSchema defaults", () => {
     expect(parsed.defaultProvider).toBe("google-generative-ai");
   });
 
-  test("provider selection accepts only the two known providers", () => {
-    const ok = modelSettingsSchema.safeParse({ defaultProvider: "openai" });
-    expect(ok.success).toBe(true);
+  test("provider selection accepts only the three known providers", () => {
+    const okOpenAI = modelSettingsSchema.safeParse({
+      defaultProvider: "openai",
+    });
+    expect(okOpenAI.success).toBe(true);
+    const okMiniMax = modelSettingsSchema.safeParse({
+      defaultProvider: "minimax",
+    });
+    expect(okMiniMax.success).toBe(true);
     const bad = modelSettingsSchema.safeParse({
       defaultProvider: "anthropic",
     });
     expect(bad.success).toBe(false);
+  });
+
+  test("minimax provider defaults to MiniMax-M3 and the public Anthropic-compatible base URL", () => {
+    const parsed = modelSettingsSchema.parse({});
+    expect(parsed.providers.minimax).toEqual({
+      apiKey: "",
+      model: "MiniMax-M3",
+      baseUrl: "https://api.MiniMax.io/anthropic",
+    });
+  });
+});
+
+describe("provider configuration gate", () => {
+  test("reports no requirements when every provider has a key", () => {
+    const settings = modelSettingsSchema.parse({});
+    settings.providers.openai.apiKey = "sk";
+    settings.providers["google-generative-ai"].apiKey = "AIza";
+    settings.providers.minimax.apiKey = "eyJ";
+    for (const provider of [
+      "openai",
+      "google-generative-ai",
+      "minimax",
+    ] as const) {
+      settings.defaultProvider = provider;
+      expect(getActiveProviderRequirements(settings)).toEqual([]);
+    }
+  });
+
+  test("flags a missing apiKey on the active provider", () => {
+    const settings = modelSettingsSchema.parse({});
+    // Default defaultProvider is google-generative-ai, which has apiKey: "".
+    const reqs = getActiveProviderRequirements(settings);
+    expect(reqs).toHaveLength(1);
+    const first = reqs[0]!;
+    expect(first.field).toBe("apiKey");
+    expect(first.message).toContain("google-generative-ai");
+  });
+
+  test("flags a whitespace-only apiKey as missing", () => {
+    const settings = modelSettingsSchema.parse({});
+    settings.defaultProvider = "minimax";
+    settings.providers.minimax.apiKey = "   ";
+    const reqs = getActiveProviderRequirements(settings);
+    expect(reqs).toHaveLength(1);
+    expect(reqs[0]!.field).toBe("apiKey");
+  });
+
+  test("assertProviderConfigured throws ProviderConfigError with the active provider name", () => {
+    const settings = modelSettingsSchema.parse({});
+    settings.defaultProvider = "minimax";
+    settings.providers.minimax.apiKey = "";
+    expect(() => assertProviderConfigured(settings)).toThrow(
+      ProviderConfigError,
+    );
+    try {
+      assertProviderConfigured(settings);
+    } catch (err) {
+      expect(err).toBeInstanceOf(ProviderConfigError);
+      const e = err as ProviderConfigError;
+      expect(e.provider).toBe("minimax");
+      expect(e.requirements[0]!.message).toContain("minimax");
+    }
+  });
+
+  test("assertProviderConfigured is a no-op when the active provider has a key", () => {
+    const settings = modelSettingsSchema.parse({});
+    settings.providers["google-generative-ai"].apiKey = "AIza";
+    expect(() => assertProviderConfigured(settings)).not.toThrow();
   });
 });
 

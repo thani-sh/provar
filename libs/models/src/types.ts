@@ -34,7 +34,7 @@ export interface Client {
  * AgentClientConfig contains credential and provider selection configuration for the AI client.
  */
 export interface AgentClientConfig {
-  provider: "openai" | "google-generative-ai";
+  provider: "openai" | "google-generative-ai" | "minimax";
   apiKey?: string;
   model?: string;
   baseUrl?: string;

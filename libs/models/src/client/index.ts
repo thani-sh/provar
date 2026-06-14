@@ -1,6 +1,7 @@
 import { streamText, stepCountIs } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createAnthropic } from "@ai-sdk/anthropic";
 import type { ModelMessage, LanguageModel, ToolSet } from "ai";
 import type {
   Client,
@@ -162,6 +163,18 @@ function resolveModel(config: AgentClientConfig): LanguageModel {
       apiKey: apiKey || undefined,
     });
     return client(model || "gemini-1.5-flash");
+  }
+
+  if (provider === "minimax") {
+    // MiniMax exposes an Anthropic-compatible endpoint. The base URL defaults
+    // to https://api.MiniMax.io/anthropic but a user can override it (e.g.
+    // for a self-hosted MiniMax-compatible gateway). The API key is mandatory —
+    // callers must run the config gate before reaching this point.
+    const client = createAnthropic({
+      apiKey: apiKey || undefined,
+      baseURL: baseUrl || undefined,
+    });
+    return client(model || "MiniMax-M3");
   }
 
   throw new Error(`Unsupported provider: ${provider}`);

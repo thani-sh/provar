@@ -1,5 +1,16 @@
-export { settingsSchema, modelSettingsSchema } from "./schema";
-export type { Settings, ModelSettings } from "./schema";
+export {
+  settingsSchema,
+  modelSettingsSchema,
+  getActiveProviderRequirements,
+  assertProviderConfigured,
+  ProviderConfigError,
+} from "./schema";
+export type {
+  Settings,
+  ModelSettings,
+  ProviderName,
+  ProviderRequirement,
+} from "./schema";
 export {
   loadSettings,
   saveSettings,
