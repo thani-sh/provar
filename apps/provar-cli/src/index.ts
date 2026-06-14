@@ -1,6 +1,7 @@
 import pc from "picocolors";
 import { handleCompile } from "./commands/compile";
 import { handleRun } from "./commands/run";
+import { handleInit } from "./commands/init";
 
 async function main() {
   const args = Bun.argv.slice(2);
@@ -11,6 +12,9 @@ async function main() {
       pc.bold(pc.cyan("🌌 Provar CLI - AI-driven End-to-End Test Engine")),
     );
     console.log("\nUsage:");
+    console.log(
+      "  provar init <name> [--sample]              Create a new Provar project (use --sample for the bundled starter)",
+    );
     console.log(
       "  provar run <test-file-path|dir> [options]  Run a single TS test file or a whole directory",
     );
@@ -27,6 +31,11 @@ async function main() {
     return;
   }
 
+  if (command === "init") {
+    await handleInit(args.slice(1));
+    return;
+  }
+
   if (command === "compile") {
     await handleCompile(args);
     return;
@@ -36,6 +45,13 @@ async function main() {
     await handleRun(args);
     return;
   }
+
+  console.error(
+    pc.red(
+      `Unknown command: ${command}\nRun 'provar --help' to see the list of commands.`,
+    ),
+  );
+  process.exit(2);
 }
 
 main().catch((err) => {

@@ -12,6 +12,14 @@ class UIStore {
   isConfirmModalOpen = $state(false);
   isSettingsModalOpen = $state(false);
 
+  /**
+   * toast is a non-blocking error/info message. `null` when no toast is showing. Replaces the
+   * ad-hoc `console.error` pattern for user-visible failures.
+   */
+  toast = $state<{ id: number; kind: "error" | "info"; message: string } | null>(
+    null,
+  );
+
   lastOpenSidebar = $state<"assistant" | "config" | "node">("config");
 
   inputModalProps = $state({
@@ -26,6 +34,18 @@ class UIStore {
     message: "",
     onConfirm: () => {},
   });
+
+  /**
+   * showToast displays a non-blocking message for 4 seconds. New toasts replace the current one
+   * and reset the timer.
+   */
+  showToast(kind: "error" | "info", message: string): void {
+    const id = Date.now();
+    this.toast = { id, kind, message };
+    setTimeout(() => {
+      if (this.toast?.id === id) this.toast = null;
+    }, 4000);
+  }
 
   /**
    * openConfirmModal triggers the global confirmation dialog with the given message.

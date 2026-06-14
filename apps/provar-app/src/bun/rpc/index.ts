@@ -3,6 +3,7 @@ import { type ProvarRPCSchema } from "../../shared/rpc";
 
 import { acceptVisualState } from "./handlers/accept-visual-state";
 import { getScreenshots } from "./handlers/get-screenshots";
+import { createSampleProject } from "./handlers/sample-project";
 import {
   openProject,
   selectProject,
@@ -48,6 +49,7 @@ export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       deletePath,
       acceptVisualState,
       getScreenshots,
+      createSampleProject,
     },
     messages: {
       steamBunMessage: SteamBun.messages.steamBunMessage,

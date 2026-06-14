@@ -75,6 +75,10 @@ export type ProvarRPCSchema = {
         params: { testPath: string; pathIndex: number; taskId: string };
         response: { baseline?: string; current?: string };
       };
+      createSampleProject: {
+        params: {};
+        response: { success: boolean; path?: string; error?: string };
+      };
     };
     messages: {
       steamBunMessage: SteamBunMessage;

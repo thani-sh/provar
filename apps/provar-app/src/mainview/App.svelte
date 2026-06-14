@@ -23,6 +23,7 @@
   import Canvas from "./lib/components/feature/Canvas.svelte";
   import ConfigModal from "./lib/components/ui/config-modal.svelte";
   import ConfigPanel from "./lib/components/feature/config-panel.svelte";
+  import EmptyState from "./lib/components/feature/empty-state.svelte";
   import InputModal from "./lib/components/ui/input-modal.svelte";
   import NodeSidePanel from "./lib/components/feature/node-side-panel.svelte";
   import TestExplorer from "./lib/components/feature/test-explorer.svelte";
@@ -215,11 +216,28 @@
       uiStore.isSidebarOpen = true;
     }
   });
+
+  // Beginner's path: open a project from anywhere (empty-state recent, menu, etc).
+  async function handleOpenPath(path: string) {
+    const res = await ProvarAPI.openProject({ path });
+    if (!res.success) {
+      uiStore.showToast("error", `Could not open ${path}`);
+    }
+  }
 </script>
 
 <div
   class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300"
 >
+  {#if !projectStore.path}
+    <EmptyState
+      homeDir={homeDir}
+      recentProjects={recentProjects}
+      onOpen={handleOpenPath}
+      onError={(m) => uiStore.showToast("error", m)}
+    />
+  {/if}
+
   <div
     class="electrobun-webkit-app-region-drag absolute top-0 right-0 left-0 z-40 h-[28px]"
   >
@@ -556,4 +574,21 @@
     show={uiStore.isSettingsModalOpen}
     onClose={() => (uiStore.isSettingsModalOpen = false)}
   />
+
+  {#if uiStore.toast}
+    <div
+      class="pointer-events-none fixed right-4 bottom-4 z-[300] flex max-w-sm items-start gap-2 rounded-lg border px-4 py-3 text-sm shadow-2xl backdrop-blur-md transition-all {uiStore
+        .toast.kind === 'error'
+        ? 'border-red-500/40 bg-red-950/80 text-red-200'
+        : 'border-zinc-700 bg-zinc-900/80 text-zinc-200'}"
+      role="status"
+      aria-live="polite"
+      data-testid="app-toast"
+    >
+      <span class="font-mono text-[10px] uppercase tracking-wider opacity-70"
+        >{uiStore.toast.kind}</span
+      >
+      <span>{uiStore.toast.message}</span>
+    </div>
+  {/if}
 </div>

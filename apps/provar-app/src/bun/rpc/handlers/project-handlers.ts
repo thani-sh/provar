@@ -1,3 +1,4 @@
+import { isAbsolute } from "path";
 import { Utils } from "electrobun/bun";
 import { setProjectDir, PROJECT_DIR } from "../../utils";
 import { loadSettings, saveSettings } from "../../lib/settings";
@@ -11,10 +12,18 @@ export function registerUpdateMenuCallback(cb: () => void) {
 
 /**
  * openProject changes the active project directory, updates settings, and updates the application menu.
+ *
+ * Defense-in-depth: the project path is the root for the FS watcher and for all path-traversal
+ * checks downstream. Validate it is absolute and contains no `..` segments before accepting it.
+ * (See docs/PRODUCT.md § 5 — local by default; only audit-able, user-initiated paths are honored.)
  */
 export async function openProject(params: { path: string }) {
   const { path: projectPath } = params;
   if (!projectPath) return { success: false };
+  if (!isAbsolute(projectPath) || projectPath.includes("..")) {
+    console.error(`openProject rejected invalid path: ${projectPath}`);
+    return { success: false };
+  }
 
   setProjectDir(projectPath);
   const mainWindow = getMainWindow();

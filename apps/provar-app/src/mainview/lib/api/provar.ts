@@ -256,4 +256,19 @@ export const ProvarAPI = {
     );
     return res;
   },
+
+  /**
+   * createSampleProject prompts the user for a destination folder, copies the bundled sample
+   * project into it, and opens it as the active project. Returns the new project path on success.
+   */
+  async createSampleProject(): Promise<{
+    success: boolean;
+    path?: string;
+    error?: string;
+  }> {
+    console.log("[RPC Client] createSampleProject request");
+    const res = await electroview.rpc!.request.createSampleProject({});
+    console.log("[RPC Client] createSampleProject response:", res);
+    return res;
+  },
 };
