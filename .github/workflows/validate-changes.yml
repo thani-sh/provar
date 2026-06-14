@@ -1,4 +1,4 @@
-name: ci
+name: Validate changes
 
 on:
   pull_request:
