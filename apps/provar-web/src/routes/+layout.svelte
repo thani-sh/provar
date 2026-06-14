@@ -1,11 +1,13 @@
 <script lang="ts">
 	import "../app.css";
 	import { page } from "$app/state";
+	import { buildInfo } from "$lib/build-info";
 
 	let { children } = $props();
 
 	const nav = [
 		{ href: "/", label: "Overview" },
+		{ href: "/docs", label: "Docs" },
 		{ href: "/#download", label: "Download" }
 	];
 </script>
@@ -34,7 +36,7 @@
 					</a>
 				{/each}
 				<a
-					href="https://github.com/thani-sh/provar"
+					href={buildInfo.githubRepo}
 					target="_blank"
 					rel="noopener noreferrer"
 					class="text-on-surface-variant hover:text-on-surface ml-2 rounded-md px-3 py-1.5 transition-colors"
@@ -58,7 +60,7 @@
 			</p>
 			<p class="font-mono">
 				{new Date().getFullYear()} · <a
-					href="https://github.com/thani-sh/provar"
+					href={buildInfo.githubRepo}
 					class="hover:text-on-surface underline-offset-4 hover:underline">thani-sh/provar</a
 				>
 			</p>
