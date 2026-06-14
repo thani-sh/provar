@@ -87,22 +87,6 @@
                 Configure general application preferences.
               </p>
             </div>
-
-            <div>
-              <label
-                for="placeholder-setting"
-                class="mb-2 block text-xs font-medium tracking-wider text-zinc-500 uppercase"
-              >
-                Placeholder Setting
-              </label>
-              <input
-                id="placeholder-setting"
-                type="text"
-                bind:value={settings.placeholder}
-                class="electrobun-webkit-app-region-no-drag w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
-                placeholder="Enter placeholder value..."
-              />
-            </div>
           </div>
         {:else if activeSection === "models"}
           <div class="max-w-xl space-y-6">
@@ -120,16 +104,14 @@
                 for="default-provider"
                 class="mb-2 block text-xs font-medium tracking-wider text-zinc-500 uppercase"
               >
-                Default AI Provider
+                Provider
               </label>
               <select
                 id="default-provider"
                 bind:value={settings.models.defaultProvider}
                 class="electrobun-webkit-app-region-no-drag w-full appearance-none rounded-lg border border-zinc-700/50 bg-[#21262d] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2394a3b8%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[right_1rem_center] bg-no-repeat px-4 py-2.5 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
               >
-                <option value="google-generative-ai"
-                  >Google Generative AI</option
-                >
+                <option value="google-generative-ai">Google</option>
                 <option value="openai">OpenAI</option>
               </select>
             </div>

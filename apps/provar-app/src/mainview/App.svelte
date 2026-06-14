@@ -28,6 +28,7 @@
   import TestExplorer from "./lib/components/feature/test-explorer.svelte";
   import ConfirmModal from "./lib/components/ui/confirm-modal.svelte";
   import SettingsModal from "./lib/components/ui/settings-modal.svelte";
+  import SetupWizard from "./lib/components/ui/setup-wizard.svelte";
 
   // Assistant State (keeping local as it's view-specific and transient)
   let assistantMessages = $state<AssistantMessage[]>([]);
@@ -38,15 +39,28 @@
   let homeDir = $state("");
   let runMenuOpen = $state(false);
 
+  // Setup wizard state. We only ever want to *show* the wizard on the first
+  // launch (no settings file on disk). After the user finishes or skips it,
+  // we set this false for the rest of the session and never re-trigger it
+  // from settingsChanged — the user actively opening the settings modal
+  // shouldn't kick off a wizard.
+  let showSetupWizard = $state(false);
+  let hasCheckedSetup = $state(false);
+
   $effect(() => {
     if (!projectStore.path) {
       ProvarAPI.getSettings()
         .then((res) => {
           recentProjects = res.settings.recentProjects || [];
           homeDir = res.home || "";
+          if (!hasCheckedSetup && res.settingsExists === false) {
+            showSetupWizard = true;
+          }
+          hasCheckedSetup = true;
         })
         .catch((err) => {
           console.error("Failed to load settings recents:", err);
+          hasCheckedSetup = true;
         });
     }
   });
@@ -396,52 +410,60 @@
     tabindex="-1"
   >
     {#if !projectStore.path}
-      <div
-        class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
-      >
-        <div class="flex w-full max-w-sm flex-col items-center">
-          {#if recentProjects.length > 0}
-            <h3
-              class="mb-3 text-xs font-semibold tracking-wider text-zinc-600 uppercase"
-            >
-              Recent Projects
-            </h3>
-            <ul class="mb-3 w-full space-y-2">
-              {#each recentProjects as path}
-                <li>
-                  <button
-                    onclick={async () => {
-                      await ProvarAPI.openProject({ path });
-                    }}
-                    class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
-                    title={path}
-                  >
-                    <span class="font-medium text-zinc-300"
-                      >{path.split("/").pop()}</span
+      {#if showSetupWizard}
+        <!-- The setup wizard takes the place of the regular landing on first
+             launch (no ~/.provar/settings.json). It's not an overlay — the
+             recent projects / "Open project..." view is not rendered behind
+             it. -->
+        <SetupWizard show={true} onClose={() => (showSetupWizard = false)} />
+      {:else}
+        <div
+          class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
+        >
+          <div class="flex w-full max-w-sm flex-col items-center">
+            {#if recentProjects.length > 0}
+              <h3
+                class="mb-3 text-xs font-semibold tracking-wider text-zinc-600 uppercase"
+              >
+                Recent Projects
+              </h3>
+              <ul class="mb-3 w-full space-y-2">
+                {#each recentProjects as path}
+                  <li>
+                    <button
+                      onclick={async () => {
+                        await ProvarAPI.openProject({ path });
+                      }}
+                      class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
+                      title={path}
                     >
-                    <span
-                      class="mt-0.5 block truncate text-[10px] text-zinc-500"
-                    >
-                      {homeDir && path.startsWith(homeDir)
-                        ? path.replace(homeDir, "~")
-                        : path}
-                    </span>
-                  </button>
-                </li>
-              {/each}
-            </ul>
-          {/if}
+                      <span class="font-medium text-zinc-300"
+                        >{path.split("/").pop()}</span
+                      >
+                      <span
+                        class="mt-0.5 block truncate text-[10px] text-zinc-500"
+                      >
+                        {homeDir && path.startsWith(homeDir)
+                          ? path.replace(homeDir, "~")
+                          : path}
+                      </span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
 
-          <button
-            onclick={async () => {
-              await ProvarAPI.selectProject();
-            }}
-            class="w-full rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-3.5 text-center text-xs font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
-          >
-            Open project...
-          </button>
+            <button
+              onclick={async () => {
+                await ProvarAPI.selectProject();
+              }}
+              class="w-full rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-3.5 text-center text-xs font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
+            >
+              Open project...
+            </button>
+          </div>
         </div>
-      </div>
+      {/if}
     {:else}
       <Canvas
         testFile={editorStore.currentFile}
