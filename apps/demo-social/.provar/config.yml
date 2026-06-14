@@ -1,5 +1,0 @@
-variables:
-  baseUrl: http://localhost:6001
-  user:
-    username: void_user
-    password: testpass123
