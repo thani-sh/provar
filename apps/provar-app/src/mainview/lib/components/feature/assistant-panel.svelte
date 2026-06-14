@@ -1,31 +1,16 @@
 <script lang="ts">
-  import { Sparkles, File, User, Bot } from "lucide-svelte";
+  import { File, User, Bot } from "lucide-svelte";
 
-  export type AssistantMessage = {
-    id: string;
-    role: "user" | "assistant";
-    content: string;
-    status?: "pending" | "completed" | "error";
-  };
+  import { assistantStore } from "../../stores/assistant-store.svelte";
 
-  let {
-    onSend,
-    selectedFile = null,
-    messages = [],
-    isBusy = false,
-  }: {
-    onSend: (message: string) => void;
-    selectedFile?: string | null;
-    messages?: AssistantMessage[];
-    isBusy?: boolean;
-  } = $props();
+  let { selectedFile = null }: { selectedFile?: string | null } = $props();
 
   let message = $state("");
   let fileName = $derived(selectedFile?.split("/").pop());
 
   function handleSend() {
-    if (!message.trim() || isBusy) return;
-    onSend(message);
+    if (!message.trim() || assistantStore.isBusy) return;
+    assistantStore.send(message);
     message = "";
   }
 
@@ -235,7 +220,7 @@
   </div>
 
   <div class="flex-1 space-y-6 overflow-y-auto p-6">
-    {#if messages.length === 0}
+    {#if assistantStore.messages.length === 0}
       <div class="rounded-xl border border-zinc-800/50 bg-zinc-900/50 p-4">
         <p class="text-sm leading-relaxed text-zinc-300">
           I'm here to help you build and refine your tests. You can ask me to:
@@ -254,7 +239,7 @@
         </p>
       </div>
     {:else}
-      {#each messages as msg}
+      {#each assistantStore.messages as msg}
         <div class="flex gap-3 {msg.role === 'user' ? 'flex-row-reverse' : ''}">
           <div
             class="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-[#21262d]"
@@ -408,14 +393,18 @@
       <textarea
         bind:value={message}
         placeholder="Type your request here..."
-        class="min-h-[100px] w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none {isBusy
+        class="min-h-[100px] w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm text-zinc-200 focus:border-indigo-500 focus:outline-none {assistantStore.isBusy
           ? 'cursor-not-allowed opacity-50'
           : ''}"
         onkeydown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && !isBusy) {
+          if (e.key === "Enter" && !e.shiftKey && !assistantStore.isBusy) {
             e.preventDefault();
             handleSend();
-          } else if (e.key === "Enter" && !e.shiftKey && isBusy) {
+          } else if (
+            e.key === "Enter" &&
+            !e.shiftKey &&
+            assistantStore.isBusy
+          ) {
             e.preventDefault();
           }
         }}
