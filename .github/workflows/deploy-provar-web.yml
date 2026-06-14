@@ -27,7 +27,7 @@ jobs:
         run: bun run --filter '@apps/provar-web' build
 
   deploy:
-    name: Deploy to Cloudflare Pages
+    name: Deploy to Cloudflare
     needs: build
     runs-on: ubuntu-latest
     environment:
