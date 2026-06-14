@@ -13,13 +13,13 @@ export default {
 		},
 		watchIgnore: ["dist/**"],
 		mac: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 		linux: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 		win: {
-			bundleCEF: false,
+			bundleCEF: true,
 		},
 	},
 } satisfies ElectrobunConfig;

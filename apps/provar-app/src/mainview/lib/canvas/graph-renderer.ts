@@ -140,14 +140,11 @@ export class GraphRenderer extends PIXI.Container {
 
   /**
    * setState updates the visual state of every existing shape in-place
-   * without destroying or recreating PIXI objects. This is the key to
-   * avoiding WebGL context loss during long test runs — full graph rebuilds
-   * destroy and recreate dozens of Graphics/Text/Container per task event,
-   * which stresses the WebGL context and can cause it to be lost.
-   *
-   * Re-issuing stroke/fill on an existing PIXI.Graphics is cheap: the
-   * underlying GPU buffers are reused, so we avoid the churn that triggers
-   * context loss.
+   * without destroying or recreating PIXI objects. Used by the
+   * InfiniteCanvas updateGraphState fast path to avoid full graph
+   * rebuilds on every task state change. Re-issuing stroke/fill on an
+   * existing PIXI.Graphics is cheap: the underlying GPU buffers are
+   * reused.
    */
   public setState(
     taskStates: Record<string, TaskState>,

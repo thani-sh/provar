@@ -720,3 +720,33 @@ T013 (curate `@libs/engine` public surface) is a non-obvious design decision tha
 Add `docs/adrs/013-curated-public-surface-for-libs.md` capturing the design decision. Add `014-strict-typing-for-ai-sdk-boundary.md` for T033. Add `docs/architecture/libs-boundaries.md` and `apps-boundaries.md` diagrams. (See `refactor-libs.md` Phase 7 and `refactor-other-apps.md` Phase 8.)
 
 ---
+
+### T060: ship CEF + WebGL via bundled electrobun renderer
+> importance: high
+> affected areas: apps/provar-app
+
+#### Problem
+macOS system WebKit (used by electrobun's default `renderer: "native"`) returns `null` from `gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)`. Two downstream effects, both user-visible:
+
+1. PIXI 8's `GlProgram.from` calls `getMaxFragmentPrecision` to size the `mediump` / `highp` default. The probe dereferences `.precision` on the null result without checking, throwing `"TypeError: null is not an object"` out of the awaited `app.init()` promise. Result: the canvas never initialises, no error toast, just a blank graph.
+2. WebKit aggressively reclaims GPU contexts on app focus loss / window resize. Sustained per-frame Graphics work (the spinning-arc spinners on running/compiling tasks) trips context loss often enough to be a real "WebGL: context lost" console error during long test runs.
+
+Upstream bugs:
+- https://bugs.webkit.org/show_bug.cgi?id=289601 — ANGLE on macOS WebKit returns null for `HIGH_FLOAT` fragment precision format
+- https://github.com/mrdoob/three.js/issues/30767 — three.js hits the same probe and ships a try/catch workaround
+
+#### Solution
+Bundle CEF (Chromium Embedded Framework) with electrobun and switch the main window's renderer. CEF ships its own ANGLE / SwiftShader build, so the precision probe returns a valid object (no `null.precision` crash) and context loss is dramatically less aggressive than WKWebView. Reverts the Canvas2D renderer switch in commit 49a6c2e and the `extensions.remove({ name: "particle" })` workaround — both are no longer needed.
+
+Files touched:
+- `apps/provar-app/electrobun.config.ts` — `bundleCEF: true` on `mac`, `linux`, `win`
+- `apps/provar-app/src/bun/window/main-window.ts` — `renderer: "cef"`
+- `apps/provar-app/src/mainview/lib/canvas/infinite-canvas.ts` — drop `preference: "canvas"`, `MAX_DPR` cap, particle pipe removal, `lastStateKey` short-circuit, `attachContextLossHandlers`; restore `antialias: true, roundPixels: false`
+- `apps/provar-app/src/mainview/lib/canvas/node-shape.ts` — restore `Math.max(devicePixelRatio, 2)` for text resolution (don't downgrade on 3x Retina)
+- `apps/provar-app/src/mainview/lib/canvas/graph-renderer.ts` — rewrite WebGL-context-loss framing in `setState` JSDoc
+- `apps/provar-app/src/mainview/lib/components/feature/Canvas.svelte` — restore `testFile: TestFile` (no null handling); drop the `else clearGraph()` branch
+- `apps/provar-app/src/mainview/App.svelte` — restore natural Svelte mount/unmount (`{:else if editorStore.currentFile}` + `{:else}` with "Select a test to begin"); drop the always-mounted Canvas overlay pattern
+
+Trade-off: macOS self-extracting bundle grows from ~14MB to ~100MB. Acceptable for an early-stage dev tool. Linux requires CEF anyway (system GTKWebKit lacks compositing features).
+
+---

@@ -108,19 +108,16 @@
           onError={(m) => uiStore.showToast("error", m)}
         />
       {/if}
-    {:else}
+    {:else if editorStore.currentFile}
       <Canvas
         testFile={editorStore.currentFile}
         bind:selectedNodeId={editorStore.selectedNodeId}
         onAddNode={(from, to) => editorStore.addNode(from, to)}
       />
-      {#if !editorStore.currentFile}
-        <div
-          class="pointer-events-none absolute inset-0 flex items-center justify-center text-zinc-500"
-        >
-          <p>Select a test to begin</p>
-        </div>
-      {/if}
+    {:else}
+      <div class="flex h-full items-center justify-center text-zinc-500">
+        <p>Select a test to begin</p>
+      </div>
     {/if}
   </div>
 

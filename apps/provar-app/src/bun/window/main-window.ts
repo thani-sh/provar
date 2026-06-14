@@ -28,7 +28,7 @@ export async function createMainWindow(): Promise<BrowserWindow> {
   const mainWindow = new BrowserWindow({
     title: "Provar Editor",
     url,
-    renderer: "native",
+    renderer: "cef",
     frame: {
       width: 1200,
       height: 800,

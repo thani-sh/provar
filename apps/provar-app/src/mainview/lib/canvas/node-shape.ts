@@ -66,12 +66,7 @@ export class NodeShape extends PIXI.Container {
         fill: COLOURS.nodeText,
         wordWrap: false,
       },
-      // Capped at 2 to avoid blowing up Text texture memory on 3x
-      // Retina displays. The visual difference between 2x and 3x text
-      // on a graph editor is imperceptible, but the GPU memory cost
-      // multiplied across dozens of node texts is significant and
-      // contributes to WebGL context loss on WebKit/macOS.
-      resolution: Math.min(window.devicePixelRatio, 2),
+      resolution: Math.max(window.devicePixelRatio, 2),
     });
 
     // First pass: measure title width to determine node width
@@ -96,9 +91,7 @@ export class NodeShape extends PIXI.Container {
           wordWrap: true,
           wordWrapWidth: contentWidth,
         },
-        // See titleText comment — keep below 2x to limit text texture
-        // memory across dozens of nodes.
-        resolution: Math.min(window.devicePixelRatio, 2),
+        resolution: Math.max(window.devicePixelRatio, 2),
       });
       descText.alpha = 0.55;
 
@@ -217,8 +210,9 @@ export class NodeShape extends PIXI.Container {
   /**
    * setState updates the node's border in-place to reflect a new execution
    * state. The PIXI.Graphics object is reused — we only re-issue the stroke
-   * call, which is cheap and does NOT recreate GPU resources. This avoids
-   * the WebGL-context churn that full graph rebuilds cause.
+   * call, which is cheap and does NOT recreate GPU resources. Used by the
+   * InfiniteCanvas updateGraphState fast path to avoid full graph rebuilds
+   * on every task state change.
    */
   public setState(
     state: TaskState,
