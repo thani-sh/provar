@@ -229,15 +229,6 @@
 <div
   class="relative h-screen w-full overflow-hidden overscroll-none bg-[#0e1116] font-sans text-zinc-300"
 >
-  {#if !projectStore.path}
-    <EmptyState
-      homeDir={homeDir}
-      recentProjects={recentProjects}
-      onOpen={handleOpenPath}
-      onError={(m) => uiStore.showToast("error", m)}
-    />
-  {/if}
-
   <div
     class="electrobun-webkit-app-region-drag absolute top-0 right-0 left-0 z-40 h-[28px]"
   >
@@ -431,56 +422,30 @@
       {#if showSetupWizard}
         <!-- The setup wizard takes the place of the regular landing on first
              launch (no ~/.provar/settings.json). It's not an overlay — the
-             recent projects / "Open project..." view is not rendered behind
-             it. -->
-        <SetupWizard show={true} onClose={() => (showSetupWizard = false)} />
+             recent projects / "Create sample" view is not rendered behind
+             it. When the wizard saves, it auto-closes and the empty state
+             below becomes the new landing. -->
+        <SetupWizard
+          show={true}
+          onClose={() => {
+            showSetupWizard = false;
+            // The wizard just saved settings; refresh the recent-projects
+            // list so the empty state reflects the new on-disk state.
+            ProvarAPI.getSettings()
+              .then((res) => {
+                recentProjects = res.settings.recentProjects || [];
+                homeDir = res.home || "";
+              })
+              .catch(() => {});
+          }}
+        />
       {:else}
-        <div
-          class="flex h-full flex-col items-center justify-center space-y-4 text-zinc-500"
-        >
-          <div class="flex w-full max-w-sm flex-col items-center">
-            {#if recentProjects.length > 0}
-              <h3
-                class="mb-3 text-xs font-semibold tracking-wider text-zinc-600 uppercase"
-              >
-                Recent Projects
-              </h3>
-              <ul class="mb-3 w-full space-y-2">
-                {#each recentProjects as path}
-                  <li>
-                    <button
-                      onclick={async () => {
-                        await ProvarAPI.openProject({ path });
-                      }}
-                      class="w-full truncate rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-2.5 text-left text-xs text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
-                      title={path}
-                    >
-                      <span class="font-medium text-zinc-300"
-                        >{path.split("/").pop()}</span
-                      >
-                      <span
-                        class="mt-0.5 block truncate text-[10px] text-zinc-500"
-                      >
-                        {homeDir && path.startsWith(homeDir)
-                          ? path.replace(homeDir, "~")
-                          : path}
-                      </span>
-                    </button>
-                  </li>
-                {/each}
-              </ul>
-            {/if}
-
-            <button
-              onclick={async () => {
-                await ProvarAPI.selectProject();
-              }}
-              class="w-full rounded-lg border border-zinc-800/80 bg-[#161b22]/50 px-4 py-3.5 text-center text-xs font-medium text-zinc-400 transition-all hover:border-zinc-700 hover:bg-[#21262d]/50 hover:text-zinc-200 focus:outline-none"
-            >
-              Open project...
-            </button>
-          </div>
-        </div>
+        <EmptyState
+          homeDir={homeDir}
+          recentProjects={recentProjects}
+          onOpen={handleOpenPath}
+          onError={(m) => uiStore.showToast("error", m)}
+        />
       {/if}
     {:else}
       <Canvas
