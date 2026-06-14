@@ -10,7 +10,6 @@ const { buildStorage, deepMerge } = __test__;
 describe("settingsSchema defaults", () => {
   test("produces a fully-populated Settings when parsed from {}", () => {
     const parsed = settingsSchema.parse({});
-    expect(parsed.placeholder).toBe("placeholder-value");
     expect(parsed.recentProjects).toEqual([]);
     expect(parsed.models.defaultProvider).toBe("google-generative-ai");
     expect(parsed.models.providers.openai).toEqual({
@@ -116,7 +115,6 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
   test("loadSettings returns full defaults when no file exists", () => {
     const { loadSettings } = buildStorage(tmpDir, filePath);
     const loaded = loadSettings();
-    expect(loaded.placeholder).toBe("placeholder-value");
     expect(loaded.recentProjects).toEqual([]);
     expect(loaded.models.defaultProvider).toBe("google-generative-ai");
   });
@@ -125,13 +123,13 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
     fs.writeFileSync(filePath, "{ not valid json");
     const { loadSettings } = buildStorage(tmpDir, filePath);
     const loaded = loadSettings();
-    expect(loaded.placeholder).toBe("placeholder-value");
+    expect(loaded.recentProjects).toEqual([]);
   });
 
   test("saveSettings seeds full defaults when file is empty/missing", () => {
     const { saveSettings } = buildStorage(tmpDir, filePath);
     const saved = saveSettings({});
-    expect(saved.placeholder).toBe("placeholder-value");
+    expect(saved.recentProjects).toEqual([]);
     expect(fs.existsSync(filePath)).toBe(true);
     // And it's valid JSON.
     const onDisk = JSON.parse(fs.readFileSync(filePath, "utf-8"));
@@ -176,12 +174,12 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
   });
 
   test("saveSettings treats undefined in the patch as a no-op", () => {
-    fs.writeFileSync(filePath, JSON.stringify({ placeholder: "keep-me" }));
+    fs.writeFileSync(filePath, JSON.stringify({ recentProjects: ["a"] }));
     const { saveSettings } = buildStorage(tmpDir, filePath);
     const merged = saveSettings({
-      placeholder: undefined as unknown as string,
+      recentProjects: undefined as unknown as string[],
     });
-    expect(merged.placeholder).toBe("keep-me");
+    expect(merged.recentProjects).toEqual(["a"]);
   });
 
   test("saveSettings leaves existing nested values alone when patch omits them", () => {
@@ -211,22 +209,25 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
     expect(fs.existsSync(filePath)).toBe(false);
     const { ensureSettings } = buildStorage(tmpDir, filePath);
     const ensured = ensureSettings();
-    expect(ensured.placeholder).toBe("placeholder-value");
+    expect(ensured.recentProjects).toEqual([]);
     expect(fs.existsSync(filePath)).toBe(true);
   });
 
   test("ensureSettings reads back existing settings without rewriting them verbatim", () => {
-    fs.writeFileSync(filePath, JSON.stringify({ placeholder: "preexisting" }));
+    fs.writeFileSync(
+      filePath,
+      JSON.stringify({ recentProjects: ["preexisting"] }),
+    );
     const { ensureSettings } = buildStorage(tmpDir, filePath);
     const ensured = ensureSettings();
-    expect(ensured.placeholder).toBe("preexisting");
+    expect(ensured.recentProjects).toEqual(["preexisting"]);
   });
 
   test("saveSettings writes pretty-printed JSON (human-readable on disk)", () => {
     const { saveSettings } = buildStorage(tmpDir, filePath);
-    saveSettings({ placeholder: "fmt-test" });
+    saveSettings({ recentProjects: ["fmt-test"] });
     const onDisk = fs.readFileSync(filePath, "utf-8");
     expect(onDisk).toContain("\n  "); // indentation
-    expect(onDisk).toContain('"placeholder": "fmt-test"');
+    expect(onDisk).toContain('"recentProjects": [');
   });
 });

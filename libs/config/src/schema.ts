@@ -59,7 +59,6 @@ export type ModelSettings = z.infer<typeof modelSettingsSchema>;
  * settingsSchema is the full application settings schema stored on disk.
  */
 export const settingsSchema = z.object({
-  placeholder: z.string().default("placeholder-value"),
   models: modelSettingsSchema.default({
     defaultProvider: "google-generative-ai",
     providers: {
