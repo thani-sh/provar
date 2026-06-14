@@ -54,6 +54,10 @@ function deepMerge(
  * round-trip against a tmp dir without touching the user's real homedir.
  */
 function buildStorage(dir: string, filePath: string) {
+  function settingsExists(): boolean {
+    return existsSync(filePath);
+  }
+
   function loadSettings(): Settings {
     try {
       if (!existsSync(filePath)) {
@@ -98,7 +102,7 @@ function buildStorage(dir: string, filePath: string) {
     }
   }
 
-  return { loadSettings, saveSettings, ensureSettings };
+  return { loadSettings, saveSettings, ensureSettings, settingsExists };
 }
 
 const defaultStorage = buildStorage(SETTINGS_DIR, SETTINGS_PATH);
@@ -116,6 +120,14 @@ export const loadSettings = defaultStorage.loadSettings;
  * the on-disk file with current defaults.
  */
 export const ensureSettings = defaultStorage.ensureSettings;
+
+/**
+ * settingsExists reports whether the on-disk settings file is present.
+ * Distinguishes "fresh install" (no file) from "user has configured something"
+ * (file exists) without reading or parsing the file. The UI uses this to
+ * decide whether to show the first-run setup wizard.
+ */
+export const settingsExists = defaultStorage.settingsExists;
 
 /**
  * saveSettings merges the provided partial settings with current values

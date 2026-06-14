@@ -230,4 +230,16 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
     expect(onDisk).toContain("\n  "); // indentation
     expect(onDisk).toContain('"recentProjects": [');
   });
+
+  test("settingsExists returns false when no file is on disk", () => {
+    const { settingsExists } = buildStorage(tmpDir, filePath);
+    expect(settingsExists()).toBe(false);
+  });
+
+  test("settingsExists returns true once a file has been created", () => {
+    const { saveSettings, settingsExists } = buildStorage(tmpDir, filePath);
+    expect(settingsExists()).toBe(false);
+    saveSettings({});
+    expect(settingsExists()).toBe(true);
+  });
 });
