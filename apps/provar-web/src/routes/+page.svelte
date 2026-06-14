@@ -209,10 +209,10 @@
 					</p>
 				</div>
 				<a
-					href="/docs/install"
+					href="/docs/quickstart"
 					class="border-outline-variant text-on-surface hover:bg-surface-container inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
 				>
-					Read the install guide
+					Read the quickstart
 					<span aria-hidden="true">→</span>
 				</a>
 			</div>

@@ -49,6 +49,6 @@ If a page documents a behavior that comes from the engine, libs, or CLI, link to
 
 ## 6. Don't promise features that aren't shipped
 
-If the install page says `provar.se/install.sh` will work, the URL must work today. Until the one-line installer ships, the home page gates that block behind `PUBLIC_INSTALL_LIVE=false` (see `src/lib/build-info.ts`). The install page must follow the same flag.
+If the quickstart says `provar.se/install.sh` will work, the URL must work today. Until the one-line installer ships, the home page gates that block behind `PUBLIC_INSTALL_LIVE=false` (see `src/lib/build-info.ts`). The quickstart's "Heads up" notice must follow the same flag.
 
 The same rule applies to CI matrixes, supported providers, and exit codes. The exit-code table on `/docs/running` is the canonical reference — if you add a new exit code, update that table in the same change.

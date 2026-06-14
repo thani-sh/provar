@@ -8,13 +8,15 @@
 			title: "Get started",
 			items: [
 				{ href: "/docs", label: "Overview" },
-				{ href: "/docs/install", label: "Install" },
-				{ href: "/docs/quickstart", label: "5-minute quickstart" }
+				{ href: "/docs/quickstart", label: "Quickstart" }
 			]
 		},
 		{
-			title: "Concepts",
-			items: [{ href: "/docs/concepts", label: "Core concepts" }]
+			title: "Products",
+			items: [
+				{ href: "/docs/products/provar-app", label: "provar-app" },
+				{ href: "/docs/products/provar-cli", label: "provar-cli" }
+			]
 		},
 		{
 			title: "Day-to-day",
@@ -48,9 +50,11 @@
 		</a>
 		<a
 			href="/"
-			class="text-on-surface-variant ml-auto text-xs transition-colors hover:text-on-surface"
-			>← back to overview</a
+			class="border-outline-variant text-on-surface hover:bg-surface-container ml-auto inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors"
 		>
+			<span aria-hidden="true">←</span>
+			<span>back to overview</span>
+		</a>
 	</div>
 </div>
 

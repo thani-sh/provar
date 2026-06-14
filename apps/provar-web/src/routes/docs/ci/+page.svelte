@@ -28,9 +28,25 @@ jobs:
 
 <h1>CI integration</h1>
 <p>
-	Provar runs the same in CI as on your machine. Install Bun, install Playwright browsers, and
-	invoke the CLI. The CLI exits with documented codes (0 / 1 / 2 / 130) so any CI system can
-	report failures correctly.
+	Provar runs the same in CI as on your machine. Install Bun, install Playwright browsers,
+	invoke the CLI. The CLI exits with the documented codes (0 / 1 / 2 / 130 from
+	<a href="/docs/running">Running tests</a>), so any CI system can report failures correctly
+	without any Provar-specific glue.
+</p>
+
+<h2>provar-cli configuration</h2>
+<p>
+	The product-shaped details (install pattern, environment variables, job shape, caching)
+	live on the
+	<a href="/docs/products/provar-cli">provar-cli page</a>. This page covers the same ground
+	from a CI-systems perspective — how to wire the CLI into GitHub Actions, GitLab CI, and
+	other systems in a portable way.
+</p>
+<p>
+	Quick reference: the minimal install is <code>bun install</code> +
+	<code>bunx playwright install --with-deps chromium</code>, the only secret you need is
+	<code>OPENAI_API_KEY</code> (or its sibling for your provider), and the canonical run
+	command is <code>bun --cwd apps/provar-cli -- run .</code>.
 </p>
 
 <h2>GitHub Actions</h2>
@@ -40,20 +56,28 @@ jobs:
 
 <h2>GitLab CI</h2>
 <p>
-	The same job, expressed as a <code>.gitlab-ci.yml</code> job, runs against the
-	<code>provar:&lt;taskId&gt;</code> image once it ships. For now, install Bun in the job image
-	with the official installer and follow the same step ordering.
+	Same job, expressed as a <code>.gitlab-ci.yml</code> entry. Once the
+	<code>provar:&lt;taskId&gt;</code> image ships, you can use it directly. Until then, install
+	Bun in the job image with the official installer and follow the same step order — it works
+	identically.
 </p>
 
 <h2>Caching</h2>
 <p>
 	Cache the Playwright browser bundle between runs. On GitHub Actions, the
-	<code>actions/cache</code> step keyed on the Playwright revision is enough.
+	<code>actions/cache</code> step keyed on the Playwright revision is enough. On GitLab, the
+	built-in <code>cache:</code> key on the same path works just as well. Without this, every
+	job pays the 30-second browser install tax.
 </p>
 
 <h2>Secrets</h2>
 <p>
 	The LLM API key is the only secret Provar needs. Pass it as an environment variable
-	(<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, etc.) and the editor will pick
-	it up; no Provar-specific configuration is required.
+	(<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, or any OpenAI-shape endpoint)
+	and the CLI picks it up. No Provar-specific configuration, no vendor SDK, no nothing.
+</p>
+<p>
+	One thing to be careful about: never commit the key to the repo, and don't put it in
+	<code>.provar/config.yml</code> — config files get diffed in pull requests. CI secrets are
+	the right home.
 </p>

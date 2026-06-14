@@ -10,42 +10,46 @@
 		{ href: "/docs", label: "Docs" },
 		{ href: "/#download", label: "Download" }
 	];
+
+	const isDocs = $derived(page.url.pathname.startsWith("/docs"));
 </script>
 
 <div class="dot-grid min-h-dvh">
-	<header class="border-outline-variant/40 border-b">
-		<div
-			class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6"
-		>
-			<a
-				href="/"
-				class="font-mono text-sm font-semibold tracking-tight text-on-surface"
+	{#if !isDocs}
+		<header class="border-outline-variant/40 border-b">
+			<div
+				class="mx-auto flex h-14 max-w-6xl items-center justify-between px-6"
 			>
-				<span class="text-primary">provar</span><span class="text-on-surface-variant">/</span><span
-					class="text-on-surface-variant">se</span
-				>
-			</a>
-
-			<nav class="flex items-center gap-1 text-sm">
-				{#each nav as item (item.href)}
-					<a
-						href={item.href}
-						class="text-on-surface-variant hover:text-on-surface rounded-md px-3 py-1.5 transition-colors"
-					>
-						{item.label}
-					</a>
-				{/each}
 				<a
-					href={buildInfo.githubRepo}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="text-on-surface-variant hover:text-on-surface ml-2 rounded-md px-3 py-1.5 transition-colors"
+					href="/"
+					class="font-mono text-sm font-semibold tracking-tight text-on-surface"
 				>
-					GitHub ↗
+					<span class="text-primary">provar</span><span class="text-on-surface-variant">/</span><span
+						class="text-on-surface-variant">se</span
+					>
 				</a>
-			</nav>
-		</div>
-	</header>
+
+				<nav class="flex items-center gap-1 text-sm">
+					{#each nav as item (item.href)}
+						<a
+							href={item.href}
+							class="text-on-surface-variant hover:text-on-surface rounded-md px-3 py-1.5 transition-colors"
+						>
+							{item.label}
+						</a>
+					{/each}
+					<a
+						href={buildInfo.githubRepo}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="text-on-surface-variant hover:text-on-surface ml-2 rounded-md px-3 py-1.5 transition-colors"
+					>
+						GitHub ↗
+					</a>
+				</nav>
+			</div>
+		</header>
+	{/if}
 
 	<main>
 		{@render children()}
