@@ -1,11 +1,30 @@
 import * as PIXI from "pixi.js";
 import type { TestFile } from "@libs/domain/zod";
 import { GraphRenderer } from "./graph-renderer";
-import { LAYOUT, COLOURS, type TaskState } from "./constants";
+import { LAYOUT, type TaskState } from "./constants";
 import { Viewport } from "./viewport";
 
 /**
- * InfiniteCanvas controls the underlying PIXI application viewport and tiling background.
+ * Maximum devicePixelRatio we'll render at. Capping at 2 cuts the
+ * backbuffer to 4x the canvas area instead of 9x on 3x Retina displays.
+ * On a graph editor the visual difference between 2x and 3x is invisible,
+ * and a smaller backbuffer is meaningfully cheaper even on Canvas2D.
+ */
+const MAX_DPR = 2;
+
+/**
+ * InfiniteCanvas controls the underlying PIXI application viewport and
+ * tiling background.
+ *
+ * Renderer: Canvas2D (PIXI 8 supports a Canvas2D backend as a first-class
+ * alternative to WebGL/WebGPU). We force Canvas2D because WebGL contexts
+ * on WebKit/macOS are aggressively reclaimed — context loss fires often,
+ * recovery is unreliable, and sustained per-frame Graphics work
+ * (especially the spinner redraws) reliably trips the GPU into dropping
+ * the context. Canvas2D has no such failure mode: there is no GPU
+ * context to lose. The trade-off is a slower redraw on huge graphs, but
+ * for a graph editor with tens of nodes this is well within acceptable
+ * range and well worth the stability.
  */
 export class InfiniteCanvas {
   private app: PIXI.Application | null = null;
@@ -14,6 +33,16 @@ export class InfiniteCanvas {
   private viewport: Viewport | null = null;
   private shapeContainer: PIXI.Container | null = null;
   private currentGraphRenderer: GraphRenderer | null = null;
+
+  /**
+   * Cached state key used to short-circuit updateGraphState calls that
+   * would re-apply identical state. The Svelte $effect in Canvas.svelte
+   * re-fires on every editorStore mutation (any task state change, any
+   * running-path change), but most of those produce a derived
+   * taskStates that is identical to the previous one. Without this
+   * guard we re-stroke every node and every connector on every mutation.
+   */
+  private lastStateKey = "";
 
   public onNodeSelect?: (id: string | null) => void;
   public onAddNode?: (fromId: string | null, toId: string | null) => void;
@@ -25,10 +54,12 @@ export class InfiniteCanvas {
     await this.app.init({
       resizeTo: container,
       backgroundAlpha: 0,
-      resolution: window.devicePixelRatio || 1,
+      resolution: Math.min(window.devicePixelRatio || 1, MAX_DPR),
       autoDensity: true,
-      antialias: true,
-      roundPixels: false,
+      // Force the Canvas2D backend. Without this preference, PIXI would
+      // pick WebGL by default and we'd be right back to the context
+      // loss problem on WebKit/macOS.
+      preference: "canvas",
     });
 
     container.appendChild(this.app.canvas);
@@ -36,6 +67,12 @@ export class InfiniteCanvas {
     this.viewport = new Viewport(this.app);
     this.shapeContainer = new PIXI.Container();
     this.viewport.addChild(this.shapeContainer);
+
+    this.viewport.on("pointertap", (e) => {
+      if (e.target === this.viewport) {
+        this.onNodeSelect?.(null);
+      }
+    });
 
     this.setupBackground();
 
@@ -47,29 +84,35 @@ export class InfiniteCanvas {
     this.viewport.y = rect.height / 2;
 
     this.app.ticker.add(() => this.tick());
-
-    // Recover gracefully from transient WebGL context loss (driver reset,
-    // OS GPU handoff, etc.) instead of dying permanently.
-    this.attachContextLossHandlers();
   }
 
   private setupBackground() {
     if (!this.app) return;
+
+    // Tear down any existing background so we don't leak the previous
+    // texture and the source Graphics object. Both are recreated below.
+    if (this.tilingSprite) {
+      this.app.stage.removeChild(this.tilingSprite);
+      const oldTexture = this.tilingSprite.texture;
+      this.tilingSprite.destroy();
+      // TilingSprite.destroy does not destroy the texture it references,
+      // so we have to do it ourselves to avoid leaks across rebuilds.
+      oldTexture?.destroy(true);
+      this.tilingSprite = null;
+    }
+
     const tileG = new PIXI.Graphics();
     tileG.rect(0, 0, 10, 10).fill({ color: 0x000000, alpha: 0 });
     tileG.circle(5, 5, 1).fill({ color: 0xffffff, alpha: 0.075 });
 
     const tileTexture = this.app.renderer.generateTexture(tileG);
+    // The source Graphics has been baked into the texture — destroy it
+    // so it does not linger.
+    tileG.destroy();
     this.tilingSprite = new PIXI.TilingSprite({
       texture: tileTexture,
       width: this.app.screen.width,
       height: this.app.screen.height,
-    });
-
-    this.viewport?.on("pointertap", (e) => {
-      if (e.target === this.viewport) {
-        this.onNodeSelect?.(null);
-      }
     });
   }
 
@@ -101,10 +144,13 @@ export class InfiniteCanvas {
       "compiling" | "compiled" | "failed" | "idle"
     > = {},
   ) {
-    // Cache the latest state so we can re-apply on WebGL context restore.
     this.lastTaskStates = taskStates;
     this.lastRunningPathNodeIds = new Set(runningPathNodeIds);
     this.lastCompilationStates = { ...compilationStates };
+    // New graph structure → previous state-key fingerprint is no longer
+    // valid for the new set of nodes/connectors. Clear it so the
+    // upcoming in-place update is not skipped as a no-op.
+    this.lastStateKey = "";
 
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;
@@ -130,10 +176,10 @@ export class InfiniteCanvas {
 
   /**
    * updateGraphState updates the existing graph's visual state in-place
-   * without destroying or recreating any PIXI objects. Use this for state
-   * changes (task start/finish/fail, compile progress) — it is cheap and
-   * does NOT stress the WebGL context. Only use renderGraph when the graph
-   * structure itself changes (different testFile).
+   * without destroying or recreating any PIXI objects. Use this for
+   * state changes (task start/finish/fail, compile progress) — it is
+   * cheap. Only use renderGraph when the graph structure itself changes
+   * (different testFile).
    */
   public updateGraphState(
     taskStates: Record<string, TaskState> = {},
@@ -143,10 +189,22 @@ export class InfiniteCanvas {
       "compiling" | "compiled" | "failed" | "idle"
     > = {},
   ): void {
-    // Cache the latest state so we can re-apply on WebGL context restore.
     this.lastTaskStates = taskStates;
     this.lastRunningPathNodeIds = new Set(runningPathNodeIds);
     this.lastCompilationStates = { ...compilationStates };
+
+    // Skip the work entirely if nothing meaningful has changed. The
+    // $effect in Canvas.svelte re-fires on every editorStore mutation
+    // (any task state change, any running-path change), but most of
+    // those produce a derived taskStates that is identical to the
+    // previous one.
+    const stateKey = this.computeStateKey(
+      taskStates,
+      runningPathNodeIds,
+      compilationStates,
+    );
+    if (stateKey === this.lastStateKey) return;
+    this.lastStateKey = stateKey;
 
     if (!this.currentGraphRenderer) return;
     this.currentGraphRenderer.setState(
@@ -156,71 +214,40 @@ export class InfiniteCanvas {
     );
   }
 
-  public destroy() {
-    this.detachContextLossHandlers();
-    this.viewport?.destroy();
-    this.app?.destroy();
+  /**
+   * computeStateKey builds a deterministic string fingerprint of the
+   * inputs to updateGraphState. The set serialisation is O(n log n) but
+   * node counts are small (tens, not thousands) so this is fine.
+   */
+  private computeStateKey(
+    taskStates: Record<string, TaskState>,
+    runningPathNodeIds: Set<string>,
+    compilationStates: Record<
+      string,
+      "compiling" | "compiled" | "failed" | "idle"
+    >,
+  ): string {
+    const taskParts: string[] = [];
+    for (const id of Object.keys(taskStates).sort()) {
+      taskParts.push(`${id}:${taskStates[id]}`);
+    }
+    const pathParts = Array.from(runningPathNodeIds).sort();
+    const compileParts: string[] = [];
+    for (const id of Object.keys(compilationStates).sort()) {
+      compileParts.push(`${id}:${compilationStates[id]}`);
+    }
+    return `t[${taskParts.join(",")}]|p[${pathParts.join(",")}]|c[${compileParts.join(",")}]`;
   }
 
-  /**
-   * Browser-driven WebGL context loss (OS GPU reset, app focus loss,
-   * driver crash) fires webglcontextlost. We must preventDefault on the
-   * event so the browser knows we want to recover, and listen for the
-   * matching webglcontextrestored so we can re-upload scene-graph state
-   * to the new context. PIXI 8's renderer handles internal resource
-   * rebuild, but we also re-apply current graph state so colours catch
-   * up after the restore.
-   */
-  private contextLossHandler?: (e: Event) => void;
-  private contextRestoredHandler?: (e: Event) => void;
+  public async destroy(): Promise<void> {
+    this.viewport?.destroy();
+    this.app?.destroy(true, { children: true });
+  }
+
   private lastTaskStates: Record<string, TaskState> = {};
   private lastRunningPathNodeIds: Set<string> = new Set();
   private lastCompilationStates: Record<
     string,
     "compiling" | "compiled" | "failed" | "idle"
   > = {};
-
-  private attachContextLossHandlers(): void {
-    if (!this.app) return;
-    const canvas = this.app.canvas as HTMLCanvasElement;
-    this.contextLossHandler = (e: Event) => {
-      // Prevent default so the browser will eventually fire webglcontextrestored
-      e.preventDefault();
-      console.warn("[InfiniteCanvas] WebGL context lost — awaiting restore");
-    };
-    this.contextRestoredHandler = () => {
-      console.warn(
-        "[InfiniteCanvas] WebGL context restored — re-applying state",
-      );
-      // Re-apply the last known graph state so colours are correct.
-      if (this.currentGraphRenderer) {
-        this.currentGraphRenderer.setState(
-          this.lastTaskStates,
-          this.lastRunningPathNodeIds,
-          this.lastCompilationStates,
-        );
-      }
-    };
-    canvas.addEventListener("webglcontextlost", this.contextLossHandler);
-    canvas.addEventListener(
-      "webglcontextrestored",
-      this.contextRestoredHandler,
-    );
-  }
-
-  private detachContextLossHandlers(): void {
-    if (!this.app) return;
-    const canvas = this.app.canvas as HTMLCanvasElement;
-    if (this.contextLossHandler) {
-      canvas.removeEventListener("webglcontextlost", this.contextLossHandler);
-      this.contextLossHandler = undefined;
-    }
-    if (this.contextRestoredHandler) {
-      canvas.removeEventListener(
-        "webglcontextrestored",
-        this.contextRestoredHandler,
-      );
-      this.contextRestoredHandler = undefined;
-    }
-  }
 }

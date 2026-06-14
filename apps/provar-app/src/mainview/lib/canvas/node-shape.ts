@@ -66,7 +66,12 @@ export class NodeShape extends PIXI.Container {
         fill: COLOURS.nodeText,
         wordWrap: false,
       },
-      resolution: Math.max(window.devicePixelRatio, 2),
+      // Capped at 2 to avoid blowing up Text texture memory on 3x
+      // Retina displays. The visual difference between 2x and 3x text
+      // on a graph editor is imperceptible, but the GPU memory cost
+      // multiplied across dozens of node texts is significant and
+      // contributes to WebGL context loss on WebKit/macOS.
+      resolution: Math.min(window.devicePixelRatio, 2),
     });
 
     // First pass: measure title width to determine node width
@@ -91,7 +96,9 @@ export class NodeShape extends PIXI.Container {
           wordWrap: true,
           wordWrapWidth: contentWidth,
         },
-        resolution: Math.max(window.devicePixelRatio, 2),
+        // See titleText comment — keep below 2x to limit text texture
+        // memory across dozens of nodes.
+        resolution: Math.min(window.devicePixelRatio, 2),
       });
       descText.alpha = 0.55;
 
