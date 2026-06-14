@@ -258,8 +258,9 @@ export const ProvarAPI = {
   },
 
   /**
-   * createSampleProject prompts the user for a destination folder, copies the bundled sample
-   * project into it, and opens it as the active project. Returns the new project path on success.
+   * createSampleProject prompts the user for a destination folder, clones the upstream
+   * demo-social sample into it, and opens it as the active project. Returns the new project
+   * path on success.
    */
   async createSampleProject(): Promise<{
     success: boolean;
@@ -269,6 +270,18 @@ export const ProvarAPI = {
     console.log("[RPC Client] createSampleProject request");
     const res = await electroview.rpc!.request.createSampleProject({});
     console.log("[RPC Client] createSampleProject response:", res);
+    return res;
+  },
+
+  /**
+   * openExternal asks the Bun host process to open the given URL in the user's default
+   * browser. Used for external links (e.g. provar.se/guide) so the in-app overlay click
+   * handlers can't swallow the navigation intent.
+   */
+  async openExternal(url: string): Promise<{ success: boolean }> {
+    console.log("[RPC Client] openExternal request:", url);
+    const res = await electroview.rpc!.request.openExternal({ url });
+    console.log("[RPC Client] openExternal response:", res);
     return res;
   },
 };

@@ -16,7 +16,7 @@
 		<a href="/docs/install">Install</a> — get the desktop editor and the CLI on your machine.
 	</li>
 	<li>
-		<a href="/docs/quickstart">5-minute quickstart</a> — open the editor, create the sample
+		<a href="/docs/quickstart">5-minute quickstart</a> — open the editor, clone the sample
 		project, and run your first test.
 	</li>
 	<li>
@@ -44,8 +44,9 @@
 		editor and CLI.
 	</li>
 	<li>An LLM API key (OpenAI, Anthropic, or a compatible provider).</li>
-	<li>A web app to test against — for the quickstart, we ship a sample target so you don't need
-		your own yet.</li>
+	<li>A web app to test against — for the quickstart, the editor can
+		<a href="https://github.com/thani-sh/demo-social">clone the demo-social sample</a> for you
+		so you don't need your own yet.</li>
 </ul>
 
 <p class="text-on-surface-variant text-sm">

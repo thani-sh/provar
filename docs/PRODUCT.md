@@ -84,7 +84,7 @@ The product ships as four units. Each unit has a single, non-overlapping role.
 | `apps/provar-app` | Desktop editor | Author and debug tests visually | Primary surface for the primary audience |
 | `apps/provar-cli` | `provar` command | Run tests headlessly, CI integration | CI pipelines, power users |
 | `apps/provar-web` | Static site | Marketing, downloads, end-user guide | New users, evaluators |
-| `apps/demo-social` | Local sandbox app | Target for examples, quickstart, and the sample project | Documentation, sample-project smoke test |
+| `thani-sh/demo-social` | External sandbox app | Target for the sample project, quickstart, and examples | Documentation, sample-project smoke test |
 
 The four libraries (`libs/config`, `libs/domain`, `libs/engine`, `libs/models`) are **internal
 implementation**, not product surface. They are not separately published, not separately installed,
@@ -121,7 +121,7 @@ change is wrong or the principle is wrong — and the principle is much harder t
 
 This is measured end-to-end for a developer who has never used Provar, following only the
 end-user guide on `apps/provar-web`. The target for the current phase is **under 30 minutes**.
-Sub-5-minute time-to-first-run against a bundled sample project is the leading indicator.
+Sub-5-minute time-to-first-run against the cloned sample project is the leading indicator.
 
 Secondary metrics (for visibility, not gating):
 
@@ -144,7 +144,7 @@ developer. Every decision in this phase optimizes for *the next person who clone
 able to get to a passing test without help.
 
 The exit criterion for this phase is **a documented, repeatable, sub-30-minute path from a clean
-clone to a passing test run against the user's own application** (not the bundled sample). The
+clone to a passing test run against the user's own application** (not the cloned sample). The
 end-user guide on `apps/provar-web`, the in-app empty state in `apps/provar-app`, and the
 `provar init` style flow are the artifacts that make this exit real.
 

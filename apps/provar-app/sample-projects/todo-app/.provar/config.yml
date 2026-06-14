@@ -1,5 +1,0 @@
-variables:
-  baseUrl: http://127.0.0.1:6001
-  user:
-    username: sample_user
-    password: samplepass

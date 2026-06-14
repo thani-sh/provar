@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
-import { cp, mkdir } from "fs/promises";
+import { mkdir, rm } from "fs/promises";
+import { spawn } from "child_process";
 import { dirname, isAbsolute, join } from "path";
-import { fileURLToPath } from "url";
 import { Utils } from "electrobun/bun";
 import { setProjectDir } from "../../utils";
 import { loadSettings, saveSettings } from "../../lib/settings";
@@ -9,10 +9,10 @@ import { getMainWindow } from "../../window/window-registry";
 import { provarRPC } from "../../rpc";
 
 /**
- * createSampleProject prompts the user for a destination folder, copies the bundled sample
- * project into it, and opens it as the active project. The bundled sample lives at
- * `apps/provar-app/sample-projects/todo-app/` in the monorepo and contains a 5-step login flow
- * that runs against a local web app.
+ * createSampleProject prompts the user for a destination folder, clones the upstream
+ * demo-social repository (https://github.com/thani-sh/demo-social) into a `demo-social/`
+ * subfolder of the chosen destination, and opens it as the active project. The cloned repo is
+ * a self-contained microblogging app with a 5-step login test already wired up against it.
  */
 export const createSampleProject = async () => {
   console.log("[RPC Server] createSampleProject request");
@@ -35,25 +35,38 @@ export const createSampleProject = async () => {
     return { success: false, error: "Invalid destination path" };
   }
 
-  const sampleSrc = resolveBundledSampleDir();
-  if (!sampleSrc) {
+  const projectRoot = join(destination, "demo-social");
+  const repoUrl = "https://github.com/thani-sh/demo-social.git";
+
+  // If a previous clone attempt left a half-empty folder behind, wipe it so the clone starts
+  // from a clean slate. Refuse to clobber a non-empty destination unless it's our own previous
+  // attempt — anything else means the user picked a folder that already has real content.
+  if (existsSync(projectRoot)) {
     return {
       success: false,
-      error:
-        "Bundled sample project not found. Reinstall Provar or report this at https://github.com/thani-sh/provar/issues",
+      error: `A folder named "demo-social" already exists at ${destination}. Pick a different destination or remove that folder first.`,
     };
   }
 
   try {
     await mkdir(destination, { recursive: true });
-    await cp(sampleSrc, destination, { recursive: true });
+
+    const cloneResult = await runClone(repoUrl, projectRoot);
+    if (cloneResult.exitCode !== 0) {
+      // Best-effort cleanup so a failed clone doesn't leave a partial `.git/` lying around.
+      await rm(projectRoot, { recursive: true, force: true }).catch(() => {});
+      return {
+        success: false,
+        error: `git clone failed (exit ${cloneResult.exitCode}): ${cloneResult.stderr || "no error output"}`,
+      };
+    }
 
     // Track in recents, mirroring openProject's behavior.
     const settings = loadSettings();
     const recents = settings.recentProjects || [];
     const updatedRecents = [
-      destination,
-      ...recents.filter((p) => p !== destination),
+      projectRoot,
+      ...recents.filter((p) => p !== projectRoot),
     ].slice(0, 3);
     try {
       saveSettings({ recentProjects: updatedRecents });
@@ -61,15 +74,18 @@ export const createSampleProject = async () => {
       console.error("Failed to update recent projects settings:", e);
     }
 
-    setProjectDir(destination);
+    setProjectDir(projectRoot);
     const mainWindow = getMainWindow();
-    (mainWindow.webview.rpc as typeof provarRPC | undefined)?.send.projectOpened({
-      params: { path: destination },
+    (
+      mainWindow.webview.rpc as typeof provarRPC | undefined
+    )?.send.projectOpened({
+      params: { path: projectRoot },
     });
 
-    return { success: true, path: destination };
+    return { success: true, path: projectRoot };
   } catch (e) {
     console.error("Failed to create sample project:", e);
+    await rm(projectRoot, { recursive: true, force: true }).catch(() => {});
     return {
       success: false,
       error: e instanceof Error ? e.message : "Unknown error",
@@ -78,33 +94,31 @@ export const createSampleProject = async () => {
 };
 
 /**
- * resolveBundledSampleDir returns the absolute path to the bundled sample project shipped with
- * the app package. Resolved relative to this file's location in the build output.
+ * runClone shells out to `git clone` and resolves once the command exits. We avoid a git
+ * library on purpose — cloning into a local path is the only thing we need, and the git CLI
+ * is already a hard runtime dependency for Provar projects anyway. stdout/stderr are captured
+ * so the caller can surface a useful error to the user.
  */
-function resolveBundledSampleDir(): string | null {
-  try {
-    // apps/provar-app/src/bun/rpc/handlers/sample-project.ts → monorepo root in dev.
-    // In prod the file is bundled — search up the tree for the sample marker file.
-    const here = dirname(fileURLToPath(import.meta.url));
-    for (let dir = here; dir !== dirname(dir); dir = dirname(dir)) {
-      const direct = join(dir, "sample-projects", "todo-app", ".provar");
-      if (existsSync(direct)) {
-        return join(dir, "sample-projects", "todo-app");
-      }
-      const monorepoStyle = join(
-        dir,
-        "apps",
-        "provar-app",
-        "sample-projects",
-        "todo-app",
-        ".provar",
-      );
-      if (existsSync(monorepoStyle)) {
-        return join(dir, "apps", "provar-app", "sample-projects", "todo-app");
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
+function runClone(
+  url: string,
+  destination: string,
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn("git", ["clone", url, destination], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+    child.on("error", reject);
+    child.on("close", (exitCode) => {
+      resolve({ exitCode: exitCode ?? -1, stdout, stderr });
+    });
+  });
 }

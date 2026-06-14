@@ -79,6 +79,10 @@ export type ProvarRPCSchema = {
         params: {};
         response: { success: boolean; path?: string; error?: string };
       };
+      openExternal: {
+        params: { url: string };
+        response: { success: boolean };
+      };
     };
     messages: {
       steamBunMessage: SteamBunMessage;

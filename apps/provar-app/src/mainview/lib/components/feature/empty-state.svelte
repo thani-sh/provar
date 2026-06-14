@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Plus, FolderOpen, Sparkles, BookOpen, ArrowRight } from "lucide-svelte";
+  import {
+    Plus,
+    FolderOpen,
+    Sparkles,
+    BookOpen,
+    ArrowRight,
+  } from "lucide-svelte";
   import { ProvarAPI } from "../../api/provar";
 
   interface Props {
@@ -38,6 +44,17 @@
       busy = false;
     }
   }
+
+  /**
+   * openGuide opens the 5-minute quickstart on provar.se in the user's default browser. We
+   * route through the Bun process (via Utils.openExternal) instead of the in-app <a target="_blank">
+   * so the parent overlay's `closeAllPanels` click handler can't swallow the navigation.
+   */
+  async function openGuide(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    await ProvarAPI.openExternal("https://provar.se/docs/quickstart");
+  }
 </script>
 
 <div
@@ -55,7 +72,7 @@
         Welcome to Provar
       </h1>
       <p class="text-sm text-zinc-400">
-        Start by picking a project, or open the bundled sample to run a passing
+        Start by picking a project, or clone the sample project to run a passing
         test in under five minutes.
       </p>
     </header>
@@ -78,8 +95,8 @@
             Create sample project
           </h2>
           <p class="text-xs text-zinc-400">
-            Copies a 5-step login test to a folder of your choice. Runs against
-            a local web app.
+            Clones the demo-social sample (a 5-step login test + a local web
+            app) into a folder of your choice.
           </p>
         </div>
         <span
@@ -142,12 +159,13 @@
       </section>
     {/if}
 
-    <footer class="mt-10 flex items-center justify-center gap-2 text-xs text-zinc-500">
+    <footer
+      class="mt-10 flex items-center justify-center gap-2 text-xs text-zinc-500"
+    >
       <BookOpen class="h-3.5 w-3.5" />
       <a
         href="https://provar.se/docs/quickstart"
-        target="_blank"
-        rel="noopener"
+        onclick={openGuide}
         class="transition-colors hover:text-zinc-300"
         >Read the 5-minute quickstart</a
       >
