@@ -1,4 +1,4 @@
-name: Deploy provar-web to GitHub Pages
+name: Deploy provar-web
 
 on:
   push:
@@ -6,19 +6,11 @@ on:
     paths:
       - "apps/provar-web/**"
       - "libs/**"
-      - "package.json"
-      - "bun.lock"
-      - ".github/workflows/deploy-provar-web.yml"
   workflow_dispatch:
 
 concurrency:
-  group: pages
+  group: deploy-provar-web
   cancel-in-progress: true
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
 
 jobs:
   build:
@@ -27,34 +19,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Build provar-web
         run: bun run --filter '@apps/provar-web' build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: apps/provar-web/build
-
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy to Cloudflare Pages
     needs: build
     runs-on: ubuntu-latest
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: prod
+      url: https://provar.se
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Deploy provar-web
+        uses: cloudflare/pages-action@v1
+        with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          projectName: provar-se
+          directory: apps/provar-web/build
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
