@@ -1,41 +1,51 @@
 <script lang="ts">
-	const features = [
-		{
-			title: "Flow-based logic",
-			body: "User journeys are rarely linear. Map tests as visual flowcharts with branching, so the structure of a test matches the structure of the product."
-		},
-		{
-			title: "AI-assisted design",
-			body: "Describe a step in plain language. The agent reads the live page state, picks elements, writes assertions, and self-heals when the UI shifts."
-		},
-		{
-			title: "Local & Git-native",
-			body: "Everything lives in your repo — flows, config, generated code. No cloud uploads, no vendor lock-in, runs the same in CI as on your laptop."
-		},
-		{
-			title: "Made for developers",
-			body: "A real local editor, real test files, real git diffs. The visual clarity of low-code without giving up the power of code-based testing."
-		}
+	import { onMount } from "svelte";
+	import Image from "$lib/components/Image.svelte";
+
+	// Hero copy alternatives — each pair: imperative action / what the AI does.
+	// Picked at random on every page load. Hardcoded list; tweak in source.
+	const heroLines: ReadonlyArray<{ primary: string; accent: string }> = [
+		{ primary: "Map the journey.", accent: "AI handles the rest." },
+		{ primary: "Sketch the flow.", accent: "AI writes the code." },
+		{ primary: "Plot the path.", accent: "AI walks it for you." },
+		{ primary: "Describe the test.", accent: "Watch it build itself." },
+		{ primary: "Chart the steps.", accent: "The machine does the rest." },
+		{ primary: "Draw the route.", accent: "AI learns the rest." }
 	];
+
+	// Start with the first option so the prerendered HTML has a real h1 for
+	// crawlers and no-JS users. We hide it visually until the client has
+	// picked a random variant and is ready to fade in — that way JS users
+	// never see a flash of the SSR'd text being swapped out.
+	let heroIndex = $state(0);
+	let heroReady = $state(false);
+
+	onMount(() => {
+		heroIndex = Math.floor(Math.random() * heroLines.length);
+		heroReady = true;
+	});
 
 	const downloadLinks = [
 		{
 			os: "macOS",
 			subtitle: "Apple Silicon & Intel",
 			file: "provar-desktop.dmg",
-			href: "https://github.com/thani-sh/provar/releases/latest"
+			href: "https://github.com/thani-sh/provar/releases/latest",
+			status: "available" as const
 		},
 		{
 			os: "Windows",
 			subtitle: "x64",
 			file: "provar-desktop.exe",
-			href: "https://github.com/thani-sh/provar/releases/latest"
+			href: "https://github.com/thani-sh/provar/releases/latest",
+			status: "coming-soon" as const
 		},
 		{
 			os: "Linux",
 			subtitle: "AppImage · deb · rpm",
 			file: "provar-desktop.AppImage",
-			href: "https://github.com/thani-sh/provar/releases/latest"
+			href: "https://github.com/thani-sh/provar/releases/latest",
+			status: "coming-soon" as const
 		}
 	];
 
@@ -43,12 +53,12 @@
 </script>
 
 <svelte:head>
-	<title>Provar — local, Git-native end-to-end testing</title>
+	<title>Provar — local, git-native end-to-end testing</title>
 </svelte:head>
 
 <!-- HERO -->
 <section class="hero-glow">
-	<div class="mx-auto max-w-6xl px-6 pt-24 pb-20 sm:pt-32 sm:pb-28">
+	<div class="mx-auto max-w-6xl px-6 pt-24 pb-6 sm:pt-32 sm:pb-8">
 		<div
 			class="border-outline-variant/40 bg-surface-container-low/40 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs"
 		>
@@ -59,16 +69,19 @@
 		</div>
 
 		<h1
-			class="mt-6 text-4xl leading-[1.1] font-semibold tracking-tight sm:text-5xl md:text-6xl"
+			class="mt-6 text-4xl leading-[1.1] font-semibold tracking-tight transition-opacity duration-400 sm:text-5xl md:text-6xl {heroReady
+				? 'opacity-100'
+				: 'opacity-0'}"
 		>
-			Draw your tests.<br />
-			<span class="text-primary">Let a helper do the fiddly bits.</span>
+			{heroLines[heroIndex].primary}<br />
+			<span class="text-primary">{heroLines[heroIndex].accent}</span>
 		</h1>
 
 		<p class="text-on-surface-variant mt-6 max-w-2xl text-lg leading-relaxed">
-			Provar turns the journeys people take through your app into a visual map you can read
-			at a glance. You sketch the route, an assistant handles the clicks and the checks, and
-			everything stays on your machine.
+			End-to-end tests shouldn't fall apart every time a button moves. Provar turns each
+			user journey into a visual flow you can sketch, inspect, and version in git — then
+			an AI agent picks the selectors, writes the assertions, and self-heals when the UI
+			shifts. Runs locally, in CI, with no cloud account required.
 		</p>
 
 		<div class="mt-10 flex flex-wrap items-center gap-3">
@@ -93,45 +106,23 @@
 		<div class="mt-12 max-w-3xl">
 			<div class="beam"></div>
 			<p class="text-on-surface-variant/70 mt-3 font-mono text-xs">
-				$ bun add -g @apps/provar-cli &nbsp;·&nbsp; or grab the desktop app below
+				$ npm install -g @provar/provar-cli &nbsp;·&nbsp; or grab the desktop app below
 			</p>
 		</div>
 
-		<figure class="mt-16">
-			<img
-				src="/screenshot.png"
-				alt="Provar canvas showing a visual flow of an end-to-end test"
-				class="block w-full rounded-xl"
-				loading="eager"
-				decoding="async"
-			/>
-		</figure>
-	</div>
-</section>
-
-<!-- FEATURES -->
-<section class="border-outline-variant/30 border-y">
-	<div class="mx-auto max-w-6xl px-6 py-20 sm:py-24">
-		<div class="grid gap-px sm:grid-cols-2 lg:grid-cols-4">
-			{#each features as f, i (f.title)}
-				<div
-					class="bg-surface-container-low hover:bg-surface-container flex flex-col gap-3 rounded-lg p-6 transition-colors"
-				>
-					<div class="flex items-center gap-2">
-						<span class="text-primary font-mono text-xs">0{i + 1}</span>
-						<div class="bg-outline-variant/60 h-px w-6"></div>
-					</div>
-					<h3 class="text-on-surface text-base font-semibold">{f.title}</h3>
-					<p class="text-on-surface-variant text-sm leading-relaxed">{f.body}</p>
-				</div>
-			{/each}
-		</div>
+		<Image
+			src="/screenshot.png"
+			alt="Provar canvas showing a visual flow of an end-to-end test"
+			width={3644}
+			height={2370}
+			class="mt-16"
+		/>
 	</div>
 </section>
 
 <!-- DOWNLOAD -->
 <section id="download" class="scroll-mt-16">
-	<div class="mx-auto max-w-6xl px-6 py-20 sm:py-28">
+	<div class="mx-auto max-w-6xl px-6 py-10 sm:py-14">
 		<div class="flex flex-col gap-2">
 			<span class="text-primary font-mono text-xs tracking-widest uppercase">
 				download
@@ -147,22 +138,40 @@
 
 		<div class="mt-10 grid gap-4 sm:grid-cols-3">
 			{#each downloadLinks as d (d.os)}
-				<a
-					href={d.href}
-					target="_blank"
-					rel="noopener noreferrer"
-					class="group border-outline-variant/60 bg-surface-container-low hover:border-primary/60 flex flex-col gap-3 rounded-xl border p-6 transition-colors"
-				>
-					<div class="flex items-center justify-between">
-						<span class="text-on-surface text-lg font-semibold">{d.os}</span>
-						<span
-							class="text-on-surface-variant group-hover:text-primary text-sm transition-colors"
-							aria-hidden="true">↓</span
-						>
+				{#if d.status === "available"}
+					<a
+						href={d.href}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="group border-outline-variant/60 bg-surface-container-low hover:border-primary/60 flex flex-col gap-3 rounded-xl border p-6 transition-colors"
+					>
+						<div class="flex items-center justify-between">
+							<span class="text-on-surface text-lg font-semibold">{d.os}</span>
+							<span
+								class="text-on-surface-variant group-hover:text-primary text-sm transition-colors"
+								aria-hidden="true">↓</span
+							>
+						</div>
+						<p class="text-on-surface-variant text-xs">{d.subtitle}</p>
+						<p class="text-outline font-mono text-xs">{d.file}</p>
+					</a>
+				{:else}
+					<div
+						aria-disabled="true"
+						class="border-outline-variant/30 bg-surface-container-lowest/40 flex cursor-not-allowed flex-col gap-3 rounded-xl border p-6 opacity-50"
+					>
+						<div class="flex items-center justify-between">
+							<span class="text-on-surface text-lg font-semibold">{d.os}</span>
+							<span
+								class="bg-outline-variant/30 text-on-surface-variant rounded-full px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider"
+							>
+								coming soon
+							</span>
+						</div>
+						<p class="text-on-surface-variant text-xs">{d.subtitle}</p>
+						<p class="text-outline font-mono text-xs">{d.file}</p>
 					</div>
-					<p class="text-on-surface-variant text-xs">{d.subtitle}</p>
-					<p class="text-outline font-mono text-xs">{d.file}</p>
-				</a>
+				{/if}
 			{/each}
 		</div>
 

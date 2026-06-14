@@ -20,7 +20,7 @@
 				class="font-mono text-sm font-semibold tracking-tight text-on-surface"
 			>
 				<span class="text-primary">provar</span><span class="text-on-surface-variant">/</span><span
-					class="text-on-surface-variant">app</span
+					class="text-on-surface-variant">se</span
 				>
 			</a>
 
@@ -54,7 +54,7 @@
 			class="text-on-surface-variant mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-xs sm:flex-row sm:items-center sm:justify-between"
 		>
 			<p>
-				<span class="font-mono">provar</span> — local, Git-native end-to-end testing.
+				<span class="font-mono">provar</span> — local, git-native end-to-end testing.
 			</p>
 			<p class="font-mono">
 				{new Date().getFullYear()} · <a
