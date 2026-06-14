@@ -14,6 +14,10 @@ Project status: early development (prefer breaking changes to API over complexit
 
 ## Version Control
 
+- **ALWAYS** ask whether to use a worktree or not unless explicitly told somehow.
+- **ALWAYS** perform the following cleanup steps after the user verifies the task is done:
+  - Rebase and merge the branch to `main`.
+  - Remove the git worktree and any other temporary files.
 - **NEVER** commit without explicit user approval after they have tested and verified.
 - **NEVER** create merge commits, rebase instead. Keep the history linear.
 - **STRICTLY** follow **Conventional Commits** for commit messages.
@@ -29,7 +33,7 @@ Project status: early development (prefer breaking changes to API over complexit
 ## Monorepo Structure
 
 - `apps/`: Applications
-- `libs/`: Shared libraries
+- `libs/`: Reusable code
 - `docs/`:
   - `adrs`: Architecture decision records (ADRs)
   - `pdrs`: Product decision records (PDRs)
