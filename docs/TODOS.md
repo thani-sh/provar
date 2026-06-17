@@ -750,3 +750,596 @@ Files touched:
 Trade-off: macOS self-extracting bundle grows from ~14MB to ~100MB. Acceptable for an early-stage dev tool. Linux requires CEF anyway (system GTKWebKit lacks compositing features).
 
 ---
+
+## Optimizations
+
+> Pass on 2026-06-17 focused on simplifications that **change no behaviour**:
+> dead code, mechanical duplication, type/import hygiene, and silent
+> performance hotspots. Cross-references to the T-items above are noted in
+> each entry's `Solution` where overlap exists.
+>
+> Verified against current source while writing this section: T015 (CLI
+> exit 2 on unknown subcommand) is already fixed at
+> `apps/provar-cli/src/commands/compile/index.ts:49-54`. T001/T002/T023
+> (provar-web URL externalization) is partially fixed — the 4 hardcoded
+> `https://github.com/thani-sh/provar` literals at
+> `apps/provar-web/src/routes/+page.svelte:99, 224, 250, 259` still need
+> to read from `buildInfo.githubRepo` (see T092).
+
+---
+
+### T061: delete the unused `MutationTrackingPage` class and its test file
+> importance: high
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/runtime/mutation-tracking-page.ts` defines a wrapper class
+with ten near-identical method declarations (one per `MUTATING_METHODS`
+entry), each 4 lines of mechanical boilerplate. The class is re-exported
+from `libs/engine/src/index.ts:10` but has zero production callers
+(verified by `grep`). Its 142-line test file at
+`libs/engine/src/__tests__/mutation-tracking-page.test.ts` is coverage of
+the dead class. The class was meant to replace the monkey-patch still in
+place at `test-run.ts:143-170` and `compiler/generator.ts:247-275`; the
+"fix" never landed. (See T017.)
+
+#### Solution
+Delete the class file, the test file, and the `export *` line in
+`libs/engine/src/index.ts:10`. Verify no other consumer imports
+`MutationTrackingPage` or `MUTATING_METHODS` from the engine barrel
+before deleting.
+
+---
+
+### T062: collapse the three `MUTATING_METHODS` lists into one
+> importance: high
+> affected areas: libs/engine
+
+#### Problem
+The same 10-element `as const` array is declared in three files:
+`libs/engine/src/test-run.ts:143-154`, `libs/engine/src/compiler/generator.ts:247-258`,
+and `libs/engine/src/runtime/mutation-tracking-page.ts:8-19` (last
+removed by T061). Two copies remain after T061. (See T017, T032.)
+
+#### Solution
+Pick one home — recommend a new `libs/engine/src/runtime/mutating-methods.ts`
+(5 lines) — and import from both call sites. Update the JSDoc on
+`ExecuteOptions.maxEventQueueSize` to reference the consolidated constant
+if it is also being addressed (T009 / T064).
+
+---
+
+### T063: delete `provarPath` from the entire `execute()` pipeline
+> importance: high
+> affected areas: libs/engine, apps/provar-app, apps/provar-cli
+
+#### Problem
+`ExecuteOptions.provarPath` is declared at `libs/engine/src/types.ts:78`,
+documented, and threaded through `PathRunner`. `grep -n provarPath
+libs/engine/src/test-run.ts` returns zero hits — the value is **never
+read**. It is set in three call sites:
+`libs/engine/src/compiler/sandbox.ts:113`,
+`apps/provar-app/src/bun/rpc/streams.ts:173`,
+`apps/provar-cli/src/commands/run/index.ts:110`. The plumbed-through
+value also flows into `loadProject(project.path)` upstream in every
+caller, so removing it loses no information.
+
+#### Solution
+Delete the field from `ExecuteOptions`, drop the three call-site
+arguments, and verify the build still passes. If a downstream consumer
+silently depended on the field, the type system will catch it.
+
+---
+
+### T064: delete or wire through `ExecuteOptions.maxEventQueueSize`
+> importance: low
+> affected areas: libs/engine
+
+#### Problem
+`maxEventQueueSize?: number` is declared at `libs/engine/src/types.ts:79-86`
+with a default of 256 in the JSDoc, but `createAsyncIterable` is called
+with no options at `test-run.ts:47`. The bound never applies. The intent
+(per T009) is sound; today the option is documentation, not behaviour.
+
+#### Solution
+Pick one. Either pass `{ maxEventQueueSize: this.options.maxEventQueueSize ?? 256 }`
+through to `createAsyncIterable` (and add a test for queue overflow), or
+delete the field and its JSDoc until someone needs it. (See T009.)
+
+---
+
+### T065: delete the singular `convertCommandToTool` export
+> importance: low
+> affected areas: libs/models
+
+#### Problem
+`libs/models/src/tools.ts:16-25` exports `convertCommandToTool`. No
+external caller imports it — only the plural `convertCommandsToTools`
+at line 30 calls it internally. The plural is the one consumers use.
+
+#### Solution
+Delete the singular export. Inline the function body into the loop at
+`convertCommandsToTools` (line 35-36) and stop the redundant indirection.
+
+---
+
+### T066: delete the `PROVAR_DIR` constant from `@libs/domain/zod`
+> importance: low
+> affected areas: libs/domain
+
+#### Problem
+`libs/domain/src/zod.ts:11` exports `PROVAR_DIR = ".provar"`, but the
+only uses of it are as the prefix of `TESTS_DIR` and `CONFIG_FILE`,
+both of which are also exported. Downstream apps use `TESTS_DIR` and
+`CONFIG_FILE`, never `PROVAR_DIR` directly.
+
+#### Solution
+Delete the `PROVAR_DIR` export. Keep `TESTS_DIR` and `CONFIG_FILE` as
+they are. The internal use in the file can become a local `const`. (See
+T012 for the broader `.provar` literal problem in apps.)
+
+---
+
+### T067: delete the unused `getCodeStatus` helper
+> importance: low
+> affected areas: apps/provar-app
+
+#### Problem
+`CodeStatus` type and `getCodeStatus` function are exported from
+`apps/provar-app/src/shared/utils.ts:55-66` but never imported anywhere
+(verified by `grep`). The naming is also misleading — the actual UI
+uses `editorStore.taskStates` to derive display status.
+
+#### Solution
+Delete the type and the function. (Verify with `grep -rn 'getCodeStatus' apps`
+first.)
+
+---
+
+### T068: stop re-exporting `cleanCode` from the engine barrel
+> importance: low
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/generator.ts:27-34` exports `cleanCode` and
+it is re-exported through the `export *` barrel at
+`libs/engine/src/index.ts:7`. The test file at
+`__tests__/tracker.test.ts:5-24` exercises the function but reaches
+into the internal path. The export shadows a local variable in
+`compiler/sandbox.ts:44`. (See T040.)
+
+#### Solution
+Move the function to a new `libs/engine/src/compiler/clean-code.ts`,
+re-import it from the test file, and drop the export from `generator.ts`.
+Alternatively, keep the export but rename the local variable in
+`sandbox.ts:44` to `stripped` so it stops shadowing (see T085). Either
+way, `cleanCode` should not be re-exported through the engine barrel.
+
+---
+
+### T069: replace editor-side `enumeratePaths` with the engine's `buildGraphPaths`
+> importance: high
+> affected areas: apps/provar-app, libs/engine
+
+#### Problem
+`apps/provar-app/src/shared/utils.ts:12-38` defines `enumeratePaths(graph)
+→ string[][]` and is used by the editor at
+`apps/provar-app/src/mainview/lib/stores/editor-store.svelte.ts:8, 111, 119`.
+The engine already has `buildGraphPaths(start, tasks) → Path[]` with
+diamond-dedup at `libs/engine/src/loader.ts:57-109`, with solid test
+coverage including the diamond case at `loader.test.ts:40-55`. For any
+diamond graph the editor's "active path" highlight is wrong. (See T005.)
+
+#### Solution
+Delete `enumeratePaths` from `shared/utils.ts`. The two editor call
+sites either consume `Path` directly (preferred — change `selectedNodePathIndex`
+and `runningPathNodeIds` to use `Path.tasks` instead of `string[]`) or
+wrap `buildGraphPaths` in a `string[][]` adapter. The engine's
+`buildGraphPaths` accepts `Record<string, Task>` so the call site needs
+to map from the file's `nodes` shape to the engine's `tasks` shape.
+
+---
+
+### T070: extract the screenshot-path helper from the three duplicated sites
+> importance: high
+> affected areas: apps/provar-app
+
+#### Problem
+The same path triple is recomputed in three places:
+`apps/provar-app/src/bun/rpc/handlers/get-screenshots.ts:28-68`,
+`apps/provar-app/src/bun/rpc/handlers/accept-visual-state.ts:27-69`,
+and `apps/provar-app/src/bun/rpc/streams.ts:177-209`. Each site computes
+`testsDir`, `relativePath`, `pathNameSlug`, `stepIndexStr`, and
+`screenshotFile` from a `Path` and a `taskId` — about 30 lines of pure
+copy-paste. Also fixes part of T012 (the `.provar` literal appears
+9 times in these three files alone).
+
+#### Solution
+Extract a `screenshotPathFor(path: Path, taskId: string): { testsDir, relativePath, pathNameSlug, screenshotFile, currentFilePath, acceptedFilePath }`
+into a new `apps/provar-app/src/bun/lib/screenshot-paths.ts` and call
+it from all three sites. (See T012.)
+
+---
+
+### T071: extract a shared CLI arg parser
+> importance: medium
+> affected areas: apps/provar-cli
+
+#### Problem
+Both `handleCompile` (`commands/compile/index.ts:27-32`) and `handleRun`
+(`commands/run/index.ts:24-32`) hand-roll positional-arg sweeps. The
+top-level `index.ts:34-47` also hand-rolls subcommand dispatch. The
+unknown-flag case is silently ignored (per the audit's Missed-5).
+
+#### Solution
+Create `apps/provar-cli/src/utils/args.ts` exporting
+`parseArgs(args, knownFlags): { positional, flags, unknown }`. Use it in
+both handlers. Have the top-level dispatch table-driven
+(`COMMANDS: Record<string, (args) => Promise<void>>`). Add an
+unknown-flag warning. (See T028.)
+
+---
+
+### T072: extract a generic `loggedRpcHandler` for the file operations
+> importance: high
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/bun/rpc/handlers/file-handlers.ts:6-50` defines six
+handlers, all the same shape:
+`console.log("[RPC Server] X request:", params)` →
+`getCommands().X.execute(params)` →
+`console.log("[RPC Server] X response:", res)` →
+`triggerProjectChanged()` (only on writes) → return. The `console.log`
+calls are the data-leak vector T007 flags.
+
+#### Solution
+Replace with one `loggedHandler(name, commandKey, { triggersChange?: boolean })`
+wrapper. Use it in all six handlers. This also gives one place to add
+the DEBUG gate when T007 lands. (See T007.)
+
+---
+
+### T073: extract a `loggedRpcClient` wrapper for `ProvarAPI`
+> importance: high
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/mainview/lib/api/provar.ts:14-310` defines 15
+methods on `ProvarAPI`, each the same shape:
+`console.log("[RPC Client] X request:", params)` →
+`electroview.rpc!.request.X(params)` →
+`console.log("[RPC Client] X response:", res)` → return. Same
+data-leak issue as T072. The pattern is more mechanical on the client
+side because the schema is statically known.
+
+#### Solution
+Either (a) wrap each method in a small `loggedCall(name, fn, ...args)`
+helper, or (b) replace the object with a `Proxy` that adds the
+log/return wrapper. Either way removes ~30 lines and gives one place
+to add the DEBUG gate. (See T007.)
+
+---
+
+### T074: deduplicate `settings.loadIfNeeded` and `settings.reload`
+> importance: low
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/mainview/lib/stores/settings-store.svelte.ts:43-57`
+and `:63-71` both do `await ProvarAPI.getSettings()` and assign the
+same three fields. The only differences are the `hasCheckedSetup`
+guard and the first-launch wizard check.
+
+#### Solution
+Extract a private `loadFromDisk()` returning the full response. Have
+`loadIfNeeded` call it, check `settingsExists`, and gate via
+`hasCheckedSetup`. Have `reload()` call it without the guard.
+
+---
+
+### T075: split `loadSettings` to surface corrupt-file errors
+> importance: high
+> affected areas: libs/config
+
+#### Problem
+`libs/config/src/storage.ts:61-72` has a single `try/catch` that catches
+**all** errors and returns defaults. This is the silent data-loss bug
+T003 documents: a truncated settings file vanishes without a trace and
+the next `saveSettings` overwrites the original.
+
+#### Solution
+Split the function into `tryParseFile()` and `loadSettings()`. Only
+return defaults in the `ENOENT` (no file) path. On parse or validation
+failure, rename the corrupt file to
+`~/.provar/settings.json.bak.<isoTimestamp>` and re-throw. Export a
+`SettingsLoadError` carrying `{ cause, backupPath }` so callers can
+surface a UI message. Add a unit test that writes a truncated
+`settings.json` and asserts the backup file exists. (See T003.)
+
+---
+
+### T076: deduplicate the `modelSettingsSchema` defaults
+> importance: low
+> affected areas: libs/config
+
+#### Problem
+`libs/config/src/schema.ts:47-77, 188-199` declares the same provider
+defaults three times: once per provider schema (`.default(() => ({...}))`),
+once on the outer `providers` object, and once on the top-level
+`models` field. The duplication is intentional ("factory functions so
+each parse gets a fresh, deep-cloned object") but the maintenance burden
+is real.
+
+#### Solution
+Extract `DEFAULT_PROVIDERS` and `DEFAULT_MODELS` constants at the top
+of the file, deep-cloned via a small `cloneDefault(o)` helper, and
+reference them in all three places.
+
+---
+
+### T077: rename or unify the duplicate `ProviderConfigError` classes
+> importance: medium
+> affected areas: libs/config, libs/models, apps/provar-cli
+
+#### Problem
+Two distinct classes named `ProviderConfigError` exist:
+`libs/config/src/schema.ts:143-162` (carries a `requirements` list) and
+`libs/models/src/registry.ts:11-21` (carries only the provider name).
+`apps/provar-cli/src/commands/compile/index.ts:8-10` has to alias both
+(`ProviderConfigError as ConfigProviderError`,
+`ProviderConfigError as ModelsProviderError`) to disambiguate.
+
+#### Solution
+Recommended: keep both, but rename the models-side to
+`MissingApiKeyError`. It's a different error class semantically
+(missing key vs. invalid config) and the shared name is misleading.
+Drop the `as` aliases in the CLI. Alternative: pick one home (config,
+since it's the gate) and have models throw that one. (See T033.)
+
+---
+
+### T078: delete the unused `innerTasks` binding in `compiler.ts`
+> importance: trivial
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/compiler.ts:124` assigns
+`const innerTasks = node.graph.tasks;` but the value is never read in
+the block. `innerPaths` on the next line is the only one used.
+
+#### Solution
+Delete the line.
+
+---
+
+### T079: clean up the dead `resolveFn` default in `PathRunner`'s constructor
+> importance: trivial
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/test-run.ts:48-52` declares
+`let resolveFn: (value: RunnerResult) => void = () => {};` whose default
+no-op is overwritten on the next line and never called. The
+`waitResolve` field is set in the constructor but only the local
+`resolve` is ever read.
+
+#### Solution
+Collapse to:
+```
+let resolve: (value: RunnerResult) => void;
+this.waitPromise = new Promise<RunnerResult>((r) => { resolve = r; });
+this.waitResolve = resolve;
+```
+Or drop the `waitResolve` field entirely — the constructor's local
+`resolve` is sufficient since the closure already captures it.
+
+---
+
+### T080: drop the dead `?? ["", ""]` fallback in `extractBlockBody`
+> importance: trivial
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/extract-generated-code.ts:109` writes
+`(l.match(/^(\s*)/) ?? ["", ""])[0]!.length`. The pattern `/^(\s*)/`
+matches at the start of every string (it accepts the empty string), so
+`match()` will never return `null`. The fallback is dead.
+
+#### Solution
+Replace with `l.match(/^(\s*)/)![1]!.length`.
+
+---
+
+### T081: deduplicate the command-class list in `commands/index.ts`
+> importance: trivial
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/bun/commands/index.ts:1-9` has one `export *` block
+of command modules; lines 11-19 list the same classes again explicitly
+so the `createCommands()` builder can `new` them. The two parallel
+lists can drift if a command is added.
+
+#### Solution
+Replace with a single
+`const COMMANDS = { getConfig: GetConfigCommand, ... } as const` map.
+Use the same map to derive both the re-exports and the builder.
+
+---
+
+### T082: fix the `any` type on `debounceTimer` in `bun/utils.ts`
+> importance: trivial
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/bun/utils.ts:35` declares
+`let debounceTimer: any = null;` for a `setTimeout` handle. Should be
+`ReturnType<typeof setTimeout> | null` for cross-runtime safety.
+
+#### Solution
+Change the type annotation.
+
+---
+
+### T083: gate the agent-client `console.log` calls behind a DEBUG flag
+> importance: low
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/compiler.ts:80-82, 87, 255-256` has three
+unguarded `console.log` / `console.error` calls in the agent client
+path. The first leaks the provider name; combined with the per-keystroke
+volume in `provar-app`, this is the noisy end of the diagnostic
+spectrum.
+
+#### Solution
+Gate all three behind a `DEBUG` env flag, or hoist a small `dlog()`
+helper from a new `libs/engine/src/compiler/log.ts`. Combined with
+T072/T073 this also gives one place to redact API keys. (See T007.)
+
+---
+
+### T084: rename the local `cleanCode` in `sandbox.ts` to `stripped`
+> importance: trivial
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/sandbox.ts:44` declares
+`let cleanCode = codeStr.replace(...).trim();` — a string that shadows
+the exported `cleanCode` function from `generator.ts:27`. The local
+reads as if it called the export.
+
+#### Solution
+Rename the local to `stripped`. (See T068 for the related export
+cleanup.)
+
+---
+
+### T085: hoist `loadProject` out of the self-healing executor
+> importance: high
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/generator.ts:295-299` calls `loadProject`
+inside the `executor` closure passed to `SelfHealingLoop`. `loadProject`
+is a recursive directory walk + full YAML parse of every `.test.yml`
+in the project. The executor runs once per retry (up to 3). For a
+50-task file with 3 retries: 4 full project loads per task = 200
+redundant loads per compile.
+
+#### Solution
+The same load happens at line 61 of the same file, outside the
+closure, where the result is captured into the outer `variables`. Pass
+that `variables` value into the executor (via the existing
+`options` parameter) and delete the inner `loadProject` call. (See
+T086 for the parallel call site in `sandbox.ts`.)
+
+---
+
+### T086: hoist `loadProject` out of `runGroundingSandbox`
+> importance: high
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/sandbox.ts:64-72` re-loads the project inside
+`runGroundingSandbox`, which is called by both the stateful fast-path
+and the safe-path, which is called by the self-healing executor. Per
+task: up to 3 retries × 1 `loadProject` = 3 wasted project loads.
+Same pattern as T085.
+
+#### Solution
+Accept `variables` as a parameter to `runGroundingSandbox`. The
+callers (`compiler.ts:107-108` and `generator.ts:92-101, 136-144`)
+already have the value or can get it once and pass it down.
+
+---
+
+### T087: deduplicate the `loadProject → variables` block
+> importance: low
+> affected areas: libs/engine
+
+#### Problem
+`libs/engine/src/compiler/generator.ts:58-65` and
+`libs/engine/src/compiler/sandbox.ts:63-72` contain two copies of the
+same:
+`let project: any = null; try { project = await loadProject(...); variables = ... } catch (e) {}`.
+The `as unknown as` cast at line 62 is the cast TODOS T033 groups with
+similar cleanups.
+
+#### Solution
+Extract to `loadVariablesForCompilation(yamlPath): Promise<Record<string, string>>`
+in `loader.ts` and call once at the entry point of `compileProgress`.
+The cast disappears with the helper. (See T029, T033.)
+
+---
+
+### T088: replace `Math.random().toString(36).substring(7)` for `runId` with `crypto.randomUUID()`
+> importance: low
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/bun/rpc/streams.ts:168` uses
+`const runId = Math.random().toString(36).substring(7);` for a stream
+run identifier. Same anti-pattern T021 catches in `apps/demo-social`.
+
+#### Solution
+Replace with `crypto.randomUUID()`. Also verify whether the `runId` is
+actually consumed by the webview — if not, the whole computation can
+go.
+
+---
+
+### T089: reuse the `loadProject` result after auto-compile in `streams.ts`
+> importance: low
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/bun/rpc/streams.ts:128, 152` calls `loadProject`
+twice in the auto-compile path: once to check staleness, once after
+compile to read the post-compile file. The first `project` object is
+discarded; the second rebuilds the file walk and YAML parses for the
+whole project.
+
+#### Solution
+Reuse the first `loadProject` result. After auto-compile, just call
+`project.readFile(absPath)` again — the `readFile` is the expensive
+part, but it does not re-walk the project tree.
+
+---
+
+### T090: dedupe `loadScreenshotsForNode` per node-id
+> importance: medium
+> affected areas: apps/provar-app
+
+#### Problem
+`apps/provar-app/src/mainview/lib/stores/editor-store.svelte.ts:344-359`
+is called from 5 sites (`editor-store.svelte.ts:269, 281, 286, 404, 427`)
+in quick succession for the same `nodeId`. A 50-task run fires 3+
+per task (start, finish, visual-compare) = 150 IPCs, each reading a
+PNG from disk and base64-encoding it. (See T031.)
+
+#### Solution
+Add a `Map<nodeId, Promise<...>>` and have `loadScreenshotsForNode`
+return the cached promise for concurrent calls — the same pattern
+already used for `loadGeneratedCodeForNode` at
+`editor-store.svelte.ts:98, 370-389`. Clear the map on `loadFile`
+(line 416-430) to avoid stale entries after a file switch.
+
+---
+
+### T091: remove the 4 hardcoded `github.com/thani-sh/provar` strings in `provar-web`
+> importance: low
+> affected areas: apps/provar-web
+
+#### Problem
+`apps/provar-web/src/lib/build-info.ts` was created (T023 fix) and is
+already used in `+page.svelte:29, 55, 183` and `+layout.svelte:42, 67`.
+But `+page.svelte:99, 224, 250, 259` still hardcode
+`https://github.com/thani-sh/provar` directly.
+
+#### Solution
+Replace the 4 literals with `buildInfo.githubRepo` references. (See
+T001, T002, T023.)
+
+---
