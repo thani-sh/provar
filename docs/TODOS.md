@@ -2,30 +2,6 @@
 
 ---
 
-### T001: publish prover.se/install.sh or gate the install command on the marketing site
-> importance: critical
-> affected areas: apps/provar-web
-
-#### Problem
-`apps/provar-web/src/routes/+page.svelte` advertises `curl -fsSL https://provar.se/install.sh | sh` as the primary install command, but that URL currently 404s — `provar.se` still serves an unrelated "feedback collection" product. A second install line points users at `bun add -g @apps/provar-cli`, which is the private workspace name and is not on npm. Both are user-facing, copy-paste-ready commands that silently fail.
-
-#### Solution
-Either ship a real `install.sh` at `provar.se/install.sh` and publish `@provar/cli` to npm (per AGENTS.md: `@provar/` is the public npmjs scope), or gate the install block behind a `PUBLIC_INSTALL_LIVE` env flag and replace the copy with a "coming soon" placeholder. Drop the `bun add -g @apps/provar-cli` line until `@provar/cli` is actually published. (See `refactor-other-apps.md` Phase 1.)
-
----
-
-### T002: stop the marketing site from claiming a working install
-> importance: critical
-> affected areas: apps/provar-web
-
-#### Problem
-Even if `provar.se/install.sh` is published later, today's site advertises a non-existent endpoint to a brand-new customer-facing surface. The worst kind of marketing copy: a working-looking command that silently 404s.
-
-#### Solution
-Same fix as T001 — gate behind `PUBLIC_INSTALL_LIVE` and show a disabled card with a "star the repo" prompt until the install is actually live. Externalize all hard-coded URLs (`PUBLIC_GITHUB_REPO`, `PUBLIC_DOWNLOAD_BASE`, `PUBLIC_INSTALL_BASE`) into `apps/provar-web/src/lib/build-info.ts` so a staging deploy can be configured separately. (See `refactor-other-apps.md` Phase 1 and Phase 3.)
-
----
-
 ### T003: prevent silent data loss in loadSettings on corrupt settings.json
 > importance: critical
 > affected areas: libs/config
@@ -170,18 +146,6 @@ Register a `process.on("SIGINT", ...)` and `process.on("SIGTERM", ...)` that set
 
 ---
 
-### T015: return exit 2 on unknown CLI subcommand
-> importance: high
-> affected areas: apps/provar-cli
-
-#### Problem
-`apps/provar-cli/src/index.ts:30-38` has no `else` branch after the two `if (command === ...)` blocks. A typo in the subcommand name (`provar compilee ./foo` instead of `provar compile ./foo`) returns exit code 0 — the CLI does not recognize the failure. CI runs that misspell the command will pass. Verified by audit (CLI-1, H-6).
-
-#### Solution
-Add an `else` branch that logs "Unknown command: <cmd>" + the help text and calls `process.exit(2)`. Document the exit-code convention in `apps/provar-cli/README.md` or `docs/cli/exit-codes.md`.
-
----
-
 ### T016: drop the (cfg as any).baseUrl cast in provar-cli compile
 > importance: high
 > affected areas: apps/provar-cli, libs/domain
@@ -263,18 +227,6 @@ Add a banner comment at the top of `store.ts`: "Sandbox only — passwords are s
 
 #### Solution
 Bind to `127.0.0.1` explicitly. Add a `Bun.write` body-size guard on every `POST` route that reads `req.json()`; reject bodies > 64 KB with `413 Payload Too Large`. Add a "sandbox" banner to the home page. Replace the runtime Tailwind CDN with a local build (Missed-3, Medium but adjacent to operational hygiene).
-
----
-
-### T023: externalize hard-coded prover-web URLs into build-time env
-> importance: medium
-> affected areas: apps/provar-web
-
-#### Problem
-The install command, the GitHub repo URL, and other deployment-specific strings are hard-coded in `apps/provar-web/src/routes/+page.svelte`. A staging deploy looks identical to a production deploy. Cannot stage the site without leaking the production install endpoint, and vice versa. Verified by audit (Web-1, H-11).
-
-#### Solution
-Add `PUBLIC_GITHUB_REPO`, `PUBLIC_DOWNLOAD_BASE`, `PUBLIC_INSTALL_BASE` to `.env` / `.env.example`. Create `apps/provar-web/src/lib/build-info.ts` exporting them with fallbacks. Replace the 6 GitHub URL call sites and the install command in `+page.svelte` and `+layout.svelte` to read from `build-info.ts`. (See `refactor-other-apps.md` Phase 3.)
 
 ---
 
@@ -721,36 +673,6 @@ Add `docs/adrs/013-curated-public-surface-for-libs.md` capturing the design deci
 
 ---
 
-### T060: ship CEF + WebGL via bundled electrobun renderer
-> importance: high
-> affected areas: apps/provar-app
-
-#### Problem
-macOS system WebKit (used by electrobun's default `renderer: "native"`) returns `null` from `gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)`. Two downstream effects, both user-visible:
-
-1. PIXI 8's `GlProgram.from` calls `getMaxFragmentPrecision` to size the `mediump` / `highp` default. The probe dereferences `.precision` on the null result without checking, throwing `"TypeError: null is not an object"` out of the awaited `app.init()` promise. Result: the canvas never initialises, no error toast, just a blank graph.
-2. WebKit aggressively reclaims GPU contexts on app focus loss / window resize. Sustained per-frame Graphics work (the spinning-arc spinners on running/compiling tasks) trips context loss often enough to be a real "WebGL: context lost" console error during long test runs.
-
-Upstream bugs:
-- https://bugs.webkit.org/show_bug.cgi?id=289601 — ANGLE on macOS WebKit returns null for `HIGH_FLOAT` fragment precision format
-- https://github.com/mrdoob/three.js/issues/30767 — three.js hits the same probe and ships a try/catch workaround
-
-#### Solution
-Bundle CEF (Chromium Embedded Framework) with electrobun and switch the main window's renderer. CEF ships its own ANGLE / SwiftShader build, so the precision probe returns a valid object (no `null.precision` crash) and context loss is dramatically less aggressive than WKWebView. Reverts the Canvas2D renderer switch in commit 49a6c2e and the `extensions.remove({ name: "particle" })` workaround — both are no longer needed.
-
-Files touched:
-- `apps/provar-app/electrobun.config.ts` — `bundleCEF: true` on `mac`, `linux`, `win`
-- `apps/provar-app/src/bun/window/main-window.ts` — `renderer: "cef"`
-- `apps/provar-app/src/mainview/lib/canvas/infinite-canvas.ts` — drop `preference: "canvas"`, `MAX_DPR` cap, particle pipe removal, `lastStateKey` short-circuit, `attachContextLossHandlers`; restore `antialias: true, roundPixels: false`
-- `apps/provar-app/src/mainview/lib/canvas/node-shape.ts` — restore `Math.max(devicePixelRatio, 2)` for text resolution (don't downgrade on 3x Retina)
-- `apps/provar-app/src/mainview/lib/canvas/graph-renderer.ts` — rewrite WebGL-context-loss framing in `setState` JSDoc
-- `apps/provar-app/src/mainview/lib/components/feature/Canvas.svelte` — restore `testFile: TestFile` (no null handling); drop the `else clearGraph()` branch
-- `apps/provar-app/src/mainview/App.svelte` — restore natural Svelte mount/unmount (`{:else if editorStore.currentFile}` + `{:else}` with "Select a test to begin"); drop the always-mounted Canvas overlay pattern
-
-Trade-off: macOS self-extracting bundle grows from ~14MB to ~100MB. Acceptable for an early-stage dev tool. Linux requires CEF anyway (system GTKWebKit lacks compositing features).
-
----
-
 ## Optimizations
 
 > Pass on 2026-06-17 focused on simplifications that **change no behaviour**:
@@ -758,13 +680,10 @@ Trade-off: macOS self-extracting bundle grows from ~14MB to ~100MB. Acceptable f
 > performance hotspots. Cross-references to the T-items above are noted in
 > each entry's `Solution` where overlap exists.
 >
-> Verified against current source while writing this section: T015 (CLI
-> exit 2 on unknown subcommand) is already fixed at
-> `apps/provar-cli/src/commands/compile/index.ts:49-54`. T001/T002/T023
-> (provar-web URL externalization) is partially fixed — the 4 hardcoded
-> `https://github.com/thani-sh/provar` literals at
-> `apps/provar-web/src/routes/+page.svelte:99, 224, 250, 259` still need
-> to read from `buildInfo.githubRepo` (see T092).
+> Several entries in this section (T069, T075, T082, T085, T088, T091)
+> directly resolve or progress pre-existing T-items in the list above.
+> Specifically, T091 supersedes the prover-web URL externalization that
+> was previously tracked across three separate items.
 
 ---
 
@@ -1339,7 +1258,6 @@ But `+page.svelte:99, 224, 250, 259` still hardcode
 `https://github.com/thani-sh/provar` directly.
 
 #### Solution
-Replace the 4 literals with `buildInfo.githubRepo` references. (See
-T001, T002, T023.)
+Replace the 4 literals with `buildInfo.githubRepo` references.
 
 ---
