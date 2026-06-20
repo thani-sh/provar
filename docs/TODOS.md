@@ -25,18 +25,6 @@ Delete `enumeratePaths` from `apps/provar-app`; import `buildGraphPaths` from `@
 
 ---
 
-### T006: fix runAllPaths re-entrancy guard
-> importance: critical
-> affected areas: apps/provar-app
-
-#### Problem
-`runAllPaths` (`editor-store.svelte.ts:186-200`) checks `this.isRunning` at line 188 and returns if true, but does NOT re-check inside the for-loop. `runStream` (which `runAllPaths` awaits per-path) sets `isRunning = false` in its `finally` block. Between two adjacent path runs in the same loop, `isRunning` is `false`. A second click on "Run all" passes the guard, starts a parallel `runPath` loop, and interleaves two `ProvarAPI.runTestPath` calls on the same file. The misleading comment at line 172-174 says "runAllPaths itself is a no-op when isRunning is true" — that is only true for the FIRST check. Verified by audit (App-1, C-1).
-
-#### Solution
-Keep `isRunning = true` for the full `runAllPaths` loop; only clear it after all paths complete. Or use a separate `isRunningAllPaths` flag. (See `CODE-REVIEW-REPORT.md` step 4.)
-
----
-
 ### T007: gate and redact API keys in console output
 > importance: high
 > affected areas: apps/provar-app
