@@ -1,5 +1,37 @@
-import type { TestFile, TestNode } from "@libs/domain/zod";
-import { generateNodeId } from "../../../shared/utils";
+import type { TestFile, TestNode, TestFileGraph } from "@libs/domain/zod";
+import type { Task } from "@libs/domain";
+import { generateNodeId, getNextNodes } from "../../../shared/utils";
+
+/**
+ * toEngineTasks adapts the editor's `TestFileGraph.nodes` map into the engine's
+ * `Record<string, Task>` shape so `buildGraphPaths` (from `@libs/engine`) can be
+ * used directly. The two shapes only differ in:
+ *
+ *   - `Task` carries an explicit `id` field; in the editor the id is the key
+ *     of the `nodes` record, so we copy the key into the field.
+ *   - `Task.next` is always a `string[]`; the editor allows a single string or
+ *     array, so we normalise through `getNextNodes`.
+ *   - The editor's `TestNode` has display-only fields (`hasGeneratedCode`,
+ *     `isUpToDate`, `screenshotUrl`) and an editor-flavoured nested `graph`.
+ *     Neither matters for path enumeration; we drop them.
+ *
+ * Nested `graph` fields (sub-graphs inside a node) are intentionally NOT
+ * converted — the editor only enumerates paths at the top level, and adding
+ * recursive conversion here would silently diverge from `buildGraphPaths`'s
+ * own single-level contract.
+ */
+export function toEngineTasks(graph: TestFileGraph): Record<string, Task> {
+  const tasks: Record<string, Task> = {};
+  for (const [id, node] of Object.entries(graph.nodes)) {
+    tasks[id] = {
+      id,
+      title: node.title,
+      info: node.info,
+      next: getNextNodes(node),
+    };
+  }
+  return tasks;
+}
 
 /**
  * addNodeToGraph creates a new task node and splices it into the test file graph.

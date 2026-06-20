@@ -3,9 +3,11 @@ import {
   addNodeToGraph,
   updateNodeInGraph,
   deleteNodeFromGraph,
+  toEngineTasks,
 } from "../utils/graph";
+import { buildGraphPaths } from "@libs/engine";
+import type { Path } from "@libs/domain";
 import type { TestFile, TestNode } from "@libs/domain/zod";
-import { enumeratePaths } from "../../../shared/utils";
 import type { TaskState } from "../canvas/constants";
 import { projectStore } from "./project-store.svelte";
 import { uiStore } from "./ui-store.svelte";
@@ -108,15 +110,20 @@ class EditorStore {
   /** selectedNodePathIndex is the index of the path containing selectedNodeId, or null. */
   selectedNodePathIndex = $derived.by(() => {
     if (!this.currentFile || !this.selectedNodeId) return null;
-    const paths = enumeratePaths(this.currentFile.graph);
-    const idx = paths.findIndex((p) => p.includes(this.selectedNodeId!));
+    const paths = this.allPaths;
+    const idx = paths.findIndex((p) =>
+      p.tasks.some((t) => t.id === this.selectedNodeId),
+    );
     return idx === -1 ? null : idx;
   });
 
-  /** allPaths returns the enumerated execution paths for the current file. */
-  allPaths = $derived.by(() => {
+  /** allPaths returns the engine's `Path[]` for the current file. */
+  allPaths = $derived.by((): Path[] => {
     if (!this.currentFile) return [];
-    return enumeratePaths(this.currentFile.graph);
+    return buildGraphPaths(
+      this.currentFile.graph.start,
+      toEngineTasks(this.currentFile.graph),
+    );
   });
 
   /**
@@ -126,7 +133,7 @@ class EditorStore {
   runningPathNodeIds = $derived.by((): Set<string> => {
     if (!this.isRunning) return new Set();
     const path = this.allPaths[this.currentPathIndex];
-    return path ? new Set(path) : new Set();
+    return path ? new Set(path.tasks.map((t) => t.id)) : new Set();
   });
 
   /**
