@@ -7,6 +7,7 @@ import {
   compileTestStream,
   runTestPathStream,
 } from "../../../shared/streams";
+import { debug, debugRedacted } from "../../../shared/debug";
 
 /**
  * ProvarAPI provides WebView client wrappers for interacting with Bun backend RPC methods.
@@ -21,9 +22,9 @@ export const ProvarAPI = {
     home: string;
     settingsExists: boolean;
   }> {
-    console.log("[RPC Client] getSettings request");
+    debug("[RPC Client] getSettings request");
     const res = await electroview.rpc!.request.getSettings({});
-    console.log("[RPC Client] getSettings response:", res);
+    debugRedacted("[RPC Client] getSettings response:", res);
     return res;
   },
 
@@ -33,9 +34,9 @@ export const ProvarAPI = {
   async saveSettings(
     settings: Partial<Settings>,
   ): Promise<{ settings: Settings }> {
-    console.log("[RPC Client] saveSettings request:", settings);
+    debugRedacted("[RPC Client] saveSettings request:", { settings });
     const res = await electroview.rpc!.request.saveSettings({ settings });
-    console.log("[RPC Client] saveSettings response:", res);
+    debugRedacted("[RPC Client] saveSettings response:", res);
     return res;
   },
 
@@ -43,9 +44,9 @@ export const ProvarAPI = {
    * openProject changes the active project directory in the backend.
    */
   async openProject(params: { path: string }): Promise<{ success: boolean }> {
-    console.log("[RPC Client] openProject request:", params);
+    debug("[RPC Client] openProject request:", params);
     const res = await electroview.rpc!.request.openProject(params);
-    console.log("[RPC Client] openProject response:", res);
+    debug("[RPC Client] openProject response:", res);
     return res;
   },
 
@@ -53,9 +54,9 @@ export const ProvarAPI = {
    * selectProject prompts the native folder selector to choose a project directory.
    */
   async selectProject(): Promise<{ success: boolean; path?: string }> {
-    console.log("[RPC Client] selectProject request");
+    debug("[RPC Client] selectProject request");
     const res = await electroview.rpc!.request.selectProject({});
-    console.log("[RPC Client] selectProject response:", res);
+    debug("[RPC Client] selectProject response:", res);
     return res;
   },
 
@@ -63,9 +64,9 @@ export const ProvarAPI = {
    * getProject returns the current active project directory.
    */
   async getProject(): Promise<{ path: string }> {
-    console.log("[RPC Client] getProject request");
+    debug("[RPC Client] getProject request");
     const res = await electroview.rpc!.request.getProject({});
-    console.log("[RPC Client] getProject response:", res);
+    debug("[RPC Client] getProject response:", res);
     return res;
   },
 
@@ -73,9 +74,9 @@ export const ProvarAPI = {
    * getConfig retrieves the loaded provar configuration.
    */
   async getConfig(): Promise<{ config: ProvarConfig | null }> {
-    console.log("[RPC Client] getConfig request");
+    debug("[RPC Client] getConfig request");
     const res = await electroview.rpc!.request.getConfig({});
-    console.log("[RPC Client] getConfig response:", res);
+    debugRedacted("[RPC Client] getConfig response:", res);
     return res;
   },
 
@@ -83,9 +84,9 @@ export const ProvarAPI = {
    * saveConfig updates the loaded provar configuration.
    */
   async saveConfig(config: ProvarConfig): Promise<{ success: boolean }> {
-    console.log("[RPC Client] saveConfig request:", config);
+    debugRedacted("[RPC Client] saveConfig request:", { config });
     const res = await electroview.rpc!.request.saveConfig({ config });
-    console.log("[RPC Client] saveConfig response:", res);
+    debug("[RPC Client] saveConfig response:", res);
     return res;
   },
 
@@ -93,9 +94,9 @@ export const ProvarAPI = {
    * listFiles scans the project to list all test yml files.
    */
   async listFiles(): Promise<{ tests: string[] }> {
-    console.log("[RPC Client] listFiles request");
+    debug("[RPC Client] listFiles request");
     const res = await electroview.rpc!.request.listFiles({});
-    console.log("[RPC Client] listFiles response:", res);
+    debug("[RPC Client] listFiles response:", res);
     return res;
   },
 
@@ -103,9 +104,9 @@ export const ProvarAPI = {
    * readFile loads and parses the test file graph.
    */
   async readFile(path: string): Promise<{ content: TestFile }> {
-    console.log("[RPC Client] readFile request:", path);
+    debug("[RPC Client] readFile request:", path);
     const res = await electroview.rpc!.request.readFile({ path });
-    console.log("[RPC Client] readFile response success:", !!res.content);
+    debug("[RPC Client] readFile response success:", !!res.content);
     return res;
   },
 
@@ -116,9 +117,9 @@ export const ProvarAPI = {
     path: string,
     content: TestFile,
   ): Promise<{ success: boolean }> {
-    console.log("[RPC Client] writeFile request:", path);
+    debug("[RPC Client] writeFile request:", path);
     const res = await electroview.rpc!.request.writeFile({ path, content });
-    console.log("[RPC Client] writeFile response:", res);
+    debug("[RPC Client] writeFile response:", res);
     return res;
   },
 
@@ -126,9 +127,9 @@ export const ProvarAPI = {
    * createFile creates a new test graph definition.
    */
   async createFile(path: string, name: string): Promise<{ success: boolean }> {
-    console.log("[RPC Client] createFile request:", path, name);
+    debug("[RPC Client] createFile request:", path, name);
     const res = await electroview.rpc!.request.createFile({ path, name });
-    console.log("[RPC Client] createFile response:", res);
+    debug("[RPC Client] createFile response:", res);
     return res;
   },
 
@@ -136,9 +137,9 @@ export const ProvarAPI = {
    * createDirectory creates a new directory in the project.
    */
   async createDirectory(path: string): Promise<{ success: boolean }> {
-    console.log("[RPC Client] createDirectory request:", path);
+    debug("[RPC Client] createDirectory request:", path);
     const res = await electroview.rpc!.request.createDirectory({ path });
-    console.log("[RPC Client] createDirectory response:", res);
+    debug("[RPC Client] createDirectory response:", res);
     return res;
   },
 
@@ -146,9 +147,9 @@ export const ProvarAPI = {
    * deletePath removes a file or directory from the project.
    */
   async deletePath(path: string): Promise<{ success: boolean }> {
-    console.log("[RPC Client] deletePath request:", path);
+    debug("[RPC Client] deletePath request:", path);
     const res = await electroview.rpc!.request.deletePath({ path });
-    console.log("[RPC Client] deletePath response:", res);
+    debug("[RPC Client] deletePath response:", res);
     return res;
   },
 
@@ -160,11 +161,11 @@ export const ProvarAPI = {
     history?: { role: "user" | "assistant"; content: string }[],
     path?: string,
   ) {
-    console.log(
+    debug(
       "[RPC Client] assistEditor Stream request:",
-      prompt,
-      history,
       path,
+      "history length:",
+      history?.length,
     );
     const { rx, tx } = SteamBun.create(assistEditorStream);
     const writer = tx.getWriter();
@@ -177,7 +178,7 @@ export const ProvarAPI = {
    * compileTest triggers task compilation on the given test file and returns a stream.
    */
   compileTest(path: string) {
-    console.log("[RPC Client] compileTest Stream request:", path);
+    debug("[RPC Client] compileTest Stream request:", path);
     const { rx, tx } = SteamBun.create(compileTestStream);
     const writer = tx.getWriter();
     writer.write({ path });
@@ -194,11 +195,14 @@ export const ProvarAPI = {
     upToTaskId?: string,
     headless?: boolean,
   ) {
-    console.log(
+    debug(
       "[RPC Client] runTestPath Stream request:",
       path,
+      "pathIndex:",
       pathIndex,
+      "upToTaskId:",
       upToTaskId,
+      "headless:",
       headless,
     );
     const { rx, tx } = SteamBun.create(runTestPathStream);
@@ -216,10 +220,12 @@ export const ProvarAPI = {
     pathIndex: number,
     taskId: string,
   ): Promise<{ success: boolean }> {
-    console.log(
+    debug(
       "[RPC Client] acceptVisualState request:",
       testPath,
+      "pathIndex:",
       pathIndex,
+      "taskId:",
       taskId,
     );
     const res = await electroview.rpc!.request.acceptVisualState({
@@ -227,7 +233,7 @@ export const ProvarAPI = {
       pathIndex,
       taskId,
     });
-    console.log("[RPC Client] acceptVisualState response:", res);
+    debug("[RPC Client] acceptVisualState response:", res);
     return res;
   },
 
@@ -239,10 +245,12 @@ export const ProvarAPI = {
     pathIndex: number,
     taskId: string,
   ): Promise<{ baseline?: string; current?: string }> {
-    console.log(
+    debug(
       "[RPC Client] getScreenshots request:",
       testPath,
+      "pathIndex:",
       pathIndex,
+      "taskId:",
       taskId,
     );
     const res = await electroview.rpc!.request.getScreenshots({
@@ -250,10 +258,7 @@ export const ProvarAPI = {
       pathIndex,
       taskId,
     });
-    console.log(
-      "[RPC Client] getScreenshots response (keys):",
-      Object.keys(res),
-    );
+    debug("[RPC Client] getScreenshots response (keys):", Object.keys(res));
     return res;
   },
 
@@ -268,12 +273,17 @@ export const ProvarAPI = {
     testPath: string,
     taskId: string,
   ): Promise<{ code: string | null; upToDate: boolean }> {
-    console.log("[RPC Client] getNodeGeneratedCode request:", testPath, taskId);
+    debug(
+      "[RPC Client] getNodeGeneratedCode request:",
+      testPath,
+      "taskId:",
+      taskId,
+    );
     const res = await electroview.rpc!.request.getNodeGeneratedCode({
       testPath,
       taskId,
     });
-    console.log(
+    debug(
       "[RPC Client] getNodeGeneratedCode response upToDate:",
       res.upToDate,
       "hasCode:",
@@ -292,9 +302,9 @@ export const ProvarAPI = {
     path?: string;
     error?: string;
   }> {
-    console.log("[RPC Client] createSampleProject request");
+    debug("[RPC Client] createSampleProject request");
     const res = await electroview.rpc!.request.createSampleProject({});
-    console.log("[RPC Client] createSampleProject response:", res);
+    debug("[RPC Client] createSampleProject response:", res);
     return res;
   },
 
@@ -304,9 +314,9 @@ export const ProvarAPI = {
    * handlers can't swallow the navigation intent.
    */
   async openExternal(url: string): Promise<{ success: boolean }> {
-    console.log("[RPC Client] openExternal request:", url);
+    debug("[RPC Client] openExternal request:", url);
     const res = await electroview.rpc!.request.openExternal({ url });
-    console.log("[RPC Client] openExternal response:", res);
+    debug("[RPC Client] openExternal response:", res);
     return res;
   },
 };

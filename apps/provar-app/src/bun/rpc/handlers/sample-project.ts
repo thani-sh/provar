@@ -7,6 +7,7 @@ import { setProjectDir } from "../../utils";
 import { loadSettings, saveSettings } from "../../lib/settings";
 import { getMainWindow } from "../../window/window-registry";
 import { provarRPC } from "../../rpc";
+import { debug } from "../../../shared/debug";
 
 /**
  * createSampleProject prompts the user for a destination folder, clones the upstream
@@ -15,7 +16,7 @@ import { provarRPC } from "../../rpc";
  * a self-contained microblogging app with a 5-step login test already wired up against it.
  */
 export const createSampleProject = async () => {
-  console.log("[RPC Server] createSampleProject request");
+  debug("[RPC Server] createSampleProject request");
 
   const chosenPaths = await Utils.openFileDialog({
     canChooseFiles: false,

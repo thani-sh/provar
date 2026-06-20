@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { debug } from "../../../../shared/debug";
+
   interface Props {
     show: boolean;
     title: string;
@@ -11,13 +13,13 @@
   let value = $state("");
 
   function handleConfirm() {
-    console.log("InputModal: Confirm clicked with value:", value);
+    debug("InputModal: Confirm clicked with value:", value);
     onConfirm(value);
     value = "";
   }
 
   function handleCancel() {
-    console.log("InputModal: Cancel clicked");
+    debug("InputModal: Cancel clicked");
     onCancel();
     value = "";
   }

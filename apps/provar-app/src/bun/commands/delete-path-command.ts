@@ -2,6 +2,7 @@ import { rm } from "fs/promises";
 import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
+import { debug } from "../../shared/debug";
 
 export type DeletePathInput = {
   path: string;
@@ -27,10 +28,10 @@ export class DeletePathCommand extends Command<
 
   async execute(input: DeletePathInput): Promise<DeletePathOutput> {
     try {
-      console.log(`[BUN] Deleting path: ${input.path}`);
+      debug(`[BUN] Deleting path: ${input.path}`);
       const fullPath = getAbsPath(this.context.projectDir, input.path);
       await rm(fullPath, { recursive: true, force: true });
-      console.log(`[BUN] Path deleted successfully: ${fullPath}`);
+      debug(`[BUN] Path deleted successfully: ${fullPath}`);
       return { success: true };
     } catch (error) {
       console.error(`[BUN] Failed to delete path ${input.path}:`, error);

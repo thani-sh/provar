@@ -11,6 +11,7 @@ import type { TestFile, TestNode } from "@libs/domain/zod";
 import type { TaskState } from "../canvas/constants";
 import { projectStore } from "./project-store.svelte";
 import { uiStore } from "./ui-store.svelte";
+import { debug } from "../../../shared/debug";
 
 /**
  * EditorStore manages the active file, code generation status, and test execution runner.
@@ -539,7 +540,7 @@ class EditorStore {
    * deletePath deletes a directory or test file path from disk.
    */
   async deletePath(path: string): Promise<void> {
-    console.log("[EditorStore] deletePath called with:", path);
+    debug("[EditorStore] deletePath called with:", path);
     const isFolder = !path.endsWith(".yml");
     const typeLabel = path.endsWith(".test.yml") ? "test" : "folder";
 
@@ -547,9 +548,9 @@ class EditorStore {
       `Delete ${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)}`,
       `Are you sure you want to delete this ${typeLabel}? This action cannot be undone.`,
       async () => {
-        console.log("[EditorStore] calling ProvarAPI.deletePath:", path);
+        debug("[EditorStore] calling ProvarAPI.deletePath:", path);
         const res = await ProvarAPI.deletePath(path);
-        console.log("[EditorStore] ProvarAPI.deletePath result:", res);
+        debug("[EditorStore] ProvarAPI.deletePath result:", res);
         if (res.success) {
           if (
             this.selectedFilePath === path ||

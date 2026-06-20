@@ -4,6 +4,7 @@ import { setProjectDir, PROJECT_DIR } from "../../utils";
 import { loadSettings, saveSettings } from "../../lib/settings";
 import { getMainWindow } from "../../window/window-registry";
 import { provarRPC } from "../../rpc";
+import { debug } from "../../../shared/debug";
 
 let updateMenuCallback: (() => void) | null = null;
 export function registerUpdateMenuCallback(cb: () => void) {
@@ -54,7 +55,7 @@ export async function openProject(params: { path: string }) {
 }
 
 export const selectProject = async () => {
-  console.log("[RPC Server] selectProject request");
+  debug("[RPC Server] selectProject request");
   const chosenPaths = await Utils.openFileDialog({
     canChooseFiles: false,
     canChooseDirectory: true,
@@ -70,8 +71,8 @@ export const selectProject = async () => {
 };
 
 export const getProject = async () => {
-  console.log("[RPC Server] getProject request");
+  debug("[RPC Server] getProject request");
   const res = { path: PROJECT_DIR };
-  console.log("[RPC Server] getProject response:", res);
+  debug("[RPC Server] getProject response:", res);
   return res;
 };

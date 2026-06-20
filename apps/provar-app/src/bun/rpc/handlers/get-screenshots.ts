@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { loadProject } from "@libs/engine";
 import { getAbsPath, PROJECT_DIR } from "../../utils";
+import { debug } from "../../../shared/debug";
 
 export const getScreenshots = async (params: {
   testPath: string;
@@ -9,9 +10,10 @@ export const getScreenshots = async (params: {
   taskId: string;
 }) => {
   const absPath = getAbsPath(params.testPath);
-  console.log("[RPC Server] getScreenshots request:", {
-    ...params,
+  debug("[RPC Server] getScreenshots request:", {
     testPath: absPath,
+    pathIndex: params.pathIndex,
+    taskId: params.taskId,
   });
   try {
     const project = await loadProject(absPath);
@@ -76,7 +78,7 @@ export const getScreenshots = async (params: {
       res.current = `data:image/png;base64,${fs.readFileSync(currentFilePath).toString("base64")}`;
     }
 
-    console.log(
+    debug(
       "[RPC Server] getScreenshots response baseline exists:",
       !!res.baseline,
       "current exists:",

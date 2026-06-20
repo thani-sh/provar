@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
 import { generateNodeId } from "../../shared/utils";
+import { debug } from "../../shared/debug";
 
 export type CreateFileInput = {
   path: string;
@@ -32,7 +33,7 @@ export class CreateFileCommand extends Command<
 
   async execute(input: CreateFileInput): Promise<CreateFileOutput> {
     try {
-      console.log(`[BUN] Creating file: ${input.path} (name: ${input.name})`);
+      debug(`[BUN] Creating file: ${input.path} (name: ${input.name})`);
       const startTaskId = generateNodeId();
       const defaultContent = {
         name: input.name,
@@ -49,10 +50,10 @@ export class CreateFileCommand extends Command<
       };
       const yamlContent = yaml.stringify(defaultContent);
       const fullPath = getAbsPath(this.context.projectDir, input.path);
-      console.log(`[BUN] Full path: ${fullPath}`);
+      debug(`[BUN] Full path: ${fullPath}`);
       await mkdir(dirname(fullPath), { recursive: true });
       await writeFile(fullPath, yamlContent, "utf-8");
-      console.log(`[BUN] File created successfully: ${fullPath}`);
+      debug(`[BUN] File created successfully: ${fullPath}`);
       return { success: true };
     } catch (error) {
       console.error(`[BUN] Failed to create file ${input.path}:`, error);

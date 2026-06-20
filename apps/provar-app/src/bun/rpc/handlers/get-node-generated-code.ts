@@ -2,6 +2,7 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import { getNodeGeneratedCode } from "@libs/engine";
 import { getAbsPath } from "../../utils";
+import { debug } from "../../../shared/debug";
 
 /**
  * getNodeGeneratedCode returns the source text of the compiled execute
@@ -15,7 +16,12 @@ export const getNodeGeneratedCodeRpc = async (params: {
   testPath: string;
   taskId: string;
 }): Promise<{ code: string | null; upToDate: boolean }> => {
-  console.log("[RPC Server] getNodeGeneratedCode request:", params);
+  debug(
+    "[RPC Server] getNodeGeneratedCode request:",
+    params.testPath,
+    "taskId:",
+    params.taskId,
+  );
 
   const absPath = getAbsPath(params.testPath);
   const tsPath = absPath.replace(".test.yml", ".test.ts");

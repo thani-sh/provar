@@ -2,6 +2,7 @@ import { mkdir } from "fs/promises";
 import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
+import { debug } from "../../shared/debug";
 
 export type CreateDirectoryInput = {
   path: string;
@@ -26,11 +27,11 @@ export class CreateDirectoryCommand extends Command<
 
   async execute(input: CreateDirectoryInput): Promise<CreateDirectoryOutput> {
     try {
-      console.log(`[BUN] Creating directory: ${input.path}`);
+      debug(`[BUN] Creating directory: ${input.path}`);
       const fullPath = getAbsPath(this.context.projectDir, input.path);
-      console.log(`[BUN] Full path: ${fullPath}`);
+      debug(`[BUN] Full path: ${fullPath}`);
       await mkdir(fullPath, { recursive: true });
-      console.log(`[BUN] Directory created successfully: ${fullPath}`);
+      debug(`[BUN] Directory created successfully: ${fullPath}`);
       return { success: true };
     } catch (error) {
       console.error(`[BUN] Failed to create directory ${input.path}:`, error);

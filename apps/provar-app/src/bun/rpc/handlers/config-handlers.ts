@@ -6,13 +6,15 @@ import {
 } from "../../lib/settings";
 import { createCommands } from "../../commands";
 import { PROJECT_DIR } from "../../utils";
+import { debug, debugRedacted } from "../../../shared/debug";
 
 const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
 
 export const getSettings = async () => {
-  console.log("[RPC Server] getSettings request");
+  debug("[RPC Server] getSettings request");
   const settings = loadSettings();
-  console.log("[RPC Server] getSettings response:", settings);
+  // settings includes `models.providers.*.apiKey` — redact before logging.
+  debugRedacted("[RPC Server] getSettings response:", settings);
   return {
     settings,
     home: Utils.paths.home,
@@ -24,22 +26,26 @@ export const getSettings = async () => {
 };
 
 export const saveSettings = async (params: { settings: any }) => {
-  console.log("[RPC Server] saveSettings request:", params);
+  // The incoming settings payload also carries provider API keys — redact
+  // before logging, even with debug enabled, so the dev console never
+  // prints a real key.
+  debugRedacted("[RPC Server] saveSettings request:", params);
   const settings = saveSettingsLib(params.settings);
-  console.log("[RPC Server] saveSettings response:", settings);
+  debugRedacted("[RPC Server] saveSettings response:", settings);
   return { settings };
 };
 
 export const getConfig = async () => {
-  console.log("[RPC Server] getConfig request");
+  debug("[RPC Server] getConfig request");
   const res = await getCommands().getConfig.execute();
-  console.log("[RPC Server] getConfig response:", res);
+  // provarConfig may carry provider apiKey / password fields — redact.
+  debugRedacted("[RPC Server] getConfig response:", res);
   return res;
 };
 
 export const saveConfig = async (params: { config: any }) => {
-  console.log("[RPC Server] saveConfig request:", params);
+  debugRedacted("[RPC Server] saveConfig request:", params);
   const res = await getCommands().saveConfig.execute(params);
-  console.log("[RPC Server] saveConfig response:", res);
+  debug("[RPC Server] saveConfig response:", res);
   return res;
 };

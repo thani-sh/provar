@@ -9,6 +9,7 @@
   } from "lucide-svelte";
   import { editorStore } from "../../stores/editor-store.svelte";
   import { uiStore } from "../../stores/ui-store.svelte";
+  import { debug } from "../../../../shared/debug";
 
   let {
     files = [],
@@ -268,7 +269,7 @@
           <button
             class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
             onclick={() => {
-              console.log(
+              debug(
                 "[TestExplorer] Context menu onDelete folder clicked for path:",
                 contextMenu!.path,
               );
@@ -284,7 +285,7 @@
       <button
         class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"
         onclick={() => {
-          console.log(
+          debug(
             "[TestExplorer] Context menu onDelete test clicked for path:",
             contextMenu!.path,
           );

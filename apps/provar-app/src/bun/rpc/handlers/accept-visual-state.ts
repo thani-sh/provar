@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { loadProject } from "@libs/engine";
 import { getAbsPath, PROJECT_DIR } from "../../utils";
+import { debug } from "../../../shared/debug";
 
 export const acceptVisualState = async (params: {
   testPath: string;
@@ -9,9 +10,10 @@ export const acceptVisualState = async (params: {
   taskId: string;
 }) => {
   const absPath = getAbsPath(params.testPath);
-  console.log("[RPC Server] acceptVisualState request:", {
-    ...params,
+  debug("[RPC Server] acceptVisualState request:", {
     testPath: absPath,
+    pathIndex: params.pathIndex,
+    taskId: params.taskId,
   });
   try {
     const project = await loadProject(absPath);
@@ -82,7 +84,7 @@ export const acceptVisualState = async (params: {
     fs.mkdirSync(path.dirname(acceptedFilePath), { recursive: true });
     fs.copyFileSync(currentFilePath, acceptedFilePath);
 
-    console.log("[RPC Server] acceptVisualState response success: true");
+    debug("[RPC Server] acceptVisualState response success: true");
     return { success: true };
   } catch (err: any) {
     console.error("[RPC Server] acceptVisualState error:", err);

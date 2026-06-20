@@ -15,6 +15,7 @@ import { getAgentConfig } from "./context";
 import { compileProgress, execute, loadProject } from "@libs/engine";
 import * as path from "path";
 import * as fs from "fs";
+import { debug } from "../../shared/debug";
 
 const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
 
@@ -131,9 +132,7 @@ export function registerStreams() {
             !loadedFile || !loadedFile.code || !loadedFile.code.valid;
 
           if (needCompile) {
-            console.log(
-              `[Auto-Compile] Compiling out of sync test: ${absPath}`,
-            );
+            debug(`[Auto-Compile] Compiling out of sync test: ${absPath}`);
             const compileRes = await compileProgress({
               yamlPath: absPath,
               agentConfig: getAgentConfig(),
