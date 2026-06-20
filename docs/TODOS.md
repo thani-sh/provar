@@ -61,30 +61,6 @@ Add an active-stream field in the webview; on Stop click, call `runner.cancel()`
 
 ---
 
-### T009: enforce the runner event queue bound (maxEventQueueSize)
-> importance: high
-> affected areas: libs/engine, apps/provar-app
-
-#### Problem
-`libs/engine/src/types.ts:79-86` declares `maxEventQueueSize?: number` with a default of 256. `test-run.ts:47` calls `createAsyncIterable<RunnerEvent>()` with NO options. The underlying `@thani-sh/iterables` queue is unbounded. During a long visual-regression run, `screenshotBase64` bytes accumulate in the bun heap, and the memory ceiling is "until OOM". Verified by audit (App-5, H-3, Lib-6).
-
-#### Solution
-Pass the bound through: `createAsyncIterable({ maxEventQueueSize: 256 })` (or pass through the `ExecuteOptions` value). If the option name is different, update the JSDoc to match. Add a test for queue overflow behavior.
-
----
-
-### T010: fix the file-switch screenshot race (loadScreenshotsForNode)
-> importance: high
-> affected areas: apps/provar-app
-
-#### Problem
-`loadFile` (`editor-store.svelte.ts:363-376`) fires `loadScreenshotsForNode` for each node in a for-await that does NOT await. If the user opens a second file while the first file's screenshot loads are in flight, the in-flight responses resolve against the new (empty) `screenshots` object and attach the previous file's screenshots to the new file's node IDs. Node IDs are 5-char random strings, so collisions are unlikely, but the race is real. Verified by audit (M-5, H-13).
-
-#### Solution
-Track an in-flight token; only apply the response if the token still matches the current file. Abort controllers are cleaner. Also dedupe concurrent `loadScreenshotsForNode` calls per node (M-12) — a 50-task run triggers 3+ calls per node (start/finish/visual-compare), each doing a full base64 IPC.
-
----
-
 ### T011: consolidate the three Project.variables type definitions into one Zod source
 > importance: high
 > affected areas: libs/config, libs/domain, libs/engine
