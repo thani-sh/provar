@@ -45,13 +45,14 @@ export interface Path {
 }
 
 /**
- * Project represents a loaded Provar project containing project variables and test files.
+ * Project is the loaded runtime project shape.
+ *
+ * The type lives in `./zod` and is derived from `projectSchema` so the type
+ * and the schema cannot drift apart (see T011 in docs/TODOS.md). Re-exported
+ * here so existing `import { Project } from "@libs/domain"` call sites keep
+ * working without the manual interface that previously duplicated the shape.
  */
-export interface Project {
-  path: string;
-  variables: Record<string, string>;
-  files: File[];
-}
+export type { Project } from "./zod";
 
 /**
  * ExecutableTask represents a task with an executable function bound to it.

@@ -11,7 +11,10 @@ import type {
   ExecutableTask,
   ExecutableFile,
 } from "@libs/domain";
-import { schemaForLoadedFileMeta } from "@libs/domain/zod";
+import {
+  provarVariablesSchema,
+  schemaForLoadedFileMeta,
+} from "@libs/domain/zod";
 import type { TestAPI } from "./types";
 
 /**
@@ -42,6 +45,30 @@ function resolveEnvVars(val: unknown): unknown {
     return resolved;
   }
   return val;
+}
+
+/**
+ * coerceToStringVariables is the disk→runtime bridge for project variables.
+ *
+ * On disk, variables may be any YAML primitive (string / number / boolean —
+ * see `provarVariablesSchema`). At runtime, `Project.variables` is contractually
+ * `Record<string, string>` because:
+ *   1. The runtime shape is consumed by `api.var.KEY_NAME` inside compiled
+ *      tests where string semantics are the most predictable (a numeric
+ *      `retries: 3` would surprise a downstream `if (api.var.retries)` check).
+ *   2. The schema-derived `Project` type locks the runtime shape to
+ *      `Record<string, string>`, so any drift would surface as a TS error.
+ *
+ * Non-string primitives are coerced via `String(value)`. `boolean` values
+ * become the strings `"true"` / `"false"`, matching JS's `String(true)`.
+ */
+export function coerceToStringVariables(raw: unknown): Record<string, string> {
+  const parsed = provarVariablesSchema.parse(raw ?? {});
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(parsed)) {
+    out[k] = String(v);
+  }
+  return out;
 }
 
 /**
@@ -237,7 +264,7 @@ export async function loadProject(
     const content = fs.readFileSync(configPath, "utf-8");
     const doc = yaml.parse(content) as Record<string, unknown>;
     const resolved = resolveEnvVars(doc) as Record<string, unknown>;
-    variables = (resolved.variables as Record<string, string>) || {};
+    variables = coerceToStringVariables(resolved.variables);
   }
 
   // Scan tests

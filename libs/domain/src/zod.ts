@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Task, Graph, File, Path, Project } from "./index";
+import type { Task, Graph, File, Path } from "./index";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -103,10 +103,34 @@ export const schemaForFile = z.object({
 export type TestFile = z.infer<typeof schemaForFile>;
 
 /**
+ * provarVariablesSchema is the canonical Zod shape for project variables as
+ * they appear on disk in `.provar/config.yml`.
+ *
+ * The runtime representation (`Project.variables`) is always coerced to
+ * `Record<string, string>` at the engine boundary (see
+ * `coerceToStringVariables` in `@libs/engine/loader`). This schema is the
+ * disk-side source of truth: YAML may carry primitives (strings, numbers,
+ * booleans) but not arrays or nested objects. If a project later needs
+ * structured values, the schema can be widened — do not loosen back to
+ * `z.any()`, which is the original "compiler collapses the union to the
+ * loosest type" root cause that this consolidation (T011) is fixing.
+ */
+export const provarVariablesSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.number(), z.boolean()]),
+);
+
+/**
+ * ProvarConfigVariables is the inferred type of `provarVariablesSchema`.
+ * Use this for the disk-shape variables carried on `ProvarConfig`.
+ */
+export type ProvarConfigVariables = z.infer<typeof provarVariablesSchema>;
+
+/**
  * configSchema validates the global .provar/config.yml configuration on disk.
  */
 export const configSchema = z.object({
-  variables: z.record(z.string(), z.any()).optional(),
+  variables: provarVariablesSchema.optional(),
 });
 
 /**
@@ -183,12 +207,21 @@ export const schemaForPath: z.ZodType<Path, any, any> = z.lazy(() =>
 );
 
 /**
- * schemaForLoadedProject is the Zod schema validating runtime loaded Project objects.
+ * projectSchema validates a runtime loaded Project object.
+ *
+ * `Project` is the only canonical representation — the `Project` type alias
+ * is derived from this schema (see `./index`). The variables are string-coerced
+ * by the engine boundary (`coerceToStringVariables`), so the runtime contract
+ * here is `Record<string, string>`, not the disk-side primitive union.
  */
-export const schemaForLoadedProject: z.ZodType<Project, any, any> = z.lazy(() =>
-  z.object({
-    path: z.string(),
-    variables: z.record(z.string(), z.string()),
-    files: z.array(schemaForLoadedFile),
-  }),
-);
+export const projectSchema = z.object({
+  path: z.string(),
+  variables: z.record(z.string(), z.string()),
+  files: z.array(schemaForLoadedFile),
+});
+
+/**
+ * Project is the loaded runtime project shape. Derived from `projectSchema`
+ * so the type and the schema cannot drift apart (T011 consolidation).
+ */
+export type Project = z.infer<typeof projectSchema>;

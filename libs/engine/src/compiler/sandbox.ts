@@ -65,8 +65,7 @@ export async function runGroundingSandbox(
     let project: any = null;
     try {
       project = await loadProject(targetFilePath);
-      variables =
-        (project.variables as unknown as Record<string, unknown>) || {};
+      variables = project.variables || {};
     } catch (e) {
       // Ignore
     }

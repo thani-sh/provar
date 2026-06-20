@@ -4,6 +4,7 @@ import {
   PROVAR_DIR,
   TESTS_DIR,
   configSchema,
+  provarVariablesSchema,
   schemaForFile,
 } from "../zod";
 
@@ -27,16 +28,42 @@ describe("configSchema", () => {
     expect(parsed).toEqual({});
   });
 
-  test("accepts arbitrary variable shapes (the schema is intentionally loose)", () => {
-    // configSchema uses z.any() for variable values on purpose — variables
-    // flow through the runtime and YAML may supply any primitive.
+  test("accepts the three YAML primitives (string / number / boolean)", () => {
+    // T011 consolidation: variables are now a typed union — `z.any()` was
+    // the original looseness that made the union collapse at the boundary.
     const parsed = configSchema.parse({
-      variables: { baseUrl: "https://x.test", retries: 3, flags: ["a", "b"] },
+      variables: { baseUrl: "https://x.test", retries: 3, enabled: true },
     });
     expect(parsed.variables).toEqual({
       baseUrl: "https://x.test",
       retries: 3,
-      flags: ["a", "b"],
+      enabled: true,
+    });
+  });
+
+  test("rejects arrays — arrays are out of the typed contract", () => {
+    // If structured values are needed later, widen provarVariablesSchema
+    // explicitly rather than reverting to z.any().
+    const r = configSchema.safeParse({
+      variables: { flags: ["a", "b"] },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  test("rejects nested objects — same constraint as arrays", () => {
+    const r = configSchema.safeParse({
+      variables: { db: { host: "x" } },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
+describe("provarVariablesSchema (canonical variables source of truth)", () => {
+  test("is independently importable so consumers can reuse it", () => {
+    expect(provarVariablesSchema.parse({ a: "x", b: 1, c: false })).toEqual({
+      a: "x",
+      b: 1,
+      c: false,
     });
   });
 });

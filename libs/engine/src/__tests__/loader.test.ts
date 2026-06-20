@@ -2,7 +2,11 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { buildGraphPaths, parseTestFile } from "../loader";
+import {
+  buildGraphPaths,
+  coerceToStringVariables,
+  parseTestFile,
+} from "../loader";
 import type { Task } from "@libs/domain";
 
 const task = (id: string, next: string[] = []): Task => ({
@@ -268,5 +272,41 @@ graph:
     expect(() =>
       parseTestFile(fs.readFileSync(filePath, "utf-8"), filePath),
     ).toThrow(/Invalid test graph format/);
+  });
+});
+
+describe("coerceToStringVariables (T011 disk→runtime boundary)", () => {
+  test("returns an empty record for null / undefined / non-object input", () => {
+    expect(coerceToStringVariables(undefined)).toEqual({});
+    expect(coerceToStringVariables(null)).toEqual({});
+    expect(coerceToStringVariables({})).toEqual({});
+  });
+
+  test("passes strings through unchanged", () => {
+    expect(
+      coerceToStringVariables({ baseUrl: "https://x.test", name: "demo" }),
+    ).toEqual({ baseUrl: "https://x.test", name: "demo" });
+  });
+
+  test("coerces numbers via String(value)", () => {
+    expect(coerceToStringVariables({ retries: 3, timeoutMs: 0 })).toEqual({
+      retries: "3",
+      timeoutMs: "0",
+    });
+  });
+
+  test("coerces booleans to 'true' / 'false' (String(true) / String(false))", () => {
+    expect(coerceToStringVariables({ enabled: true, debug: false })).toEqual({
+      enabled: "true",
+      debug: "false",
+    });
+  });
+
+  test("rejects arrays — the typed contract excludes them (T011)", () => {
+    expect(() => coerceToStringVariables({ flags: ["a", "b"] })).toThrow();
+  });
+
+  test("rejects nested objects — same contract", () => {
+    expect(() => coerceToStringVariables({ db: { host: "x" } })).toThrow();
   });
 });
