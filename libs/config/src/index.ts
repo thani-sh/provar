@@ -16,4 +16,5 @@ export {
   saveSettings,
   ensureSettings,
   settingsExists,
+  SettingsLoadError,
 } from "./storage";

@@ -1,11 +1,23 @@
 import { homedir } from "os";
 import { join } from "path";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
+import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "fs";
 import { settingsSchema, type Settings } from "./schema";
 
 // Settings are stored at ~/.provar/settings.json
 const SETTINGS_DIR = join(homedir(), ".provar");
 const SETTINGS_PATH = join(SETTINGS_DIR, "settings.json");
+
+export class SettingsLoadError extends Error {
+  readonly cause: unknown;
+  readonly backupPath?: string;
+
+  constructor(message: string, cause: unknown, backupPath?: string) {
+    super(message);
+    this.name = "SettingsLoadError";
+    this.cause = cause;
+    this.backupPath = backupPath;
+  }
+}
 
 /**
  * isPlainObject reports whether a value is a plain JSON-serialisable object
@@ -59,15 +71,44 @@ function buildStorage(dir: string, filePath: string) {
   }
 
   function loadSettings(): Settings {
-    try {
-      if (!existsSync(filePath)) {
-        return settingsSchema.parse({});
-      }
-      const raw = readFileSync(filePath, "utf-8");
-      return settingsSchema.parse(JSON.parse(raw));
-    } catch (error) {
-      console.error("[settings] Failed to load settings:", error);
+    if (!existsSync(filePath)) {
       return settingsSchema.parse({});
+    }
+
+    let raw: string;
+    try {
+      raw = readFileSync(filePath, "utf-8");
+    } catch (readError) {
+      throw new SettingsLoadError(
+        `Failed to read settings file: ${(readError as Error).message}`,
+        readError
+      );
+    }
+
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(raw);
+    } catch (parseError) {
+      const backupPath = `${filePath}.bak.${new Date().toISOString()}`;
+      try {
+        renameSync(filePath, backupPath);
+      } catch (renameError) {
+        console.error("[settings] Failed to rename corrupt settings file:", renameError);
+      }
+      throw new SettingsLoadError(
+        `Failed to parse settings JSON: ${(parseError as Error).message}`,
+        parseError,
+        backupPath
+      );
+    }
+
+    try {
+      return settingsSchema.parse(parsedJson);
+    } catch (validationError) {
+      throw new SettingsLoadError(
+        `Failed to validate settings: ${(validationError as Error).message}`,
+        validationError
+      );
     }
   }
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { __test__ } from "../storage";
+import { __test__, SettingsLoadError } from "../storage";
 import {
   modelSettingsSchema,
   settingsSchema,
@@ -204,11 +204,41 @@ describe("buildStorage round-trip (BUG-5 + BUG-6)", () => {
     expect(loaded.models.defaultProvider).toBe("google-generative-ai");
   });
 
-  test("loadSettings swallows JSON parse errors and returns defaults", () => {
-    fs.writeFileSync(filePath, "{ not valid json");
+  test("loadSettings throws SettingsLoadError and backs up corrupt JSON on parse failure", () => {
+    const corruptContent = "{ not valid json";
+    fs.writeFileSync(filePath, corruptContent);
     const { loadSettings } = buildStorage(tmpDir, filePath);
-    const loaded = loadSettings();
-    expect(loaded.recentProjects).toEqual([]);
+    
+    let error: any;
+    try {
+      loadSettings();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(SettingsLoadError);
+    expect(error.backupPath).toBeDefined();
+    expect(fs.existsSync(error.backupPath)).toBe(true);
+    expect(fs.readFileSync(error.backupPath, "utf-8")).toBe(corruptContent);
+    expect(fs.existsSync(filePath)).toBe(false);
+  });
+
+  test("loadSettings throws SettingsLoadError on validation failure but does not back up", () => {
+    const invalidContent = JSON.stringify({ recentProjects: 42 });
+    fs.writeFileSync(filePath, invalidContent);
+    const { loadSettings } = buildStorage(tmpDir, filePath);
+
+    let error: any;
+    try {
+      loadSettings();
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).toBeInstanceOf(SettingsLoadError);
+    expect(error.backupPath).toBeUndefined();
+    expect(fs.existsSync(filePath)).toBe(true);
+    expect(fs.readFileSync(filePath, "utf-8")).toBe(invalidContent);
   });
 
   test("saveSettings seeds full defaults when file is empty/missing", () => {

@@ -1,18 +1,5 @@
 # TODOS
 
----
-
-### T003: prevent silent data loss in loadSettings on corrupt settings.json
-> importance: critical
-> affected areas: libs/config
-
-#### Problem
-`libs/config/src/storage.ts:52-63` returns the default `Settings` object silently when `~/.provar/settings.json` is malformed. The user's `recentProjects`, custom shortcuts, and any other settings are gone with no signal, and the next save overwrites the original file with defaults. Verified by the audit (Lib-4, C-4).
-
-#### Solution
-Split `loadSettings` into two paths: a "no file" path that returns defaults, and every other error (parse / validation) that re-throws. On parse failure, rename the corrupt file to `~/.provar/settings.json.bak.<isoTimestamp>` before re-throwing. Export a `SettingsLoadError` carrying `{ cause, backupPath }` so the caller can surface a UI message. Update `ensureSettings` to only call the "no file" path. Add a unit test that writes a truncated `settings.json` and asserts the backup file exists. (See `refactor-libs.md` Phase 1.)
-
----
 
 ### T004: fix the per-keystroke writeFile + refreshFiles race in the node side panel
 > importance: critical
@@ -955,28 +942,6 @@ Extract a private `loadFromDisk()` returning the full response. Have
 `loadIfNeeded` call it, check `settingsExists`, and gate via
 `hasCheckedSetup`. Have `reload()` call it without the guard.
 
----
-
-### T075: split `loadSettings` to surface corrupt-file errors
-> importance: high
-> affected areas: libs/config
-
-#### Problem
-`libs/config/src/storage.ts:61-72` has a single `try/catch` that catches
-**all** errors and returns defaults. This is the silent data-loss bug
-T003 documents: a truncated settings file vanishes without a trace and
-the next `saveSettings` overwrites the original.
-
-#### Solution
-Split the function into `tryParseFile()` and `loadSettings()`. Only
-return defaults in the `ENOENT` (no file) path. On parse or validation
-failure, rename the corrupt file to
-`~/.provar/settings.json.bak.<isoTimestamp>` and re-throw. Export a
-`SettingsLoadError` carrying `{ cause, backupPath }` so callers can
-surface a UI message. Add a unit test that writes a truncated
-`settings.json` and asserts the backup file exists. (See T003.)
-
----
 
 ### T076: deduplicate the `modelSettingsSchema` defaults
 > importance: low
