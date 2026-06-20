@@ -21,7 +21,14 @@ export const writeFile = async (params: { path: string; content: any }) => {
   console.log("[RPC Server] writeFile request:", params);
   const res = await getCommands().writeFile.execute(params);
   console.log("[RPC Server] writeFile response:", res);
-  triggerProjectChanged();
+  // No `triggerProjectChanged()` here: the fs.watch in `utils.ts` already
+  // fires on every disk change (with a 100 ms debounce) and triggers the
+  // same projectChanged → refreshFiles chain. Calling it from writeFile too
+  // used to fire a duplicate refresh for every keystroke — the panel was
+  // issuing one writeFile per character, so the editor-store saw an extra
+  // refreshFiles on top of the fs.watch one, every time. Per-keystroke
+  // refreshFiles was responsible for the editor lag and the per-keystroke
+  // console volume (T007). See docs/TODOS.md T004.
   return res;
 };
 

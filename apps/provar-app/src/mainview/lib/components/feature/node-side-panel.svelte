@@ -61,15 +61,73 @@
     }
   }
 
+  // Per-keystroke writes were routed straight through `onUpdate` →
+  // `editorStore.updateNode` → `saveFile` IPC → YAML.stringify → disk
+  // write → `triggerProjectChanged` → `refreshFiles` for every character.
+  // The fs.watch debounce was bypassed by the direct `triggerProjectChanged`
+  // call, so a second refresh fired ~150 ms after the first. With the panel
+  // debounce + the matching removal of `triggerProjectChanged` from the
+  // server-side `writeFile` handler, a burst of keystrokes collapses into a
+  // single writeFile followed by a single fs.watch-triggered refreshFiles.
+  // See docs/TODOS.md T004.
+  const WRITE_DEBOUNCE_MS = 250;
+  let pendingTitle: { value: string; nodeId: string } | null = null;
+  let pendingInfo: { value: string; nodeId: string } | null = null;
+  let titleTimer: ReturnType<typeof setTimeout> | null = null;
+  let infoTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function commitTitle(targetNodeId: string) {
+    titleTimer = null;
+    if (pendingTitle === null || pendingTitle.nodeId !== targetNodeId) return;
+    const next = pendingTitle.value;
+    pendingTitle = null;
+    onUpdate(targetNodeId, { title: next });
+  }
+
+  function commitInfo(targetNodeId: string) {
+    infoTimer = null;
+    if (pendingInfo === null || pendingInfo.nodeId !== targetNodeId) return;
+    const next = pendingInfo.value;
+    pendingInfo = null;
+    onUpdate(targetNodeId, { info: next });
+  }
+
   function handleTitleChange(e: Event) {
-    const title = (e.target as HTMLInputElement).value;
-    onUpdate(nodeId, { title });
+    pendingTitle = { value: (e.target as HTMLInputElement).value, nodeId };
+    if (titleTimer !== null) clearTimeout(titleTimer);
+    titleTimer = setTimeout(() => commitTitle(nodeId), WRITE_DEBOUNCE_MS);
   }
 
   function handleInfoChange(e: Event) {
-    const info = (e.target as HTMLTextAreaElement).value;
-    onUpdate(nodeId, { info });
+    pendingInfo = { value: (e.target as HTMLTextAreaElement).value, nodeId };
+    if (infoTimer !== null) clearTimeout(infoTimer);
+    infoTimer = setTimeout(() => commitInfo(nodeId), WRITE_DEBOUNCE_MS);
   }
+
+  function flushTitle() {
+    if (titleTimer !== null) clearTimeout(titleTimer);
+    commitTitle(nodeId);
+  }
+
+  function flushInfo() {
+    if (infoTimer !== null) clearTimeout(infoTimer);
+    commitInfo(nodeId);
+  }
+
+  // Flush any pending writes when the user switches to a different node
+  // (or when the panel is unmounted), so the previous node's last
+  // keystrokes aren't lost. The cleanup runs with the captured `id` —
+  // i.e. the nodeId at the time the effect body last ran — so the flush
+  // targets the right node even mid-switch.
+  $effect(() => {
+    const id = nodeId;
+    return () => {
+      if (titleTimer !== null) clearTimeout(titleTimer);
+      if (infoTimer !== null) clearTimeout(infoTimer);
+      commitTitle(id);
+      commitInfo(id);
+    };
+  });
 
   // Visual comparison state
   let screenshots = $derived(editorStore.screenshots[nodeId] || {});
@@ -226,6 +284,7 @@
           type="text"
           value={node.title}
           oninput={handleTitleChange}
+          onblur={flushTitle}
           class="w-full rounded-lg border border-zinc-700/50 bg-[#0d1117] px-3.5 py-2 text-sm text-zinc-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
         />
       </div>
@@ -262,6 +321,7 @@
             id="node-info"
             value={node.info}
             oninput={handleInfoChange}
+            onblur={flushInfo}
             rows="3"
             class="w-full resize-none rounded-lg border border-zinc-700/50 bg-[#0d1117] p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
             placeholder="Add a description..."
