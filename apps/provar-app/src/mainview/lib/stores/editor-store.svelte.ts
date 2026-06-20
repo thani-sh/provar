@@ -21,6 +21,14 @@ class EditorStore {
   selectedNodeId = $state<string | null>(null);
 
   isRunning = $state(false);
+  /**
+   * isRunningAllPaths tracks the full `runAllPaths` loop. It stays true
+   * across the entire sequence of per-path runs so a second click on
+   * "Run all" is a no-op until the loop finishes. The per-path `isRunning`
+   * flag toggles between paths (run-started → run-finished) and cannot
+   * be used as the loop guard on its own.
+   */
+  isRunningAllPaths = $state(false);
   isCompiling = $state(false);
   compilationStates = $state<
     Record<string, "compiling" | "compiled" | "failed" | "idle">
@@ -199,8 +207,9 @@ class EditorStore {
       // successful compile. Errors during the run surface in the canvas as
       // per-node failures, so the user can see exactly which step broke.
       // We deliberately do not `await` this — the run can take a while and
-      // the UI should remain responsive. `runAllPaths` itself is a no-op
-      // when `isRunning` is true, so re-entrancy is safe.
+      // the UI should remain responsive. `runAllPaths` guards re-entrancy
+      // via `isRunningAllPaths`, which stays true for the whole loop, so a
+      // second auto-run triggered by another compile is a no-op.
       if (success && autoRun && this.currentFile) {
         void this.runAllPaths();
       }
@@ -214,7 +223,7 @@ class EditorStore {
 
   /** runAllPaths runs every path in the file sequentially, accumulating results. */
   async runAllPaths(): Promise<void> {
-    if (!this.selectedFilePath || this.isRunning) return;
+    if (!this.selectedFilePath || this.isRunningAllPaths) return;
     if (!this.currentFile?.code?.valid) {
       alert(
         "Cannot run test: compiled code is missing or invalid. Please compile first.",
@@ -222,9 +231,14 @@ class EditorStore {
       return;
     }
     this.taskPathStates = {};
-    const paths = this.allPaths;
-    for (let i = 0; i < paths.length; i++) {
-      await this.runPath(i);
+    this.isRunningAllPaths = true;
+    try {
+      const paths = this.allPaths;
+      for (let i = 0; i < paths.length; i++) {
+        await this.runPath(i);
+      }
+    } finally {
+      this.isRunningAllPaths = false;
     }
   }
 

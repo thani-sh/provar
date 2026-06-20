@@ -76,7 +76,7 @@
         <RefreshCw size={11} class="shrink-0" />
         <span>Recompile</span>
       </button>
-    {:else if editorStore.isRunning}
+    {:else if editorStore.isRunning || editorStore.isRunningAllPaths}
       <div
         class="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 shadow-sm backdrop-blur-sm"
       >
