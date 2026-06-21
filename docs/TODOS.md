@@ -1,102 +1,6 @@
 # TODOS
 
 
-### T004: fix the per-keystroke writeFile + refreshFiles race in the node side panel
-> importance: critical
-> affected areas: apps/provar-app
-
-#### Problem
-`node-side-panel.svelte:189, 204` wires `oninput` (not `onchange`) to `handleTitleChange` / `handleInfoChange`. Every keystroke runs: `updateNode` (structuredClone) → `saveFile` IPC → YAML.stringify → disk write → `triggerProjectChanged` → `refreshFiles` directory scan. The `fs.watch` debounce (100ms) is bypassed by the direct `triggerProjectChanged` call, so a second refresh fires within ~150ms. Compounds with `console.log` volume (H-12) — a 50-node file turns every keystroke into ~10KB of console output. Verified by audit (App-3, C-3).
-
-#### Solution
-Debounce 200-300ms, or write on blur. Drop the per-keystroke `refreshFiles` call — refresh only on file-switch or external change. Move `console.log` calls behind a `DEBUG` env flag and redact API keys. (See `CODE-REVIEW-REPORT.md` suggested fix order step 5 and H-12.)
-
----
-
-### T005: wire the editor to the engine's diamond-graph dedup, not the old enumeratePaths
-> importance: critical
-> affected areas: apps/provar-app, libs/engine
-
-#### Problem
-The recent fix in `libs/engine/src/loader.ts:buildGraphPaths` adds path-signature dedup with an `emittedSignatures` set. But `apps/provar-app/src/mainview/lib/utils/graph.ts:enumeratePaths` is the OLD duplicate-prone implementation, and the editor store + canvas active-path highlight both consume it. For any diamond-shaped test file, the editor shows the wrong "active path" and the "smart run" target is the duplicate path. The fix is functionally dead. A cycle in the graph crashes `$derived.by(() => enumeratePaths(...))` with a stack overflow. Verified by audit (App-2, C-2).
-
-#### Solution
-Delete `enumeratePaths` from `apps/provar-app`; import `buildGraphPaths` from `@libs/engine` directly. Update the editor-store's `$derived.by`, `selectedNodePathIndex`, and `runningPathNodeIds` to consume the engine's path list. Add a unit test for `buildGraphPaths` covering linear, diamond with rejoin, cycle (should return empty/throw safely), and missing-node. (See `refactor-libs.md` Phase 3 and `CODE-REVIEW-REPORT.md` T-1.)
-
----
-
-### T007: gate and redact API keys in console output
-> importance: high
-> affected areas: apps/provar-app
-
-#### Problem
-`apps/provar-app/src/mainview/lib/api/provar.ts:31` logs the full `settings` object on `saveSettings`, which includes `settings.models.providers.openai.apiKey`. 100+ `console.log` calls in the dev console dump full request/response payloads for every API call, including user API keys. Combined with the per-keystroke writeFile race (T004), the volume is also a privacy problem for anyone sharing a screen. The audit promoted this from Low to High (App-15, H-12).
-
-#### Solution
-Gate log statements behind a `DEBUG` env flag. Redact keys from payloads (`{ apiKey: '***' }` or similar). Remove the unconditional `console.log` of the full request/response in `provar.ts:114-118` and `file-handlers.ts:20-26`.
-
----
-
-### T008: wire Runner.pause/resume/cancel to a UI Stop button
-> importance: high
-> affected areas: apps/provar-app, libs/engine
-
-#### Problem
-`Runner` (`libs/engine/src/types.ts:60-68`) declares `pause()`, `resume()`, `cancel()`, `wait()`. `PathRunner` implements all four (`test-run.ts:109-119`). The webview consumer in `bun/rpc/streams.ts:186-253` runs `for await` to completion with no cancel signal. The App toolbar (`App.svelte:295-345`) has no Stop button. A 5-minute visual-regression test cannot be aborted without closing the canvas. Compounds with the missing SIGINT handler in the CLI (T014). Verified by audit (App-6, H-2).
-
-#### Solution
-Add an active-stream field in the webview; on Stop click, call `runner.cancel()`. Add a Stop button to the run toolbar. Make the CLI run/compile commands honor SIGINT/SIGTERM (see T014). Update the engine's `PathRunner` so `start()` failures are surfaced via `wait()` and a `run-finished` event with `status: "failed"` (Lib-22).
-
----
-
-### T011: consolidate the three Project.variables type definitions into one Zod source
-> importance: high
-> affected areas: libs/config, libs/domain, libs/engine
-
-#### Problem
-`Project.variables` has three different types: `z.record(z.string(), z.any())` in `libs/config/src/schema.ts:configSchema`, `z.record(z.string(), z.string())` in `libs/domain/src/zod.ts:schemaForLoadedProject`, and `Record<string, string>` in the manual `Project` interface in `libs/domain/src/types.ts`. The compiler enforces all three at the boundary; the union collapses to the loosest (`any`). Downstream code uses `Record<string, string>` and `Record<string, unknown>` in different places, with `(cfg as any)` casts. The deep root of the producer's Lib-7 symptom. Verified by audit (Lib-7, H-10).
-
-#### Solution
-Pick one source of truth — Zod schema — and derive everything else (`type Project = z.infer<typeof projectSchema>`). Replace `configSchema.variables: z.record(z.string(), z.any())` with `z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional()`. Add a `coerceToStringVariables(v)` helper at the engine boundary. Delete the manual `Project` interface and the four downstream casts. (See `refactor-libs.md` Phase 4.)
-
----
-
-### T012: replace .provar string literals with TESTS_DIR from @libs/domain
-> importance: high
-> affected areas: apps/provar-cli, apps/provar-app, libs/domain, libs/config
-
-#### Problem
-`@libs/domain/zod` exports a `TESTS_DIR` constant for the project-local directory. Apps hand-roll `.provar`-string concatenation in 18+ places. If `.provar` ever changes to `.provar-project`, all 18+ sites have to be updated in lockstep. The producer's Lib-9 flagged the libs side; the audit caught the apps side (Missed-1, H-9). The bigger half of the boundary leak.
-
-#### Solution
-Move `PROVAR_DIR`, `TESTS_DIR`, `CONFIG_FILE` from `libs/domain/src/zod.ts:11-21` to a new `libs/config/src/paths.ts` (or `libs/domain/src/paths.ts`). Update the 18+ app call sites to import the constant. `grep -rn '\.provar' apps/` should return zero hits in path contexts. (See `refactor-libs.md` Phase 3.4 and `refactor-other-apps.md` coordination note.)
-
----
-
-### T013: curate the @libs/engine public surface and document it
-> importance: high
-> affected areas: libs/engine
-
-#### Problem
-`libs/engine/src/index.ts` re-exports ~30 internal names via `export *`. Only 4 are used externally (`loadProject`, `compile`, `execute`, the type set). The over-exposed surface makes the engine a barrel — future refactors can't break internal helpers without breaking "the public API" (Lib-2, H-2 from the libs side). The other 3 libs have a README; `@libs/engine` doesn't (Lib-3).
-
-#### Solution
-Replace the `export *` barrel with a curated list (see `refactor-libs.md` Appendix A for the exact contents). Move `cleanCode`, `compileCodeToFunction`, `CompilerGroundingSession`, `BrowserSession`, `launchBrowserSession`, `buildGraphPaths`, `parseTestFile`, `MUTATING_METHODS`, `PathRunner`, etc. into per-file `internal` namespaces. Add `libs/engine/README.md` describing the `loadProject → readFile → execute` chain, the public types, and a usage example. Add an ADR capturing the decision.
-
----
-
-### T014: handle SIGINT/SIGTERM in provar-cli compile and run
-> importance: high
-> affected areas: apps/provar-cli
-
-#### Problem
-`apps/provar-cli/src/commands/compile/...` and `run/...` can hang 30+ seconds in an LLM call. A user pressing Ctrl-C gets no graceful shutdown — the LLM call continues and any Playwright browsers the compile launched stay open until the process is killed. Orphan browser processes accumulate. Verified by audit (CLI-5, H-8).
-
-#### Solution
-Register a `process.on("SIGINT", ...)` and `process.on("SIGTERM", ...)` that sets a `cancelled` flag, awaits the in-flight command's `finally` block, and exits with 130. Check the flag between tasks and abort early. Standardize exit codes: 0 = success, 1 = runtime error, 2 = usage error, 130 = SIGINT.
-
----
-
 ### T016: drop the (cfg as any).baseUrl cast in provar-cli compile
 > importance: high
 > affected areas: apps/provar-cli, libs/domain
@@ -154,30 +58,6 @@ Same defect class as T010 but separately scoped for clarity: the `loadScreenshot
 
 #### Solution
 Subsumed by T010.
-
----
-
-### T021: harden demo-social auth shape (sandbox-only banners + crypto.randomUUID)
-> importance: high
-> affected areas: apps/demo-social
-
-#### Problem
-`apps/demo-social/src/server/store.ts` uses `passwordHash !== password` (Demo-1, Critical — wrong shape for future contributors to copy). Uses `Math.random().toString(36).substr(2, 9)` for IDs at lines 83, 175 (Demo-2). Session token at lines 108-109 uses two `Math.random()` calls. Even though the demo is a sandbox, the *shape* of the auth code is what future contributors will copy.
-
-#### Solution
-Add a banner comment at the top of `store.ts`: "Sandbox only — passwords are stored as plain text, no hashing. Do NOT copy this module's auth shape into a real product." Switch all `Math.random()` ID generation to `crypto.randomUUID()`. (See `refactor-other-apps.md` Phase 2.)
-
----
-
-### T022: bind demo-social to 127.0.0.1 and add body-size guards
-> importance: high
-> affected areas: apps/demo-social
-
-#### Problem
-`apps/demo-social/index.ts:3-9` binds to `localhost:3000` (should be `127.0.0.1`). No body-size limit on POST routes (Demo-3). Compounded by the in-memory state warning (Demo-5) — the demo runs in dev mode and accepts unbounded payloads. Verified by audit (Demo-3, Demo-4, Missed-3).
-
-#### Solution
-Bind to `127.0.0.1` explicitly. Add a `Bun.write` body-size guard on every `POST` route that reads `req.json()`; reject bodies > 64 KB with `413 Payload Too Large`. Add a "sandbox" banner to the home page. Replace the runtime Tailwind CDN with a local build (Missed-3, Medium but adjacent to operational hygiene).
 
 ---
 
@@ -306,18 +186,6 @@ Delete the `"."` entry in `libs/domain/package.json` and `libs/domain/src/index.
 
 ---
 
-### T034: use crypto.randomUUID for IDs in demo-social (subsumed by T021)
-> importance: medium
-> affected areas: apps/demo-social
-
-#### Problem
-Same as T021.
-
-#### Solution
-Subsumed by T021.
-
----
-
 ### T035: clean up post-rename stragglers (utils/graph.ts filename, stale JSDoc)
 > importance: medium
 > affected areas: apps/provar-app, libs/domain
@@ -345,18 +213,6 @@ None of the 4 libs have any unit tests. The audit confirmed this (Lib-18). The r
 - `libs/engine/src/runtime/tracker.test.ts` — proxy method invocation, dispose behavior, dispose-after-call throws.
 - `libs/models/src/client/index.ts` test — `mapAttachment` for text, code, image, unsupported type.
 - Wire `bun test` in each lib's `package.json` and a top-level runner. (See `refactor-libs.md` Phase 5.)
-
----
-
-### T037: fix the localStorage token shape in demo-social
-> importance: medium
-> affected areas: apps/demo-social
-
-#### Problem
-`apps/demo-social/src/client/app.tsx` stores the session token in `localStorage` without any expiry or rotation. The audit caught this (Demo-4, Medium). The demo is a sandbox, so the security impact is contained, but the pattern leaks into real apps when contributors copy it.
-
-#### Solution
-Add a banner comment in `app.tsx`: "DEMO ONLY — DO NOT COPY this auth pattern. Tokens are unencrypted in localStorage with no rotation." Optionally: switch to a `sessionStorage` cookie, or rotate the token on every page load.
 
 ---
 
@@ -393,18 +249,6 @@ Delete `schemaForLoadedFileMeta` (or replace with `z.custom<Task | Graph | File>
 
 #### Solution
 Delete the `cleanCode` export. Rename the local variable in `sandbox.ts:44` to `stripped` to avoid shadowing. (See `refactor-libs.md` Phase 2.6.)
-
----
-
-### T041: drop the placeholder field from settingsSchema
-> importance: medium
-> affected areas: libs/config, apps/provar-cli
-
-#### Problem
-`libs/config/src/schema.ts:62` has a `placeholder` field in `settingsSchema`. The README has a row for it. Producer flagged CLI-9. No consumer reads it. The audit confirmed (Missed area).
-
-#### Solution
-Drop the field from the schema and the README row. (See `refactor-other-apps.md` Phase 5.7.)
 
 ---
 
@@ -631,10 +475,10 @@ Add `docs/adrs/013-curated-public-surface-for-libs.md` capturing the design deci
 > performance hotspots. Cross-references to the T-items above are noted in
 > each entry's `Solution` where overlap exists.
 >
-> Several entries in this section (T069, T075, T082, T085, T088, T091)
-> directly resolve or progress pre-existing T-items in the list above.
-> Specifically, T091 supersedes the prover-web URL externalization that
-> was previously tracked across three separate items.
+> Several entries in this section (T082, T085, T088, T091) directly
+> resolve or progress pre-existing T-items in the list above. Specifically,
+> T091 supersedes the prover-web URL externalization that was previously
+> tracked across three separate items.
 
 ---
 
@@ -784,29 +628,6 @@ re-import it from the test file, and drop the export from `generator.ts`.
 Alternatively, keep the export but rename the local variable in
 `sandbox.ts:44` to `stripped` so it stops shadowing (see T085). Either
 way, `cleanCode` should not be re-exported through the engine barrel.
-
----
-
-### T069: replace editor-side `enumeratePaths` with the engine's `buildGraphPaths`
-> importance: high
-> affected areas: apps/provar-app, libs/engine
-
-#### Problem
-`apps/provar-app/src/shared/utils.ts:12-38` defines `enumeratePaths(graph)
-→ string[][]` and is used by the editor at
-`apps/provar-app/src/mainview/lib/stores/editor-store.svelte.ts:8, 111, 119`.
-The engine already has `buildGraphPaths(start, tasks) → Path[]` with
-diamond-dedup at `libs/engine/src/loader.ts:57-109`, with solid test
-coverage including the diamond case at `loader.test.ts:40-55`. For any
-diamond graph the editor's "active path" highlight is wrong. (See T005.)
-
-#### Solution
-Delete `enumeratePaths` from `shared/utils.ts`. The two editor call
-sites either consume `Path` directly (preferred — change `selectedNodePathIndex`
-and `runningPathNodeIds` to use `Path.tasks` instead of `string[]`) or
-wrap `buildGraphPaths` in a `string[][]` adapter. The engine's
-`buildGraphPaths` accepts `Record<string, Task>` so the call site needs
-to map from the file's `nodes` shape to the engine's `tasks` shape.
 
 ---
 
