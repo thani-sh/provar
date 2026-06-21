@@ -18,3 +18,4 @@ export {
   settingsExists,
   SettingsLoadError,
 } from "./storage";
+export { PROVAR_DIR, TESTS_DIR, CONFIG_FILE } from "./paths";

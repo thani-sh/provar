@@ -117,6 +117,7 @@
       "dependencies": {
         "@ai-sdk/google": "^3.0.80",
         "@ai-sdk/openai": "^3.0.68",
+        "@libs/config": "workspace:*",
         "@libs/domain": "workspace:*",
         "@libs/models": "workspace:*",
         "@playwright/test": "^1.60.0",

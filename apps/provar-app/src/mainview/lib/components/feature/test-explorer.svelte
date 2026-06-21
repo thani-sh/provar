@@ -9,7 +9,8 @@
   } from "lucide-svelte";
   import { editorStore } from "../../stores/editor-store.svelte";
   import { uiStore } from "../../stores/ui-store.svelte";
-  import { debug } from "../../../../shared/debug";
+import { debug } from "../../../../shared/debug";
+  import { PROVAR_DIR, TESTS_DIR } from "@libs/config/paths";
 
   let {
     files = [],
@@ -183,7 +184,7 @@
   class="absolute top-0 bottom-0 left-0 z-20 flex w-[260px] flex-col border-r border-zinc-800 bg-[#161b22]/50 pt-[24px] backdrop-blur-md transition-transform duration-200 ease-in-out {!uiStore.isSidebarOpen
     ? 'pointer-events-none -translate-x-[280px]'
     : 'translate-x-0'}"
-  oncontextmenu={(e) => handleContextMenu(e, ".provar", "folder")}
+  oncontextmenu={(e) => handleContextMenu(e, PROVAR_DIR, "folder")}
 >
   <div class="px-3 pt-3 pb-2">
     <div class="relative">
@@ -232,18 +233,18 @@
     style="top: {contextMenu.y}px; left: {contextMenu.x}px"
   >
     {#if contextMenu.type === "folder"}
-      {#if contextMenu.path === ".provar"}
+      {#if contextMenu.path === PROVAR_DIR}
         <button
           class="w-full rounded px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
           onclick={() => {
-            onCreateFile(".provar/tests");
+            onCreateFile(TESTS_DIR);
             closeContextMenu();
           }}
         >
           New test
         </button>
       {:else}
-        {#if contextMenu.path.startsWith(".provar/tests")}
+        {#if contextMenu.path.startsWith(TESTS_DIR)}
           <button
             class="w-full rounded px-4 py-2.5 text-left text-xs text-zinc-300 hover:bg-[#21262d]"
             onclick={() => {
@@ -264,7 +265,7 @@
           </button>
         {/if}
 
-        {#if contextMenu.path !== ".provar/tests"}
+        {#if contextMenu.path !== TESTS_DIR}
           <div class="my-1 border-t border-zinc-800"></div>
           <button
             class="w-full rounded px-4 py-2.5 text-left text-xs text-red-400 hover:bg-[#21262d]"

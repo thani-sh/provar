@@ -3,7 +3,8 @@ import yaml from "yaml";
 import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
-import { CONFIG_FILE, configSchema } from "@libs/domain/zod";
+import { CONFIG_FILE } from "@libs/config/paths";
+import { configSchema } from "@libs/domain/zod";
 
 export type GetConfigInput = Record<string, never>;
 export type GetConfigOutput = {

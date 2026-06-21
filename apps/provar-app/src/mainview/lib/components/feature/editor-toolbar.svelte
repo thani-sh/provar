@@ -11,6 +11,7 @@
   } from "lucide-svelte";
   import { editorStore } from "../../stores/editor-store.svelte";
   import { uiStore } from "../../stores/ui-store.svelte";
+  import { TESTS_DIR } from "@libs/config/paths";
 
   let runMenuOpen = $state(false);
 
@@ -46,7 +47,10 @@
     >
       <File class="h-3.5 w-3.5 text-blue-400" />
       <span class="tracking-wide"
-        >{editorStore.selectedFilePath.replace(/^\.provar\/tests\//, "")}</span
+        >{editorStore.selectedFilePath.replace(
+          new RegExp(`^${TESTS_DIR}/`),
+          "",
+        )}</span
       >
     </button>
 

@@ -5,7 +5,8 @@
   "description": "Shared library for managing global application settings",
   "main": "src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./paths": "./src/paths.ts"
   },
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",

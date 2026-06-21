@@ -2,9 +2,10 @@ import { homedir } from "os";
 import { join } from "path";
 import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "fs";
 import { settingsSchema, type Settings } from "./schema";
+import { PROVAR_DIR } from "./paths";
 
 // Settings are stored at ~/.provar/settings.json
-const SETTINGS_DIR = join(homedir(), ".provar");
+const SETTINGS_DIR = join(homedir(), PROVAR_DIR);
 const SETTINGS_PATH = join(SETTINGS_DIR, "settings.json");
 
 export class SettingsLoadError extends Error {

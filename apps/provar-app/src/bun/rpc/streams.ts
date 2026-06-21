@@ -14,6 +14,7 @@ import { createCommands } from "../commands";
 import { PROJECT_DIR, getAbsPath } from "../utils";
 import { getAgentConfig } from "./context";
 import { compileProgress, execute, loadProject } from "@libs/engine";
+import { PROVAR_DIR, TESTS_DIR } from "@libs/config/paths";
 import * as path from "path";
 import * as fs from "fs";
 import { debug } from "../../shared/debug";
@@ -221,7 +222,7 @@ export function registerStreams() {
           registerActiveRun(runId, runner);
 
           // Handle runner events
-          const testsDir = path.join(PROJECT_DIR, ".provar", "tests");
+          const testsDir = path.join(PROJECT_DIR, TESTS_DIR);
           const relativePath = path
             .relative(testsDir, absPath)
             .replace(".test.yml", "");
@@ -243,7 +244,7 @@ export function registerStreams() {
 
                     const currentDir = path.join(
                       PROJECT_DIR,
-                      ".provar",
+                      PROVAR_DIR,
                       "screenshots",
                       "current",
                       relativePath,

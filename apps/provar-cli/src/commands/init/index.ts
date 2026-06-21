@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, cpSync, writeFileSync } from "fs";
 import { dirname, isAbsolute, join, resolve } from "path";
 import pc from "picocolors";
+import { PROVAR_DIR, TESTS_DIR, CONFIG_FILE } from "@libs/config/paths";
 
 /**
  * handleInit implements `provar init <name> [--sample]` — create a new Provar project directory.
@@ -73,10 +74,10 @@ export async function handleInit(args: string[]): Promise<void> {
   }
 
   // Empty skeleton.
-  mkdirSync(join(target, ".provar", "tests"), { recursive: true });
-  mkdirSync(join(target, ".provar", "screenshots"), { recursive: true });
+  mkdirSync(join(target, TESTS_DIR), { recursive: true });
+  mkdirSync(join(target, PROVAR_DIR, "screenshots"), { recursive: true });
   writeFileSync(
-    join(target, ".provar", "config.yml"),
+    join(target, CONFIG_FILE),
     "variables:\n  baseUrl: http://127.0.0.1:3000\n",
   );
   console.log(
@@ -107,13 +108,13 @@ function resolveBundledSampleDir(): string | null {
         "provar-app",
         "sample-projects",
         "todo-app",
-        ".provar",
+        PROVAR_DIR,
       );
       if (existsSync(candidate)) {
         return join(dir, "apps", "provar-app", "sample-projects", "todo-app");
       }
       // Flat layout (sample shipped at the root of the distribution): <dir>/sample-projects/todo-app
-      const flat = join(dir, "sample-projects", "todo-app", ".provar");
+      const flat = join(dir, "sample-projects", "todo-app", PROVAR_DIR);
       if (existsSync(flat)) {
         return join(dir, "sample-projects", "todo-app");
       }

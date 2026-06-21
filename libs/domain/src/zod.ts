@@ -2,25 +2,6 @@ import { z } from "zod";
 import type { Task, Graph, File, Path } from "./index";
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-/**
- * PROVAR_DIR is the default directory name containing Provar configuration and tests.
- */
-export const PROVAR_DIR = ".provar";
-
-/**
- * TESTS_DIR is the directory path where Provar test files are located.
- */
-export const TESTS_DIR = `${PROVAR_DIR}/tests`;
-
-/**
- * CONFIG_FILE is the configuration file path for the Provar project.
- */
-export const CONFIG_FILE = `${PROVAR_DIR}/config.yml`;
-
-// ---------------------------------------------------------------------------
 // Shared Utilities
 // ---------------------------------------------------------------------------
 const coerceStringToArray = z

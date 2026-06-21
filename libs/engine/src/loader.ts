@@ -15,6 +15,7 @@ import {
   provarVariablesSchema,
   schemaForLoadedFileMeta,
 } from "@libs/domain/zod";
+import { PROVAR_DIR } from "@libs/config/paths";
 import type { TestAPI } from "./types";
 
 /**
@@ -232,7 +233,7 @@ export function parseTestFile(content: string, filePath: string): File {
 }
 
 /**
- * loadProject crawls up to locate the .provar directory and loads the project configurations and test files.
+ * loadProject crawls up to locate the project marker directory and loads the project configurations and test files.
  */
 export async function loadProject(
   projectPath: string,
@@ -241,9 +242,9 @@ export async function loadProject(
   const rootDir = path.parse(current).root;
   let provarPath = "";
 
-  // Crawl up to locate .provar directory
+  // Crawl up to locate the project marker directory
   while (current && current !== rootDir) {
-    const candidate = path.join(current, ".provar");
+    const candidate = path.join(current, PROVAR_DIR);
     if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
       provarPath = candidate;
       break;
@@ -253,7 +254,7 @@ export async function loadProject(
 
   if (!provarPath) {
     throw new Error(
-      `Could not find a '.provar' project directory at or above: ${projectPath}`,
+      `Could not find a '${PROVAR_DIR}' project directory at or above: ${projectPath}`,
     );
   }
 

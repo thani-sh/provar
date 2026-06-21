@@ -3,7 +3,7 @@ import { join } from "path";
 import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
-import { TESTS_DIR } from "@libs/domain/zod";
+import { TESTS_DIR } from "@libs/config/paths";
 
 export type ListFilesInput = Record<string, never>;
 export type ListFilesOutput = {

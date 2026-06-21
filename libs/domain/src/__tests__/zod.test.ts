@@ -1,26 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import {
-  CONFIG_FILE,
-  PROVAR_DIR,
-  TESTS_DIR,
-  configSchema,
-  provarVariablesSchema,
-  schemaForFile,
-} from "../zod";
-
-describe("constants", () => {
-  test('PROVAR_DIR is the canonical ".provar" folder name', () => {
-    expect(PROVAR_DIR).toBe(".provar");
-  });
-
-  test('TESTS_DIR is the conventional ".provar/tests" path', () => {
-    expect(TESTS_DIR).toBe(".provar/tests");
-  });
-
-  test('CONFIG_FILE is the conventional ".provar/config.yml" path', () => {
-    expect(CONFIG_FILE).toBe(".provar/config.yml");
-  });
-});
+import { configSchema, provarVariablesSchema, schemaForFile } from "../zod";
 
 describe("configSchema", () => {
   test("accepts an empty object (all fields optional)", () => {

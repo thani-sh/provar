@@ -4,7 +4,8 @@ import yaml from "yaml";
 import { z } from "zod";
 import { Command } from "./command";
 import { getAbsPath } from "./utils";
-import { CONFIG_FILE, TESTS_DIR, configSchema } from "@libs/domain/zod";
+import { CONFIG_FILE, TESTS_DIR } from "@libs/config/paths";
+import { configSchema } from "@libs/domain/zod";
 
 export type SaveConfigInput = {
   config: z.infer<typeof configSchema>;

@@ -6,6 +6,7 @@
   import ConfirmModal from "../ui/confirm-modal.svelte";
   import InputModal from "../ui/input-modal.svelte";
   import SettingsModal from "../ui/settings-modal.svelte";
+  import { TESTS_DIR } from "@libs/config/paths";
 
   /**
    * handleModalConfirm bridges the InputModal's name input to the right
@@ -25,8 +26,8 @@
         : parentPath;
 
       if (type === "file") {
-        if (!dir.startsWith(".provar/tests")) {
-          dir = ".provar/tests";
+        if (!dir.startsWith(TESTS_DIR)) {
+          dir = TESTS_DIR;
         }
         await editorStore.createFile(dir, name);
       } else {
