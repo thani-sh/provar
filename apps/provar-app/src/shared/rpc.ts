@@ -87,6 +87,10 @@ export type ProvarRPCSchema = {
         params: { url: string };
         response: { success: boolean };
       };
+      cancelRun: {
+        params: { runId: string };
+        response: { success: boolean };
+      };
     };
     messages: {
       steamBunMessage: SteamBunMessage;

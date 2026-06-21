@@ -319,4 +319,16 @@ export const ProvarAPI = {
     debug("[RPC Client] openExternal response:", res);
     return res;
   },
+
+  /**
+   * cancelRun stops an in-flight test run by runId. Called from the
+   * editor toolbar's Stop button. Returns `{ success: false }` when no
+   * active runner matches (race with natural completion).
+   */
+  async cancelRun(runId: string): Promise<{ success: boolean }> {
+    console.log("[RPC Client] cancelRun request:", runId);
+    const res = await electroview.rpc!.request.cancelRun({ runId });
+    console.log("[RPC Client] cancelRun response:", res);
+    return res;
+  },
 };

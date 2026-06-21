@@ -7,6 +7,7 @@
     X,
     Hammer,
     RefreshCw,
+    Square,
   } from "lucide-svelte";
   import { editorStore } from "../../stores/editor-store.svelte";
   import { uiStore } from "../../stores/ui-store.svelte";
@@ -77,12 +78,23 @@
         <span>Recompile</span>
       </button>
     {:else if editorStore.isRunning || editorStore.isRunningAllPaths}
-      <div
-        class="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 shadow-sm backdrop-blur-sm"
-      >
+      <div class="flex items-center gap-2">
         <div
-          class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
-        ></div>
+          class="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-zinc-800/80 bg-[#161b22]/80 shadow-sm backdrop-blur-sm"
+        >
+          <div
+            class="h-3 w-3 animate-spin rounded-full border border-zinc-500 border-t-blue-500"
+          ></div>
+        </div>
+        <button
+          onclick={() => editorStore.stopRun()}
+          class="flex h-[26px] cursor-pointer items-center gap-1.5 rounded-full border border-red-900/60 bg-[#161b22]/80 px-3 py-1 text-xs font-medium text-red-400 shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-red-500/80 hover:bg-red-950/40 hover:text-red-300 focus:ring-1 focus:ring-red-700 focus:outline-none"
+          title="Stop the running test"
+          aria-label="Stop the running test"
+        >
+          <Square size={10} class="fill-current" />
+          <span>Stop</span>
+        </button>
       </div>
     {:else}
       <div class="relative flex">

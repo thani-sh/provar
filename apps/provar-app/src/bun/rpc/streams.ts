@@ -1,3 +1,4 @@
+import { type Runner } from "@libs/engine";
 import { SteamBun } from "@thani-sh/steam-bun/bun";
 import {
   assistEditorStream,
@@ -18,6 +19,48 @@ import * as fs from "fs";
 import { debug } from "../../shared/debug";
 
 const getCommands = () => createCommands({ projectDir: PROJECT_DIR });
+
+/**
+ * activeRunners maps the webview-visible `runId` to the in-process `Runner`
+ * so the `cancelRun` RPC can find the right instance when the user hits the
+ * Stop button. Entries are inserted when `runTestPathStream` starts and
+ * removed when the event iterator completes (success, failure, or cancel).
+ */
+const activeRunners = new Map<string, Runner>();
+
+/**
+ * registerActiveRun and clearActiveRun are the only callers allowed to
+ * touch the `activeRunners` map; keeping the mutation here makes it easy
+ * to audit the lifecycle.
+ */
+function registerActiveRun(runId: string, runner: Runner): void {
+  activeRunners.set(runId, runner);
+}
+
+function clearActiveRun(runId: string): void {
+  activeRunners.delete(runId);
+}
+
+/**
+ * cancelRun stops an in-flight test run by `runId`. The webview toolbar's
+ * Stop button hits this RPC; the matching `Runner.cancel()` propagates the
+ * cancellation to the underlying task sequence, which surfaces as a
+ * `run-finished` event with `status: "cancelled"` on the existing stream.
+ *
+ * Returns `{ success: false }` when no active runner matches the id — this
+ * happens when the run finished between the Stop click and the RPC
+ * arriving, or when the id is unknown to this process (defensive).
+ */
+export async function cancelRun(params: { runId: string }): Promise<{
+  success: boolean;
+}> {
+  const runner = activeRunners.get(params.runId);
+  if (!runner) {
+    return { success: false };
+  }
+  await runner.cancel();
+  return { success: true };
+}
 
 export function registerStreams() {
   // 1. Assist Editor Stream
@@ -172,6 +215,11 @@ export function registerStreams() {
             provarPath: project.path,
           });
 
+          // Make the runner reachable by the `cancelRun` RPC for the
+          // duration of the run; the IIFE below removes it once the
+          // event iterator drains.
+          registerActiveRun(runId, runner);
+
           // Handle runner events
           const testsDir = path.join(PROJECT_DIR, ".provar", "tests");
           const relativePath = path
@@ -232,6 +280,7 @@ export function registerStreams() {
                       : undefined,
                   visualCompare:
                     "visualCompare" in event ? event.visualCompare : undefined,
+                  status: "status" in event ? event.status : undefined,
                 });
               }
 
@@ -248,6 +297,8 @@ export function registerStreams() {
                 err,
               );
               controller.close();
+            } finally {
+              clearActiveRun(runId);
             }
           })();
         } catch (err: any) {

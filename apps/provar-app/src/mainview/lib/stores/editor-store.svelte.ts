@@ -31,6 +31,13 @@ class EditorStore {
    */
   isRunningAllPaths = $state(false);
   isCompiling = $state(false);
+  /**
+   * activeRunId is the Bun-side runId for the currently executing path,
+   * or null when no run is in flight. The editor toolbar's Stop button
+   * reads this to wire `ProvarAPI.cancelRun` back to the right Runner
+   * instance on the host process.
+   */
+  activeRunId = $state<string | null>(null);
   compilationStates = $state<
     Record<string, "compiling" | "compiled" | "failed" | "idle">
   >({});
@@ -38,6 +45,11 @@ class EditorStore {
   /**
    * taskPathStates tracks the execution result of each node per path index.
    * Structure: { [nodeId]: { [pathIndex]: "idle" | "running" | "success" | "failed" } }
+   *
+   * Cancellation is represented as "failed" in this map — the canvas only
+   * has a finite set of node states and "failed" already covers
+   * "did-not-pass". The `run-finished` event's `status` field is the
+   * authoritative signal for distinguishing cancelled from errored.
    */
   taskPathStates = $state<
     Record<string, Record<number, "idle" | "running" | "success" | "failed">>
@@ -248,6 +260,12 @@ class EditorStore {
       for await (const event of stream) {
         if (event.type === "run-started") {
           this.isRunning = true;
+          // The runId is stable for the lifetime of this stream; capture
+          // it on the first event so the Stop button can target it
+          // before the user even sees the spinner.
+          if (event.runId) {
+            this.activeRunId = event.runId;
+          }
           this.compilationStates = {};
           if (this.currentFile?.graph?.nodes) {
             const updated = { ...this.taskPathStates };
@@ -264,6 +282,27 @@ class EditorStore {
 
         if (event.type === "run-finished") {
           this.isRunning = false;
+          this.activeRunId = null;
+          // On cancellation, the engine emits `run-finished` with
+          // `status: "cancelled"` but no `task-failed` for the task that
+          // was in flight when Stop was clicked. Mark any tasks still in
+          // "running" for the current path as "failed" so the canvas
+          // shows a terminal state instead of a stuck spinner. The
+          // authoritative "this was a cancellation, not an error" signal
+          // remains on `event.status` (kept on the run-finished payload).
+          if (event.status === "cancelled" && this.currentFile?.graph?.nodes) {
+            const updated = { ...this.taskPathStates };
+            for (const id of Object.keys(this.currentFile.graph.nodes)) {
+              const perPath = updated[id];
+              if (perPath?.[this.currentPathIndex] === "running") {
+                updated[id] = {
+                  ...perPath,
+                  [this.currentPathIndex]: "failed",
+                };
+              }
+            }
+            this.taskPathStates = updated;
+          }
           continue;
         }
 
@@ -314,6 +353,7 @@ class EditorStore {
       console.error("EditorStore: Run stream failed:", e);
     } finally {
       this.isRunning = false;
+      this.activeRunId = null;
     }
   }
 
@@ -353,6 +393,22 @@ class EditorStore {
       true,
     );
     await this.runStream(stream);
+  }
+
+  /**
+   * stopRun cancels the currently active run via the `cancelRun` RPC.
+   * The run-finished event that follows will flip `isRunning` back to
+   * false (and clear `activeRunId`); `runAllPaths` exits its loop on
+   * the next iteration because `runPath` checks `isRunning`.
+   */
+  async stopRun(): Promise<void> {
+    const runId = this.activeRunId;
+    if (!runId) return;
+    try {
+      await ProvarAPI.cancelRun(runId);
+    } catch (e) {
+      console.error("EditorStore: cancelRun failed:", e);
+    }
   }
 
   /** clearRunStates removes all per-path execution results from the display. */

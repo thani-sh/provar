@@ -11,6 +11,7 @@ import {
   selectProject,
   getProject,
 } from "./handlers/project-handlers";
+import { cancelRun } from "./streams";
 import {
   getSettings,
   saveSettings,
@@ -54,6 +55,7 @@ export const provarRPC = BrowserView.defineRPC<ProvarRPCSchema>({
       getNodeGeneratedCode: getNodeGeneratedCodeRpc,
       createSampleProject,
       openExternal,
+      cancelRun,
     },
     messages: {
       steamBunMessage: SteamBun.messages.steamBunMessage,
