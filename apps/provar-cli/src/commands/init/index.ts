@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, cpSync, writeFileSync } from "fs";
 import { dirname, isAbsolute, join, resolve } from "path";
 import pc from "picocolors";
+import { ExitCode } from "../../utils/exit-codes";
 import { PROVAR_DIR, TESTS_DIR, CONFIG_FILE } from "@libs/config/paths";
 
 /**
@@ -34,7 +35,7 @@ export async function handleInit(args: string[]): Promise<void> {
     console.error(
       pc.red("Project name is required. Run 'provar init --help'."),
     );
-    process.exit(2);
+    process.exit(ExitCode.UsageError);
   }
 
   const target = isAbsolute(rawTarget)
@@ -49,7 +50,7 @@ export async function handleInit(args: string[]): Promise<void> {
         `Target directory already exists: ${target}\nRe-run with --force to overwrite, or pick a different name.`,
       ),
     );
-    process.exit(1);
+    process.exit(ExitCode.RuntimeError);
   }
 
   mkdirSync(target, { recursive: true });
@@ -62,7 +63,7 @@ export async function handleInit(args: string[]): Promise<void> {
           "Could not locate the bundled sample project. Reinstall Provar or file a bug at https://github.com/thani-sh/provar/issues",
         ),
       );
-      process.exit(1);
+      process.exit(ExitCode.RuntimeError);
     }
     cpSync(sampleSrc, target, { recursive: true });
     console.log(

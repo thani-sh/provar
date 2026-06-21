@@ -8,7 +8,8 @@
   "scripts": {
     "build": "tsc --noEmit -p tsconfig.json",
     "lint": "prettier --check src",
-    "lint:fix": "prettier --write src"
+    "lint:fix": "prettier --write src",
+    "test": "bun test src"
   },
   "dependencies": {
     "@libs/domain": "workspace:*",

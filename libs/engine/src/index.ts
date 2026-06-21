@@ -17,6 +17,8 @@ export { loadProject, type ProjectLoader } from "./loader";
 export {
   compile,
   compileProgress,
+  CompileAbortedError,
+  assertNotAborted,
   type CompileEvent,
   type CompileResult,
   type CompilerOptions,

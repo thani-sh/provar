@@ -16,12 +16,45 @@ import { groundAndGenerateTask, CompilerGroundingSession } from "./generator";
 import { CompilerPerformanceTracker, type CompilationTrace } from "./tracker";
 
 /**
+ * CompileAbortedError is thrown by `compileProgress` / `compile` when the caller-supplied
+ * `AbortSignal` is set to aborted between node compilations. The signal check fires before each
+ * LLM round-trip, so an in-flight call always runs to completion — the engine then throws this
+ * error, runs its `finally` block (which closes the agent client and the grounding session), and
+ * the generator yields a `compile-finished` event with `success: false` for any listeners that
+ * drained partial output.
+ */
+export class CompileAbortedError extends Error {
+  constructor() {
+    super("Compilation cancelled by signal");
+    this.name = "CompileAbortedError";
+  }
+}
+
+/**
+ * assertNotAborted throws `CompileAbortedError` when `signal` is already aborted. Exported so
+ * tests and consumers can reuse the same check.
+ */
+export function assertNotAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new CompileAbortedError();
+  }
+}
+
+/**
  * CompilerOptions contains parameters for running the task generation compiler on a test YAML file.
  */
 export interface CompilerOptions {
   yamlPath: string;
   outputPath?: string;
   agentConfig: AgentClientConfig;
+  /**
+   * When provided, the compiler aborts cleanly between node compilations when `signal.aborted`
+   * becomes `true`. The abort check fires *before* each LLM round-trip — an in-flight call
+   * always runs to completion so the engine's `finally` block can close the agent client and
+   * the grounding session without leaking processes. The thrown `CompileAbortedError` is the
+   * caller's signal that the run was cancelled, not a runtime failure.
+   */
+  signal?: AbortSignal;
 }
 
 /**
@@ -52,6 +85,21 @@ export async function* compileProgress(
   options: CompilerOptions,
 ): AsyncGenerator<CompileEvent, CompileResult, void> {
   yield { type: "compile-started" };
+
+  // Honour a pre-aborted signal before doing any setup work — don't even
+  // spin up an LLM client if the caller has already cancelled.
+  if (options.signal?.aborted) {
+    const outputPath =
+      options.outputPath ?? options.yamlPath.replace(".test.yml", ".test.ts");
+    const result: CompileResult = {
+      success: false,
+      outputPath,
+      generatedCode: "",
+      pathsResolved: 0,
+    };
+    yield { type: "compile-finished", success: false, result };
+    throw new CompileAbortedError();
+  }
 
   const tracker = new CompilerPerformanceTracker(options.yamlPath);
   tracker.start();
@@ -117,6 +165,9 @@ export async function* compileProgress(
         return;
       }
 
+      // Honour an external abort before paying for the next LLM round-trip.
+      assertNotAborted(options.signal);
+
       yield { type: "node-started", nodeId, title: node.title };
 
       try {
@@ -177,6 +228,9 @@ export async function* compileProgress(
 
     // Iterate over paths and recursively compile task nodes chronologically
     for (const resolvedPath of fileDef.paths) {
+      // Check the signal between paths too — a diamond graph with many
+      // paths shouldn't burn a whole second LLM call after a cancel.
+      assertNotAborted(options.signal);
       const prefix: string[] = [];
       for (const task of resolvedPath.tasks) {
         yield* compileNodeRecursively(task.id, task, prefix);
