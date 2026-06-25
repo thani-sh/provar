@@ -22,7 +22,7 @@ Every package in the `libs/` directory should have a concise `README.md` at its 
 
 ### 2. Application READMEs
 
-Every application in the `apps/` or `demo/` directory should have a `README.md` introducing the app, explaining its primary features, and providing clear setup instructions.
+Every application in the `apps/` directory should have a `README.md` introducing the app, explaining its primary features, and providing clear setup instructions.
 
 - Template file: [readme-app-template.md](./resources/readme-app-template.md)
 
