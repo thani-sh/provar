@@ -57,6 +57,20 @@ func NewJob(id string, status JobStatus) *Job {
 	}
 }
 
+// GetStatus returns the current status of the job thread-safely.
+func (j *Job) GetStatus() JobStatus {
+	j.mu.RLock()
+	defer j.mu.RUnlock()
+	return j.Status
+}
+
+// SetStatus updates the status of the job thread-safely.
+func (j *Job) SetStatus(status JobStatus) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.Status = status
+}
+
 // Subscribe returns a channel of events related to the job from that point onwards.
 func (j *Job) Subscribe() <-chan Event {
 	j.mu.Lock()
@@ -123,4 +137,11 @@ func (j *Job) emit(e Event) {
 		default:
 		}
 	}
+}
+
+// Emit sends an event to all subscribed listeners thread-safely.
+func (j *Job) Emit(e Event) {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.emit(e)
 }
