@@ -12,15 +12,17 @@ const (
 )
 
 type googleClient struct {
-	apiKey string
-	model  string
+	apiKey  string
+	baseURL string
+	model   string
 }
 
 // NewGoogleClient creates a Client configured for Google Gemini.
-func NewGoogleClient(apiKey string, model string) Client {
+func NewGoogleClient(apiKey string, baseURL string, model string) Client {
 	return &googleClient{
-		apiKey: apiKey,
-		model:  model,
+		apiKey:  apiKey,
+		baseURL: baseURL,
+		model:   model,
 	}
 }
 
@@ -31,10 +33,16 @@ func (c *googleClient) CreateSession(ctx context.Context) (Session, error) {
 	if c.apiKey == "" {
 		return nil, errAPIKeyRequired
 	}
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
+	cfg := &genai.ClientConfig{
 		APIKey:  c.apiKey,
 		Backend: genai.BackendGeminiAPI,
-	})
+	}
+	if c.baseURL != "" {
+		cfg.HTTPOptions = genai.HTTPOptions{
+			BaseURL: c.baseURL,
+		}
+	}
+	client, err := genai.NewClient(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -52,18 +60,32 @@ type googleSession struct {
 	ch       chan string
 }
 
-func (s *googleSession) Send(ctx context.Context, message string) error {
+func (s *googleSession) Send(ctx context.Context, attachments []Attachment) error {
+	var parts []*genai.Part
+	for _, a := range attachments {
+		if a.Type == AttachmentTypeImage {
+			parts = append(parts, &genai.Part{
+				InlineData: &genai.Blob{
+					Data:     a.Data,
+					MIMEType: a.MIME,
+				},
+			})
+		} else {
+			parts = append(parts, &genai.Part{
+				Text: a.Text,
+			})
+		}
+	}
 	userContent := &genai.Content{
-		Role: roleUser,
-		Parts: []*genai.Part{
-			{Text: message},
-		},
+		Role:  roleUser,
+		Parts: parts,
 	}
 	s.contents = append(s.contents, userContent)
 	stream := s.client.Models.GenerateContentStream(ctx, s.model, s.contents, nil)
 	s.ch = make(chan string, chanBuffer)
 	go func() {
 		defer close(s.ch)
+		var filter thinkFilter
 		var fullContent string
 		for resp, err := range stream {
 			if err != nil {
@@ -72,11 +94,19 @@ func (s *googleSession) Send(ctx context.Context, message string) error {
 			for _, candidate := range resp.Candidates {
 				if candidate.Content != nil {
 					for _, part := range candidate.Content.Parts {
-						s.ch <- part.Text
-						fullContent += part.Text
+						filtered := filter.Process(part.Text)
+						if filtered != "" {
+							s.ch <- filtered
+							fullContent += filtered
+						}
 					}
 				}
 			}
+		}
+		flushed := filter.Flush()
+		if flushed != "" {
+			s.ch <- flushed
+			fullContent += flushed
 		}
 		modelContent := &genai.Content{
 			Role: roleModel,

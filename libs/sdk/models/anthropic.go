@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/base64"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
@@ -55,8 +56,20 @@ type anthropicSession struct {
 	ch       chan string
 }
 
-func (s *anthropicSession) Send(ctx context.Context, message string) error {
-	s.messages = append(s.messages, anthropic.NewUserMessage(anthropic.NewTextBlock(message)))
+func (s *anthropicSession) Send(ctx context.Context, attachments []Attachment) error {
+	var parts []anthropic.ContentBlockParamUnion
+	for _, a := range attachments {
+		if a.Type == AttachmentTypeImage {
+			base64Data := base64.StdEncoding.EncodeToString(a.Data)
+			parts = append(parts, anthropic.NewImageBlock(anthropic.Base64ImageSourceParam{
+				Data:      base64Data,
+				MediaType: anthropic.Base64ImageSourceMediaType(a.MIME),
+			}))
+		} else {
+			parts = append(parts, anthropic.NewTextBlock(a.Text))
+		}
+	}
+	s.messages = append(s.messages, anthropic.NewUserMessage(parts...))
 	stream := s.client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
 		Model:     anthropic.Model(s.model),
 		MaxTokens: maxTokens,
@@ -65,15 +78,24 @@ func (s *anthropicSession) Send(ctx context.Context, message string) error {
 	s.ch = make(chan string, chanBuffer)
 	go func() {
 		defer close(s.ch)
+		var filter thinkFilter
 		var fullContent string
 		for stream.Next() {
 			event := stream.Current()
 			if event.Type == eventContentDelta {
 				delta := event.AsContentBlockDelta()
 				deltaText := delta.Delta.Text
-				s.ch <- deltaText
-				fullContent += deltaText
+				filtered := filter.Process(deltaText)
+				if filtered != "" {
+					s.ch <- filtered
+					fullContent += filtered
+				}
 			}
+		}
+		flushed := filter.Flush()
+		if flushed != "" {
+			s.ch <- flushed
+			fullContent += flushed
 		}
 		if err := stream.Err(); err == nil {
 			s.messages = append(s.messages, anthropic.NewAssistantMessage(anthropic.NewTextBlock(fullContent)))

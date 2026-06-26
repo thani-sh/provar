@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Provider represents one of the supported AI model providers.
@@ -27,9 +28,27 @@ var (
 	errAPIKeyRequired = errors.New("api key is required")
 )
 
+// AttachmentType defines the type of content in an attachment.
+type AttachmentType string
+
+const (
+	// AttachmentTypeText represents a text attachment.
+	AttachmentTypeText AttachmentType = "text"
+	// AttachmentTypeImage represents an image attachment.
+	AttachmentTypeImage AttachmentType = "image"
+)
+
+// Attachment represents a content block (text or image) sent to or received from a model.
+type Attachment struct {
+	Type AttachmentType
+	Text string
+	Data []byte
+	MIME string
+}
+
 // Session represents a stateful chat session keeping conversation history.
 type Session interface {
-	Send(ctx context.Context, message string) error
+	Send(ctx context.Context, attachments []Attachment) error
 	Recv() <-chan string
 }
 
@@ -41,7 +60,7 @@ type Client interface {
 // NewClient initializes a Client based on the selected provider.
 func NewClient(provider Provider, apiKey string, baseURL string, model string) (Client, error) {
 	if provider == Google {
-		return NewGoogleClient(apiKey, model), nil
+		return NewGoogleClient(apiKey, baseURL, model), nil
 	}
 	if provider == OpenAI {
 		return NewOpenAIClient(apiKey, baseURL, model), nil
@@ -50,4 +69,66 @@ func NewClient(provider Provider, apiKey string, baseURL string, model string) (
 		return NewAnthropicClient(apiKey, baseURL, model), nil
 	}
 	return nil, fmt.Errorf("unsupported provider: %s", provider)
+}
+
+// thinkFilter filters out content inside <think>...</think> tags.
+type thinkFilter struct {
+	inThink bool
+	buf     string
+}
+
+func (f *thinkFilter) Process(chunk string) string {
+	f.buf += chunk
+	var output string
+	for {
+		if !f.inThink {
+			idx := strings.Index(f.buf, "<think>")
+			if idx != -1 {
+				output += f.buf[:idx]
+				f.buf = f.buf[idx+len("<think>"):]
+				f.inThink = true
+				continue
+			}
+			var maxKeep int
+			for i := 1; i < 7; i++ {
+				if len(f.buf) >= i && strings.HasPrefix("<think>", f.buf[len(f.buf)-i:]) {
+					maxKeep = i
+				}
+			}
+			flushLen := len(f.buf) - maxKeep
+			if flushLen > 0 {
+				output += f.buf[:flushLen]
+				f.buf = f.buf[flushLen:]
+			}
+			break
+		} else {
+			idx := strings.Index(f.buf, "</think>")
+			if idx != -1 {
+				f.buf = f.buf[idx+len("</think>"):]
+				f.inThink = false
+				continue
+			}
+			var maxKeep int
+			for i := 1; i < 8; i++ {
+				if len(f.buf) >= i && strings.HasPrefix("</think>", f.buf[len(f.buf)-i:]) {
+					maxKeep = i
+				}
+			}
+			discardLen := len(f.buf) - maxKeep
+			if discardLen > 0 {
+				f.buf = f.buf[discardLen:]
+			}
+			break
+		}
+	}
+	return output
+}
+
+func (f *thinkFilter) Flush() string {
+	if f.inThink {
+		return ""
+	}
+	res := f.buf
+	f.buf = ""
+	return res
 }
