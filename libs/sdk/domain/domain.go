@@ -28,10 +28,15 @@ type projectConfig struct {
 	Vars map[string]interface{} `json:"variables"`
 }
 
+const (
+	configSubdir   = ".provar"
+	configFilename = "config.json"
+)
+
 // LoadProject loads the project configuration from a given project directory path.
 // It parses the .provar/config.json file inside projectDir.
 func LoadProject(projectDir string) (*Project, error) {
-	configPath := filepath.Join(projectDir, ".provar", "config.json")
+	configPath := filepath.Join(projectDir, configSubdir, configFilename)
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err

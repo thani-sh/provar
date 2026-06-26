@@ -5,28 +5,50 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/google/uuid"
 )
 
-func TestLoadProject(t *testing.T) {
-	tempDir := t.TempDir()
-	provarDir := filepath.Join(tempDir, ".provar")
-	err := os.MkdirAll(provarDir, 0755)
-	if err != nil {
-		t.Fatalf("failed to create .provar dir: %v", err)
-	}
-	configData := `{
+const (
+	testSubdir        = ".provar"
+	testFilename      = "config.json"
+	dirPerm           = 0755
+	filePerm          = 0644
+	testKeyTimeout    = "timeout"
+	testValTimeout    = "60"
+	testKeyBaseURL    = "baseUrl"
+	testValBaseURL    = "https://example.com"
+	testKeyVerbose    = "verbose"
+	testValVerbose    = "true"
+	invalidJSON       = `{invalid}`
+	testJobID         = "job-123"
+	testPauseType     = "paused"
+	testPauseData     = "Job paused by user"
+	testResumeType    = "resumed"
+	testStopType      = "stopped"
+	testTimeout       = 100 * time.Millisecond
+	testConfigContent = `{
 		"variables": {
 			"baseUrl": "https://example.com",
 			"timeout": 30,
 			"verbose": true
 		}
 	}`
-	err = os.WriteFile(filepath.Join(provarDir, "config.json"), []byte(configData), 0644)
+)
+
+func TestLoadProject(t *testing.T) {
+	tempDir := t.TempDir()
+	provarDir := filepath.Join(tempDir, testSubdir)
+	err := os.MkdirAll(provarDir, dirPerm)
+	if err != nil {
+		t.Fatalf("failed to create .provar dir: %v", err)
+	}
+	err = os.WriteFile(filepath.Join(provarDir, testFilename), []byte(testConfigContent), filePerm)
 	if err != nil {
 		t.Fatalf("failed to write config.json: %v", err)
 	}
-	os.Setenv("timeout", "60")
-	defer os.Unsetenv("timeout")
+	os.Setenv(testKeyTimeout, testValTimeout)
+	defer os.Unsetenv(testKeyTimeout)
 	project, err := LoadProject(tempDir)
 	if err != nil {
 		t.Fatalf("LoadProject returned error: %v", err)
@@ -34,14 +56,14 @@ func TestLoadProject(t *testing.T) {
 	if project.Path != tempDir {
 		t.Errorf("expected Path to be %q, got %q", tempDir, project.Path)
 	}
-	if project.Vars["baseUrl"] != "https://example.com" {
-		t.Errorf("expected baseUrl to be %q, got %q", "https://example.com", project.Vars["baseUrl"])
+	if project.Vars[testKeyBaseURL] != testValBaseURL {
+		t.Errorf("expected baseUrl to be %q, got %q", testValBaseURL, project.Vars[testKeyBaseURL])
 	}
-	if project.Vars["timeout"] != "60" {
-		t.Errorf("expected timeout to be overridden by env variable to %q, got %q", "60", project.Vars["timeout"])
+	if project.Vars[testKeyTimeout] != testValTimeout {
+		t.Errorf("expected timeout to be overridden by env variable to %q, got %q", testValTimeout, project.Vars[testKeyTimeout])
 	}
-	if project.Vars["verbose"] != "true" {
-		t.Errorf("expected verbose to be coerced to %q, got %q", "true", project.Vars["verbose"])
+	if project.Vars[testKeyVerbose] != testValVerbose {
+		t.Errorf("expected verbose to be coerced to %q, got %q", testValVerbose, project.Vars[testKeyVerbose])
 	}
 }
 
@@ -55,9 +77,9 @@ func TestLoadProject_MissingConfig(t *testing.T) {
 
 func TestLoadProject_InvalidJSON(t *testing.T) {
 	tempDir := t.TempDir()
-	provarDir := filepath.Join(tempDir, ".provar")
-	_ = os.MkdirAll(provarDir, 0755)
-	_ = os.WriteFile(filepath.Join(provarDir, "config.json"), []byte(`{invalid}`), 0644)
+	provarDir := filepath.Join(tempDir, testSubdir)
+	_ = os.MkdirAll(provarDir, dirPerm)
+	_ = os.WriteFile(filepath.Join(provarDir, testFilename), []byte(invalidJSON), filePerm)
 	_, err := LoadProject(tempDir)
 	if err == nil {
 		t.Error("expected error for invalid config JSON, got nil")
@@ -65,8 +87,8 @@ func TestLoadProject_InvalidJSON(t *testing.T) {
 }
 
 func TestJob_Lifecycle(t *testing.T) {
-	job := NewJob("job-123", JobIdle)
-	if job.ID != "job-123" {
+	job := NewJob(testJobID, JobIdle)
+	if job.ID != testJobID {
 		t.Errorf("expected ID to be job-123, got %q", job.ID)
 	}
 	if job.Status != JobIdle {
@@ -83,16 +105,16 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if ev.ID != "job-123-pause" {
-			t.Errorf("expected event ID to be job-123-pause, got %q", ev.ID)
+		if _, err := uuid.Parse(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
 		}
-		if ev.Type != "paused" {
+		if ev.Type != testPauseType {
 			t.Errorf("expected event Type to be paused, got %q", ev.Type)
 		}
-		if ev.Data != "Job paused by user" {
+		if ev.Data != testPauseData {
 			t.Errorf("expected event Data to be 'Job paused by user', got %v", ev.Data)
 		}
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(testTimeout):
 		t.Error("timeout waiting for Pause event")
 	}
 	err = job.Resume()
@@ -104,13 +126,13 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if ev.ID != "job-123-resume" {
-			t.Errorf("expected event ID to be job-123-resume, got %q", ev.ID)
+		if _, err := uuid.Parse(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
 		}
-		if ev.Type != "resumed" {
+		if ev.Type != testResumeType {
 			t.Errorf("expected event Type to be resumed, got %q", ev.Type)
 		}
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(testTimeout):
 		t.Error("timeout waiting for Resume event")
 	}
 	err = job.Stop()
@@ -122,13 +144,13 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if ev.ID != "job-123-stop" {
-			t.Errorf("expected event ID to be job-123-stop, got %q", ev.ID)
+		if _, err := uuid.Parse(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
 		}
-		if ev.Type != "stopped" {
+		if ev.Type != testStopType {
 			t.Errorf("expected event Type to be stopped, got %q", ev.Type)
 		}
-	case <-time.After(100 * time.Millisecond):
+	case <-time.After(testTimeout):
 		t.Error("timeout waiting for Stop event")
 	}
 }

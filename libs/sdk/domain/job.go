@@ -2,6 +2,8 @@ package domain
 
 import (
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 // JobStatus represents the state of a running job.
@@ -20,6 +22,16 @@ const (
 	JobStopped JobStatus = "stopped"
 	// JobFailed represents a job that terminated with an error.
 	JobFailed JobStatus = "failed"
+)
+
+const (
+	eventStoppedType   = "stopped"
+	eventStopMsg       = "Job stopped by user"
+	eventPausedType    = "paused"
+	eventPauseMsg      = "Job paused by user"
+	eventResumedType   = "resumed"
+	eventResumeMsg     = "Job resumed by user"
+	eventChannelBuffer = 10
 )
 
 // Event contains the status update and information related to a Job.
@@ -49,7 +61,7 @@ func NewJob(id string, status JobStatus) *Job {
 func (j *Job) Subscribe() <-chan Event {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	ch := make(chan Event, 10)
+	ch := make(chan Event, eventChannelBuffer)
 	j.listeners = append(j.listeners, ch)
 	return ch
 }
@@ -63,9 +75,9 @@ func (j *Job) Stop() error {
 	}
 	j.Status = JobStopped
 	j.emit(Event{
-		ID:   j.ID + "-stop",
-		Type: "stopped",
-		Data: "Job stopped by user",
+		ID:   uuid.New().String(),
+		Type: eventStoppedType,
+		Data: eventStopMsg,
 	})
 	return nil
 }
@@ -79,9 +91,9 @@ func (j *Job) Pause() error {
 	}
 	j.Status = JobPaused
 	j.emit(Event{
-		ID:   j.ID + "-pause",
-		Type: "paused",
-		Data: "Job paused by user",
+		ID:   uuid.New().String(),
+		Type: eventPausedType,
+		Data: eventPauseMsg,
 	})
 	return nil
 }
@@ -95,9 +107,9 @@ func (j *Job) Resume() error {
 	}
 	j.Status = JobRunning
 	j.emit(Event{
-		ID:   j.ID + "-resume",
-		Type: "resumed",
-		Data: "Job resumed by user",
+		ID:   uuid.New().String(),
+		Type: eventResumedType,
+		Data: eventResumeMsg,
 	})
 	return nil
 }
