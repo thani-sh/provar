@@ -28,7 +28,7 @@ func NewAnthropicClient(apiKey string, baseURL string, model string) Client {
 	}
 }
 
-func (c *anthropicClient) CreateSession(ctx context.Context) (Session, error) {
+func (c *anthropicClient) CreateSession(ctx context.Context, systemPrompt string) (Session, error) {
 	if c.model == "" {
 		return nil, errModelRequired
 	}
@@ -43,17 +43,19 @@ func (c *anthropicClient) CreateSession(ctx context.Context) (Session, error) {
 	}
 	client := anthropic.NewClient(opts...)
 	return &anthropicSession{
-		client: &client,
-		model:  c.model,
-		ch:     make(chan string, chanBuffer),
+		client:       &client,
+		model:        c.model,
+		systemPrompt: systemPrompt,
+		ch:           make(chan string, chanBuffer),
 	}, nil
 }
 
 type anthropicSession struct {
-	client   *anthropic.Client
-	model    string
-	messages []anthropic.MessageParam
-	ch       chan string
+	client       *anthropic.Client
+	model        string
+	systemPrompt string
+	messages     []anthropic.MessageParam
+	ch           chan string
 }
 
 func (s *anthropicSession) Send(ctx context.Context, attachments []Attachment) error {
@@ -70,11 +72,19 @@ func (s *anthropicSession) Send(ctx context.Context, attachments []Attachment) e
 		}
 	}
 	s.messages = append(s.messages, anthropic.NewUserMessage(parts...))
-	stream := s.client.Messages.NewStreaming(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model:     anthropic.Model(s.model),
 		MaxTokens: maxTokens,
 		Messages:  s.messages,
-	})
+	}
+	if s.systemPrompt != "" {
+		params.System = []anthropic.TextBlockParam{
+			{
+				Text: s.systemPrompt,
+			},
+		}
+	}
+	stream := s.client.Messages.NewStreaming(ctx, params)
 	s.ch = make(chan string, chanBuffer)
 	go func() {
 		defer close(s.ch)

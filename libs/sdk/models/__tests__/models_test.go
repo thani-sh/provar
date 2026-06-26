@@ -33,7 +33,7 @@ func TestOpenAIClient_Integration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	session, err := client.CreateSession(ctx)
+	session, err := client.CreateSession(ctx, "")
 	if err != nil {
 		t.Fatalf("failed to create OpenAI session: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestGoogleClient_Integration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	session, err := client.CreateSession(ctx)
+	session, err := client.CreateSession(ctx, "")
 	if err != nil {
 		t.Fatalf("failed to create Google session: %v", err)
 	}
@@ -100,7 +100,7 @@ func TestAnthropicClient_Integration(t *testing.T) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	session, err := client.CreateSession(ctx)
+	session, err := client.CreateSession(ctx, "")
 	if err != nil {
 		t.Fatalf("failed to create Anthropic session: %v", err)
 	}

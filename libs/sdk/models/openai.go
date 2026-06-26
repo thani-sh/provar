@@ -24,7 +24,7 @@ func NewOpenAIClient(apiKey string, baseURL string, model string) Client {
 	}
 }
 
-func (c *openaiClient) CreateSession(ctx context.Context) (Session, error) {
+func (c *openaiClient) CreateSession(ctx context.Context, systemPrompt string) (Session, error) {
 	if c.model == "" {
 		return nil, errModelRequired
 	}
@@ -38,10 +38,15 @@ func (c *openaiClient) CreateSession(ctx context.Context) (Session, error) {
 		opts = append(opts, option.WithBaseURL(c.baseURL))
 	}
 	client := openai.NewClient(opts...)
+	var messages []openai.ChatCompletionMessageParamUnion
+	if systemPrompt != "" {
+		messages = append(messages, openai.SystemMessage(systemPrompt))
+	}
 	return &openaiSession{
-		client: &client,
-		model:  c.model,
-		ch:     make(chan string, chanBuffer),
+		client:   &client,
+		model:    c.model,
+		messages: messages,
+		ch:       make(chan string, chanBuffer),
 	}, nil
 }
 

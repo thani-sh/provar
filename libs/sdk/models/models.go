@@ -54,7 +54,7 @@ type Session interface {
 
 // Client defines the common interface for establishing chat sessions.
 type Client interface {
-	CreateSession(ctx context.Context) (Session, error)
+	CreateSession(ctx context.Context, systemPrompt string) (Session, error)
 }
 
 // NewClient initializes a Client based on the selected provider.

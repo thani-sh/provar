@@ -26,7 +26,7 @@ func NewGoogleClient(apiKey string, baseURL string, model string) Client {
 	}
 }
 
-func (c *googleClient) CreateSession(ctx context.Context) (Session, error) {
+func (c *googleClient) CreateSession(ctx context.Context, systemPrompt string) (Session, error) {
 	if c.model == "" {
 		return nil, errModelRequired
 	}
@@ -47,17 +47,19 @@ func (c *googleClient) CreateSession(ctx context.Context) (Session, error) {
 		return nil, err
 	}
 	return &googleSession{
-		client: client,
-		model:  c.model,
-		ch:     make(chan string, chanBuffer),
+		client:       client,
+		model:        c.model,
+		systemPrompt: systemPrompt,
+		ch:           make(chan string, chanBuffer),
 	}, nil
 }
 
 type googleSession struct {
-	client   *genai.Client
-	model    string
-	contents []*genai.Content
-	ch       chan string
+	client       *genai.Client
+	model        string
+	systemPrompt string
+	contents     []*genai.Content
+	ch           chan string
 }
 
 func (s *googleSession) Send(ctx context.Context, attachments []Attachment) error {
@@ -81,7 +83,17 @@ func (s *googleSession) Send(ctx context.Context, attachments []Attachment) erro
 		Parts: parts,
 	}
 	s.contents = append(s.contents, userContent)
-	stream := s.client.Models.GenerateContentStream(ctx, s.model, s.contents, nil)
+	var config *genai.GenerateContentConfig
+	if s.systemPrompt != "" {
+		config = &genai.GenerateContentConfig{
+			SystemInstruction: &genai.Content{
+				Parts: []*genai.Part{
+					{Text: s.systemPrompt},
+				},
+			},
+		}
+	}
+	stream := s.client.Models.GenerateContentStream(ctx, s.model, s.contents, config)
 	s.ch = make(chan string, chanBuffer)
 	go func() {
 		defer close(s.ch)
