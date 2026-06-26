@@ -18,6 +18,9 @@ Provar is written in Go with a focus on simplicity, readability, and avoiding bl
 ## Naming & Style
 
 - **Conventions**: Use standard Go naming (camelCase for variables/functions, PascalCase for types/structs/exported items).
+- **Return Early**: Encourage a "return early" approach to reduce code nesting depth.
+- **Function Body Layout**: Strictly avoid empty lines inside any function body.
+- **Function Comments**: Add comments inside function bodies only when absolutely necessary (e.g., `TODO` and `FIXME` comments are allowed exceptions).
 - **Exported Symbols & Public API**: Every exported function, type, and struct must have a doc comment that begins with the name of the symbol (e.g., `// Execute runs the test compiler...`).
 - **Minimize Exports**: Pay great attention to public symbols (exported structs, fields, methods, functions, etc.). To prevent public API bloat, keep as much as possible package-private. **ALWAYS** ask the user for approval before adding or modifying any public exports.
 

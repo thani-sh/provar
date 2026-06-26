@@ -14,7 +14,6 @@ func TestLoadProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create .provar dir: %v", err)
 	}
-
 	configData := `{
 		"variables": {
 			"baseUrl": "https://example.com",
@@ -26,31 +25,21 @@ func TestLoadProject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to write config.json: %v", err)
 	}
-
-	// Set an environment variable override for "timeout"
 	os.Setenv("timeout", "60")
 	defer os.Unsetenv("timeout")
-
 	project, err := LoadProject(tempDir)
 	if err != nil {
 		t.Fatalf("LoadProject returned error: %v", err)
 	}
-
 	if project.Path != tempDir {
 		t.Errorf("expected Path to be %q, got %q", tempDir, project.Path)
 	}
-
-	// Verify coerced variables
 	if project.Vars["baseUrl"] != "https://example.com" {
 		t.Errorf("expected baseUrl to be %q, got %q", "https://example.com", project.Vars["baseUrl"])
 	}
-
-	// Verify environment variable override is respected
 	if project.Vars["timeout"] != "60" {
 		t.Errorf("expected timeout to be overridden by env variable to %q, got %q", "60", project.Vars["timeout"])
 	}
-
-	// Verify boolean coercion
 	if project.Vars["verbose"] != "true" {
 		t.Errorf("expected verbose to be coerced to %q, got %q", "true", project.Vars["verbose"])
 	}
@@ -69,7 +58,6 @@ func TestLoadProject_InvalidJSON(t *testing.T) {
 	provarDir := filepath.Join(tempDir, ".provar")
 	_ = os.MkdirAll(provarDir, 0755)
 	_ = os.WriteFile(filepath.Join(provarDir, "config.json"), []byte(`{invalid}`), 0644)
-
 	_, err := LoadProject(tempDir)
 	if err == nil {
 		t.Error("expected error for invalid config JSON, got nil")
@@ -84,11 +72,8 @@ func TestJob_Lifecycle(t *testing.T) {
 	if job.Status != JobIdle {
 		t.Errorf("expected Status to be JobIdle, got %q", job.Status)
 	}
-
 	ch := job.Subscribe()
-
 	job.Status = JobRunning
-
 	err := job.Pause()
 	if err != nil {
 		t.Errorf("Pause returned error: %v", err)
@@ -96,7 +81,6 @@ func TestJob_Lifecycle(t *testing.T) {
 	if job.Status != JobPaused {
 		t.Errorf("expected status to be JobPaused, got %q", job.Status)
 	}
-
 	select {
 	case ev := <-ch:
 		if ev.ID != "job-123-pause" {
@@ -111,7 +95,6 @@ func TestJob_Lifecycle(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Error("timeout waiting for Pause event")
 	}
-
 	err = job.Resume()
 	if err != nil {
 		t.Errorf("Resume returned error: %v", err)
@@ -119,7 +102,6 @@ func TestJob_Lifecycle(t *testing.T) {
 	if job.Status != JobRunning {
 		t.Errorf("expected status to be JobRunning, got %q", job.Status)
 	}
-
 	select {
 	case ev := <-ch:
 		if ev.ID != "job-123-resume" {
@@ -131,7 +113,6 @@ func TestJob_Lifecycle(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 		t.Error("timeout waiting for Resume event")
 	}
-
 	err = job.Stop()
 	if err != nil {
 		t.Errorf("Stop returned error: %v", err)
@@ -139,7 +120,6 @@ func TestJob_Lifecycle(t *testing.T) {
 	if job.Status != JobStopped {
 		t.Errorf("expected status to be JobStopped, got %q", job.Status)
 	}
-
 	select {
 	case ev := <-ch:
 		if ev.ID != "job-123-stop" {

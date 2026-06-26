@@ -58,14 +58,15 @@ func (j *Job) Subscribe() <-chan Event {
 func (j *Job) Stop() error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.Status == JobRunning || j.Status == JobPaused || j.Status == JobIdle {
-		j.Status = JobStopped
-		j.emit(Event{
-			ID:   j.ID + "-stop",
-			Type: "stopped",
-			Data: "Job stopped by user",
-		})
+	if j.Status != JobRunning && j.Status != JobPaused && j.Status != JobIdle {
+		return nil
 	}
+	j.Status = JobStopped
+	j.emit(Event{
+		ID:   j.ID + "-stop",
+		Type: "stopped",
+		Data: "Job stopped by user",
+	})
 	return nil
 }
 
@@ -73,14 +74,15 @@ func (j *Job) Stop() error {
 func (j *Job) Pause() error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.Status == JobRunning {
-		j.Status = JobPaused
-		j.emit(Event{
-			ID:   j.ID + "-pause",
-			Type: "paused",
-			Data: "Job paused by user",
-		})
+	if j.Status != JobRunning {
+		return nil
 	}
+	j.Status = JobPaused
+	j.emit(Event{
+		ID:   j.ID + "-pause",
+		Type: "paused",
+		Data: "Job paused by user",
+	})
 	return nil
 }
 
@@ -88,14 +90,15 @@ func (j *Job) Pause() error {
 func (j *Job) Resume() error {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	if j.Status == JobPaused {
-		j.Status = JobRunning
-		j.emit(Event{
-			ID:   j.ID + "-resume",
-			Type: "resumed",
-			Data: "Job resumed by user",
-		})
+	if j.Status != JobPaused {
+		return nil
 	}
+	j.Status = JobRunning
+	j.emit(Event{
+		ID:   j.ID + "-resume",
+		Type: "resumed",
+		Data: "Job resumed by user",
+	})
 	return nil
 }
 
@@ -106,7 +109,6 @@ func (j *Job) emit(e Event) {
 		select {
 		case listener <- e:
 		default:
-			// Non-blocking write to prevent stalling if listener channel is full
 		}
 	}
 }
