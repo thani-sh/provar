@@ -25,3 +25,11 @@ This project is currently being migrated from Bun to Go. We will migrate feature
 - `docs/`: Product documentation
 
 When adding markdown documentation, consult the structure above first.
+
+## Agent Skills
+
+For detailed guidelines on development, testing, and writing, refer to the agent skills:
+
+- .agents/skills/coding/SKILL.md
+- .agents/skills/testing/SKILL.md
+- .agents/skills/writing/SKILL.md
