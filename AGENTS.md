@@ -2,6 +2,10 @@
 
 Project status: Provar is a developer tool built in Go and Typescript, designed with a focus on simplicity, minimal dependencies, and strict resistance to code bloat.
 
+## Current Project Focus
+
+This project is currently being migrated from Bun to Go. We will migrate features step by step while maintaining a high level of code and API quality.
+
 ## Tooling & Verification
 
 - **Go Code**: ALWAYS Use standard Go commands. Always run `go fmt ./...` and `go vet ./...` to verify code.
