@@ -1,63 +1,29 @@
 ---
 name: coding
-description: Coding guidelines, naming standards, Go-style comments, TypeScript best practices, and verification steps.
+description: Coding guidelines, Go conventions, styling, and code quality expectations.
 ---
 
-# Coding Standards Guide
+# Go Coding Standards Guide
 
-This skill provides the core coding standards, TypeScript best practices, and code style guidelines to adhere to when developing features or refactoring code in the Provar workspace.
+Provar is written in Go with a focus on simplicity, readability, and avoiding bloat. Adhere strictly to these coding standards.
 
-## Naming Conventions
+## Code Quality & Anti-Bloat
 
-To keep the codebase uniform, clean, and highly readable, use these conventions:
+- **Minimal Dependencies**: Do not add external packages unless absolutely necessary. Rely on the Go standard library first.
+- **Idiomatic Go**: Use idiomatic Go structures. Handle errors explicitly. Never use `panic` or recover unless a panic is truly unrecoverable.
+- **Zero Redundancy**: Avoid unnecessary allocations, deep nested blocks, and redundant logic. Keep functions short and single-purpose.
+- **Strict Types**: Avoid using `any` or `interface{}` unless designing generic wrappers or interface boundaries where dynamic type inspection is required.
+- **Respect Library Responsibilities**: Adhere strictly to the defined purpose and boundary of each library/sub-package in the workspace (refer to `docs/SYSTEMS.md` for definitions). Never blur architectural concerns or introduce circular dependencies between these components.
 
-- **Variables & Functions:** `camelCase` (e.g., `isTestRunning`, `executeStep`).
-- **Classes & Types:** `PascalCase` (e.g., `ExecutionEngine`, `TestState`).
-- **Global Constants:** `UPPER_CASE` (e.g., `MAX_RETRY_COUNT`, `DEFAULT_PORT`).
-- **Files & Directories:** `kebab-case` (e.g., `readme-lib-template.md`, `test-runner.ts`).
+## Naming & Style
 
----
-
-## Go-style Comments
-
-You **MUST** always add comments above functions, types, classes, and other exported values. Instead of verbose block JSDoc comments with annotations like `@param` or `@returns`, use concise **Go-style comments**. The comment must be a complete sentence starting with the name of the documented item. **Examples:**
-
-```typescript
-/**
- * executeEngine initiates the runner with the given configuration.
- */
-function executeEngine(config: EngineConfig): void {
-  // ...
-}
-
-/**
- * EngineState represents the current execution context.
- */
-interface EngineState {
-  status: "idle" | "running" | "completed";
-}
-```
-
----
-
-## TypeScript Best Practices
-
-- **Strict Typing:** Avoid using `any`. Use `unknown` if the type is dynamic, or define custom interfaces and union types.
-- **Explicit Types:** Prefer explicit type annotations for function signatures, class members, and public exports to ensure API boundary safety.
-- **Generators & Iterators:** We encourage the use of generator functions, particularly **async generators** and **async iterators** (e.g. for streaming LLM client responses or handling step-by-step test execution flows).
-- **Monorepo Import Path Aliases:**
-  - **ALWAYS** use workspace aliases defined in `tsconfig.json` paths for importing from other monorepo packages.
-  - **NEVER** use relative path imports (e.g. `../../libs/domain/src/zod`) across package boundaries.
-  - Common package alias paths:
-    - `@libs/domain`
-    - `@libs/engine`
-    - `@libs/config`
-    - `@libs/models`
-
----
+- **Conventions**: Use standard Go naming (camelCase for variables/functions, PascalCase for types/structs/exported items).
+- **Exported Symbols & Public API**: Every exported function, type, and struct must have a doc comment that begins with the name of the symbol (e.g., `// Execute runs the test compiler...`).
+- **Minimize Exports**: Pay great attention to public symbols (exported structs, fields, methods, functions, etc.). To prevent public API bloat, keep as much as possible package-private. **ALWAYS** ask the user for approval before adding or modifying any public exports.
 
 ## Pre-Completion Verification
 
-Before concluding any implementation task:
-1.  **Build Verification:** Run `bun run build` to verify that your changes compile successfully and introduce no TypeScript type errors.
-2.  **Lint Verification:** Run `bun run lint` to check for style violations. If violations exist, run `bun run lint:fix` to auto-fix formatting issues.
+Before completing any task:
+1. **Formatting**: Run `go fmt ./...`.
+2. **Linting & Safety**: Run `go vet ./...` (and `golangci-lint run` if available).
+3. **Build**: Verify that the application compiles without warnings.
