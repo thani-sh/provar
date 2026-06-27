@@ -18,6 +18,9 @@ coverage.txt
 go.work
 go.work.sum
 
+# Node / npm workspaces
+node_modules/
+
 # env / secrets
 .env
 .env.*
@@ -31,6 +34,3 @@ go.work.sum
 
 # Local worktrees
 .worktrees/
-
-# node dependencies
-node_modules

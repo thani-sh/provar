@@ -1,0 +1,6 @@
+{
+  "name": "@provar/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Provar HTTP API service"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "@provar/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Provar command-line interface"
+}

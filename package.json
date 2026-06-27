@@ -1,0 +1,25 @@
+{
+  "name": "provar",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Provar monorepo",
+  "packageManager": "npm@11.17.0",
+  "workspaces": [
+    "apps/provar-cli",
+    "apps/provar-api",
+    "apps/provar-app",
+    "apps/provar-web",
+    "libs/sdk"
+  ],
+  "scripts": {
+    "all": "npm run fmt && npm run vet && npm run test && npm run build",
+    "fmt": "go fmt ./...",
+    "vet": "go vet ./...",
+    "test": "go test ./...",
+    "build": "go build -o bin/provar ./apps/provar-cli/cmd/provar",
+    "run": "npm run build && ./bin/provar",
+    "install:cli": "go install ./apps/provar-cli/cmd/provar",
+    "tidy": "go mod tidy",
+    "clean": "rm -rf bin/"
+  }
+}
