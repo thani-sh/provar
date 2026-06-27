@@ -31,3 +31,6 @@ go.work.sum
 
 # Local worktrees
 .worktrees/
+
+# node dependencies
+node_modules
