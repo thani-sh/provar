@@ -30,7 +30,7 @@ func NewRunner() *Runner {
 }
 
 // Run executes a compiled scenario and returns a Job tracking the progress.
-func (r *Runner) Run(ctx context.Context, scenario domain.Scenario, luaCode string, opts RunOptions) (*domain.Job, error) {
+func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode string, opts RunOptions) (*domain.Job, error) {
 	job := domain.NewJob(uuid.New().String(), domain.JobRunning)
 	go func() {
 		startTime := time.Now()
@@ -62,7 +62,7 @@ func (r *Runner) Run(ctx context.Context, scenario domain.Scenario, luaCode stri
 			})
 			return
 		}
-		for _, action := range scenario {
+		for _, action := range actions {
 			if !runWaitLoop(ctx, job) {
 				break
 			}

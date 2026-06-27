@@ -19,9 +19,9 @@ func NewCompiler(session models.Session) *Compiler {
 	return &Compiler{Session: session}
 }
 
-// Compile compiles the scenario into Lua executable steps.
-func (c *Compiler) Compile(ctx context.Context, scenario domain.Scenario, opts CompileOptions) (*CompileResult, error) {
-	prompt := buildPrompt(scenario)
+// Compile compiles a list of actions into Lua executable steps.
+func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts CompileOptions) (*CompileResult, error) {
+	prompt := buildPrompt(actions)
 	attachment := models.Attachment{
 		Type: models.AttachmentTypeText,
 		Text: prompt,
@@ -44,7 +44,7 @@ func (c *Compiler) Compile(ctx context.Context, scenario domain.Scenario, opts C
 	}, nil
 }
 
-func buildPrompt(scenario domain.Scenario) string {
+func buildPrompt(actions []domain.Action) string {
 	var sb strings.Builder
 	sb.WriteString("You are a test compiler for Provar. Your task is to compile a high-level test scenario into a Lua script that automates a browser using a standard Page and Locator API.\n\n")
 	sb.WriteString("Here is the Page and Locator API that is exposed to the Lua script:\n")
@@ -66,7 +66,7 @@ func buildPrompt(scenario domain.Scenario) string {
 	sb.WriteString("return steps\n")
 	sb.WriteString("```\n\n")
 	sb.WriteString("Here are the actions of the test scenario to compile. For each action, write the corresponding Lua function under the action's ID.\n\n")
-	for _, action := range scenario {
+	for _, action := range actions {
 		sb.WriteString(fmt.Sprintf("Action ID: %s\n", action.ID))
 		sb.WriteString(fmt.Sprintf("Action Name: %s\n", action.Name))
 		sb.WriteString(fmt.Sprintf("Action Description: %s\n\n", action.Info))

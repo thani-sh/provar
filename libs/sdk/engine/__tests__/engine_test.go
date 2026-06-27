@@ -29,7 +29,7 @@ func TestRunner_Integration(t *testing.T) {
 		`)
 	}))
 	defer server.Close()
-	scenario := domain.Scenario{
+	scenario := []domain.Action{
 		{ID: "open_page", Name: "Open Page", Info: "Navigate to base URL"},
 		{ID: "enter_email", Name: "Enter Email", Info: "Fill in the email input"},
 		{ID: "click_login", Name: "Click Login", Info: "Click the login button"},
