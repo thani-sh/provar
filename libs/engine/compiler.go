@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/thani-sh/provar/libs/sdk/domain"
-	"github.com/thani-sh/provar/libs/sdk/models"
+	"github.com/thani-sh/provar/libs/domain"
+	"github.com/thani-sh/provar/libs/models"
 )
 
 // Compiler handles logical compilation.

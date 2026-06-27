@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/thani-sh/provar/libs/sdk/domain"
-	"github.com/thani-sh/provar/libs/sdk/engine/browser"
+	"github.com/thani-sh/provar/libs/domain"
+	"github.com/thani-sh/provar/libs/engine/browser"
 )
 
 const (

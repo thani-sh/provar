@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/thani-sh/provar/libs/sdk/domain"
+	"github.com/thani-sh/provar/libs/domain"
 )
 
 func TestInterpolateVars(t *testing.T) {

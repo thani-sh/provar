@@ -6,7 +6,7 @@ Where the rewrite stands and the sequenced path to a usable product.
 
 ## 1. Current State
 
-The runtime engine exists in `libs/sdk`. The CLI is a stub. The other reserved surfaces are empty.
+The runtime engine exists in `libs`. The CLI is a stub. The other reserved surfaces are empty.
 
 ## 2. Path to Provar CLI v1
 

@@ -22,9 +22,9 @@ Every feature, package, and bug fix must be covered by robust Go unit or integra
   ```
 - Run tests in a specific package:
   ```bash
-  go test ./libs/sdk/engine
+  go test ./libs/engine
   ```
 - Run a specific test with verbose output:
   ```bash
-  go test -v -run TestCompileEngine ./libs/sdk/engine
+  go test -v -run TestCompileEngine ./libs/engine
   ```

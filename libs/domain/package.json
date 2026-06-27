@@ -1,0 +1,6 @@
+{
+  "name": "@provar/domain",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Domain models and configuration management"
+}

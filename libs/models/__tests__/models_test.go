@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thani-sh/provar/libs/sdk/models"
+	"github.com/thani-sh/provar/libs/models"
 )
 
 const (

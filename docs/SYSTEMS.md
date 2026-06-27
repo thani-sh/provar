@@ -15,7 +15,9 @@ Provar is structured as a monorepo containing multiple applications (`apps/`) an
 
 ### Libraries (`libs/`)
 
-- `sdk`: The core SDK combining domain schemas, the compiler and execution engine, and LLM model wrappers.
+- `domain`: Domain models and configuration management.
+- `engine`: Code generation and execution runtime.
+- `models`: Simplified API for LLM SDKs with bidirectional streaming.
 
 ## 2. Technical Dependencies
 
@@ -27,8 +29,8 @@ graph TD
     api["provar-api [Go]"]
     app["provar-app [Go]"]
     cli["provar-cli [Go]"]
-    
-    subgraph sdk["provar-sdk [Go]"]
+
+    subgraph libs["provar-libs [Go]"]
         direction TB
         domain["Domain [Go] <br> (Domain models & config management)"]
         engine["Engine [Go] <br> (Code generation & execution)"]
@@ -36,14 +38,14 @@ graph TD
     end
 
     web --> api
-    api --> sdk
-    cli --> sdk
-    app --> sdk
+    api --> libs
+    cli --> libs
+    app --> libs
 ```
 
-## 3. Internal SDK Boundaries
+## 3. Internal Library Boundaries
 
-The `libs/sdk` directory houses three logical packages, isolating concerns and maintaining a clear boundary:
+The `libs` directory houses three logical packages, isolating concerns and maintaining a clear boundary:
 
 1. **Domain**: Contains baseline entities, schemas, and configurations that are shared across all tools.
 2. **Engine**: Houses code generation, runner execution loops, and compiler logic to translate visual test graphs into runnable test actions.

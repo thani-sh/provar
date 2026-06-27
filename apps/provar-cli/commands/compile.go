@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/thani-sh/provar/apps/provar-cli/helpers"
-	"github.com/thani-sh/provar/libs/sdk/domain"
-	"github.com/thani-sh/provar/libs/sdk/engine"
-	"github.com/thani-sh/provar/libs/sdk/models"
+	"github.com/thani-sh/provar/libs/domain"
+	"github.com/thani-sh/provar/libs/engine"
+	"github.com/thani-sh/provar/libs/models"
 )
 
 // compileFlags are the typed flags for the compile command.

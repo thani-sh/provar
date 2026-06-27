@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/thani-sh/provar/apps/provar-cli/helpers"
-	"github.com/thani-sh/provar/libs/sdk/domain"
-	"github.com/thani-sh/provar/libs/sdk/engine"
+	"github.com/thani-sh/provar/libs/domain"
+	"github.com/thani-sh/provar/libs/engine"
 )
 
 // runFlags are the typed flags for the run command. The `validate:"-"` tag tells the

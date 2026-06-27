@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/thani-sh/provar/apps/provar-cli/helpers"
-	"github.com/thani-sh/provar/libs/sdk/domain"
+	"github.com/thani-sh/provar/libs/domain"
 )
 
 // setupFlags are the typed flags for the setup command. The `flag:"..."` tag tells the
