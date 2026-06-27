@@ -1,4 +1,4 @@
-# Provar — System Architecture (Living)
+# Provar: System Architecture (Living)
 
 This document is the living system design and technical specification for Provar. It outlines the monorepo architecture, application dependencies, and internal SDK library boundaries.
 

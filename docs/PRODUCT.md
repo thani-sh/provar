@@ -1,4 +1,4 @@
-# Provar — Product Specification (Living)
+# Provar: Product Specification (Living)
 
 This document is the **single source of truth for what Provar is and who it's for**. It is a living specification representing the current state of the product.
 
@@ -26,6 +26,21 @@ Provar is built for **working web developers** who want to author end-to-end tes
 - **scenario**: A sequence of actions representing one execution route through the test graph.
 - **action**: A high-level step of the sequence (e.g., "register as a new user"), representing a node in the test's directed acyclic graph (DAG).
 
-## 4. North-Star Metric
+## 4. Products
+
+### 4.1. CLI Interface
+
+- **setup**: scaffold a new provar project in a directory with or without example data.
+- **compile**: compiles human friendly steps into machine friendly step by step instructions.
+- **runner**: executes the compiled code against a real running applications.
+
+### 4.2. Graphical Editor
+
+- **setup**: scaffold a new provar project in a directory with or without example data.
+- **compile**: compiles human friendly steps into machine friendly step by step instructions.
+- **runner**: executes the compiled code against a real running applications.
+- **author**: compose scenarios as directed graphs on a visual canvas.
+
+## 5. North-Star Metric
 
 **Time from cloning/install to first passing test run.** (Target: under 30 minutes).

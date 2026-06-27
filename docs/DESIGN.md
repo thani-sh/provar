@@ -114,7 +114,7 @@ The palette is rooted in a deep charcoal base (`#0f172a`), creating a vast, non-
 
 ## Typography
 
-This design system utilizes **Geist** for its core UI—a typeface specifically designed for developer tools, offering extreme legibility and a systematic feel.
+This design system utilizes **Geist** for its core UI, a typeface specifically designed for developer tools, offering extreme legibility and a systematic feel.
 
 For technical data, logs, and test scripts, **JetBrains Mono** is employed to maintain character distinction (like 0 vs O) which is critical in testing environments.
 

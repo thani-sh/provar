@@ -11,7 +11,7 @@ Provar documents must remain concise, accurate, and free of bloat.
 
 - **No Technology Stack Bloat**: Do not include generic lists of technologies used (e.g., "built with Svelte/Vite/Bun"). Keep descriptions focused entirely on the project's purpose, features, and target user value.
 - **Single Source of Truth**: User-facing specifications go into `docs/PRODUCT.md`. Technical design/architecture details go into `docs/SYSTEMS.md`. Do not duplicate information between them.
-- **Conciseness**: Keep paragraphs short. Do not use soft line wraps (line breaks within paragraphs) — let paragraph text exist on a single line so it wraps naturally in viewers.
+- **Conciseness**: Keep paragraphs short. Do not use soft line wraps (line breaks within paragraphs). Let paragraph text exist on a single line so it wraps naturally in viewers.
 
 ## README Templates
 
