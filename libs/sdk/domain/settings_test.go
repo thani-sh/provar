@@ -8,11 +8,11 @@ import (
 
 const (
 	testSettingsDir  = ".provar"
-	testSettingsFile = "settings.json"
+	testSettingsFile = "settings.yml"
 	testHomeDirEnv   = "HOME"
 
 	testAPIKey        = "test-api-key"
-	testInvalidJSON   = `{not json`
+	testInvalidYAML   = "key: \"unclosed"
 	testBadURL        = "not-a-url"
 	testMissingKeyMsg = "no API key"
 )
@@ -39,7 +39,7 @@ func TestLoadSettings_OK(t *testing.T) {
 	if err := os.MkdirAll(settingsDir, dirPerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	content := `{"models":{"provider":"openai","providers":{"openai":{"apiKey":"sk-test","model":"gpt-4o"},"google":{"model":"gemini-1.5-flash"},"anthropic":{"model":"claude-3-5-sonnet-latest"}}}}`
+	content := "models:\n  provider: openai\n  providers:\n    openai:\n      apiKey: sk-test\n      model: gpt-4o\n    google:\n      model: gemini-1.5-flash\n    anthropic:\n      model: claude-3-5-sonnet-latest\n"
 	if err := os.WriteFile(filepath.Join(settingsDir, testSettingsFile), []byte(content), filePerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -59,19 +59,19 @@ func TestLoadSettings_OK(t *testing.T) {
 	}
 }
 
-func TestLoadSettings_InvalidJSON(t *testing.T) {
+func TestLoadSettings_InvalidYAML(t *testing.T) {
 	tempHome := t.TempDir()
 	t.Setenv(testHomeDirEnv, tempHome)
 	settingsDir := filepath.Join(tempHome, testSettingsDir)
 	if err := os.MkdirAll(settingsDir, dirPerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	if err := os.WriteFile(filepath.Join(settingsDir, testSettingsFile), []byte(testInvalidJSON), filePerm); err != nil {
+	if err := os.WriteFile(filepath.Join(settingsDir, testSettingsFile), []byte(testInvalidYAML), filePerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
 	_, err := LoadSettings()
 	if err == nil {
-		t.Error("expected error for invalid JSON, got nil")
+		t.Error("expected error for invalid YAML, got nil")
 	}
 }
 

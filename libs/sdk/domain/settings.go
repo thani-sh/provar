@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -9,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	"go.yaml.in/yaml/v4"
 )
 
 // Provider identifies which LLM backend the user is configured to use.
@@ -22,30 +22,30 @@ const (
 
 const (
 	settingsDir      = ".provar"
-	settingsFilename = "settings.json"
+	settingsFilename = "settings.yml"
 )
 
 // ProviderConfig is the per-provider credential bundle. APIKey is required to be non-empty
 // for whichever provider is currently active; the other providers may have empty keys.
 type ProviderConfig struct {
-	APIKey  string `json:"apiKey"  validate:"omitempty,min=1"`
-	Model   string `json:"model"   validate:"required"`
-	BaseURL string `json:"baseUrl" validate:"omitempty,url"`
+	APIKey  string `yaml:"apiKey"  validate:"omitempty,min=1"`
+	Model   string `yaml:"model"   validate:"required"`
+	BaseURL string `yaml:"baseUrl" validate:"omitempty,url"`
 }
 
 // ModelsSettings holds the active provider and a credential bundle for every supported
 // provider. The active provider must have a non-empty APIKey (enforced by Validate).
 type ModelsSettings struct {
-	Provider  Provider                  `json:"provider"  validate:"required,oneof=google openai anthropic"`
-	Providers map[string]ProviderConfig `json:"providers" validate:"required,min=1,dive"`
+	Provider  Provider                  `yaml:"provider"  validate:"required,oneof=google openai anthropic"`
+	Providers map[string]ProviderConfig `yaml:"providers" validate:"required,min=1,dive"`
 }
 
-// Settings is the full on-disk settings structure, loaded from ~/.provar/settings.json.
+// Settings is the full on-disk settings structure, loaded from ~/.provar/settings.yml.
 type Settings struct {
-	Models ModelsSettings `json:"models" validate:"required"`
+	Models ModelsSettings `yaml:"models" validate:"required"`
 }
 
-// LoadSettings reads ~/.provar/settings.json. A missing file is not an error — the default
+// LoadSettings reads ~/.provar/settings.yml. A missing file is not an error — the default
 // settings are returned instead so first-run users can edit and save.
 func LoadSettings() (*Settings, error) {
 	home, err := os.UserHomeDir()
@@ -61,7 +61,7 @@ func LoadSettings() (*Settings, error) {
 		return nil, fmt.Errorf("read settings: %w", err)
 	}
 	var s Settings
-	if err := json.Unmarshal(data, &s); err != nil {
+	if err := yaml.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parse settings: %w", err)
 	}
 	return &s, nil
@@ -88,7 +88,7 @@ func (s *Settings) Validate() error {
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 // defaultSettings is the first-run settings: every supported provider gets a default model,
-// Google is active, and no API keys are set. The user edits ~/.provar/settings.json to add
+// Google is active, and no API keys are set. The user edits ~/.provar/settings.yml to add
 // the active provider's API key.
 func defaultSettings() *Settings {
 	return &Settings{
