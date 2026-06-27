@@ -28,8 +28,8 @@ const (
 // ProviderConfig is the per-provider credential bundle. APIKey is required to be non-empty
 // for whichever provider is currently active; the other providers may have empty keys.
 type ProviderConfig struct {
-	APIKey  string `yaml:"apiKey"  validate:"omitempty,min=1"`
 	Model   string `yaml:"model"   validate:"required"`
+	APIKey  string `yaml:"apiKey"  validate:"omitempty,min=1"`
 	BaseURL string `yaml:"baseUrl" validate:"omitempty,url"`
 }
 
