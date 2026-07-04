@@ -1,13 +1,9 @@
-<script>
-	import DocsPlaceholder from "$lib/components/docs-placeholder.svelte";
-</script>
-
 <h1>Running tests</h1>
 <p>
 	You can run a test from the editor, from the CLI, or from CI. All three paths produce the
 	same results because they share the same engine. Pick whichever fits where you are: editor
-	when you're iterating, CLI when you're scripting, CI when you've stopped being the one to
-	run them.
+	when you're iterating, CLI when you're scripting, CI when you've stopped being the one to run
+	them.
 </p>
 
 <h2>From the editor</h2>
@@ -18,15 +14,20 @@
 	the diff shows up right there in the panel.
 </p>
 
-<DocsPlaceholder caption="Run panel mid-execution with per-step progress (placeholder)" />
-
 <h2>From the CLI</h2>
-<p>Compile and run a single test file:</p>
-<pre><code>bun --cwd apps/provar-cli -- run .provar/tests/auth/login-flow.test.ts</code></pre>
-<p>Run every test in the project:</p>
-<pre><code>bun --cwd apps/provar-cli -- run .</code></pre>
-<p>Compile only, no execution, with a performance trace:</p>
-<pre><code>bun --cwd apps/provar-cli -- compile .provar/tests/auth/login-flow.test.ts --trace</code></pre>
+<p>Compile a project (writes the compiled scripts next to each <code>.test.yml</code>):</p>
+<pre><code>provar compile .</code></pre>
+<p>Run everything in the project:</p>
+<pre><code>provar run .</code></pre>
+<p>Run with a visible browser window (default is headless, what CI wants):</p>
+<pre><code>provar run . --headless false</code></pre>
+<p>Stop at a given step — works for both compile and run:</p>
+<pre><code>provar run . --up-to enter_credentials</code></pre>
+<p>
+	The <code>--up-to</code> flag runs the named step and everything before it, then stops. Use
+	it when you're chasing a failing step in a long test — you can see it execute without
+	waiting for the whole graph to drain.
+</p>
 
 <h2>Exit codes</h2>
 <ul>

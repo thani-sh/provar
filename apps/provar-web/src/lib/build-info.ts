@@ -1,20 +1,17 @@
 /**
- * build-info centralizes deployment-specific URLs and flags so a staging deploy can be
- * configured separately from production. Mirrors the T023 audit fix: every hard-coded
- * deployment URL on the site should read from here.
+ * build-info centralizes deployment-specific URLs so a staging deploy can be configured
+ * separately from production.
  *
  * Configure via `.env` / Vite env (`PUBLIC_*` is exposed to the client):
- *   PUBLIC_INSTALL_LIVE    "true" to enable the curl install card; otherwise show "coming soon"
- *   PUBLIC_GITHUB_REPO     GitHub repo URL (default: https://github.com/thani-sh/provar)
- *   PUBLIC_INSTALL_BASE    Base URL for the one-line installer (default: https://provar.se)
- *   PUBLIC_DOWNLOAD_BASE   Base URL for desktop download artifacts
+ *   PUBLIC_URL         Public-facing project URL — install script lives at
+ *                       ${PUBLIC_URL}/install.sh, desktop artifacts under
+ *                       ${PUBLIC_URL}/downloads/.
+ *   PUBLIC_GITHUB_REPO GitHub repo URL (default: https://github.com/thani-sh/provar)
  */
 
 const env = (import.meta as { env: Record<string, string | undefined> }).env;
 
 export const buildInfo = {
-	installLive: env.PUBLIC_INSTALL_LIVE === "true",
-	githubRepo: env.PUBLIC_GITHUB_REPO ?? "https://github.com/thani-sh/provar",
-	installBase: env.PUBLIC_INSTALL_BASE ?? "https://provar.se",
-	downloadBase: env.PUBLIC_DOWNLOAD_BASE ?? ""
+  url: env.PUBLIC_URL ?? "https://provar.se",
+  githubRepo: env.PUBLIC_GITHUB_REPO ?? "https://github.com/thani-sh/provar",
 };

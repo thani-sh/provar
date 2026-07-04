@@ -24,11 +24,11 @@ func TestLoadSettings_MissingReturnsDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSettings returned error: %v", err)
 	}
-	if s.Models.Provider != ProviderGoogle {
-		t.Errorf("expected default provider %q, got %q", ProviderGoogle, s.Models.Provider)
+	if s.Provider != ProviderGoogle {
+		t.Errorf("expected default provider %q, got %q", ProviderGoogle, s.Provider)
 	}
-	if len(s.Models.Providers) != 3 {
-		t.Errorf("expected 3 default providers, got %d", len(s.Models.Providers))
+	if len(s.Providers) != 3 {
+		t.Errorf("expected 3 default providers, got %d", len(s.Providers))
 	}
 }
 
@@ -39,7 +39,7 @@ func TestLoadSettings_OK(t *testing.T) {
 	if err := os.MkdirAll(settingsDir, dirPerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
-	content := "models:\n  provider: openai\n  providers:\n    openai:\n      apiKey: sk-test\n      model: gpt-4o\n    google:\n      model: gemini-1.5-flash\n    anthropic:\n      model: claude-3-5-sonnet-latest\n"
+	content := "provider: openai\nproviders:\n  openai:\n    apiKey: sk-test\n    model: gpt-5.5\n  google:\n    model: gemini-3.5-flash\n  anthropic:\n    model: claude-5-sonnet-latest\n"
 	if err := os.WriteFile(filepath.Join(settingsDir, testSettingsFile), []byte(content), filePerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
@@ -47,10 +47,10 @@ func TestLoadSettings_OK(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadSettings returned error: %v", err)
 	}
-	if s.Models.Provider != ProviderOpenAI {
-		t.Errorf("expected provider %q, got %q", ProviderOpenAI, s.Models.Provider)
+	if s.Provider != ProviderOpenAI {
+		t.Errorf("expected provider %q, got %q", ProviderOpenAI, s.Provider)
 	}
-	openai, ok := s.Models.Providers[string(ProviderOpenAI)]
+	openai, ok := s.Providers[string(ProviderOpenAI)]
 	if !ok {
 		t.Fatal("expected openai provider entry")
 	}
@@ -77,13 +77,11 @@ func TestLoadSettings_InvalidYAML(t *testing.T) {
 
 func TestSettings_Validate_OK(t *testing.T) {
 	s := &Settings{
-		Models: ModelsSettings{
-			Provider: ProviderGoogle,
-			Providers: map[string]ProviderConfig{
-				string(ProviderGoogle):    {APIKey: testAPIKey, Model: "gemini-1.5-flash"},
-				string(ProviderOpenAI):    {Model: "gpt-4o"},
-				string(ProviderAnthropic): {Model: "claude-3-5-sonnet-latest"},
-			},
+		Provider: ProviderGoogle,
+		Providers: map[string]ProviderConfig{
+			string(ProviderGoogle):    {APIKey: testAPIKey, Model: "gemini-3.5-flash"},
+			string(ProviderOpenAI):    {Model: "gpt-5.5"},
+			string(ProviderAnthropic): {Model: "claude-5-sonnet-latest"},
 		},
 	}
 	if err := s.Validate(); err != nil {
@@ -93,13 +91,11 @@ func TestSettings_Validate_OK(t *testing.T) {
 
 func TestSettings_Validate_MissingAPIKey(t *testing.T) {
 	s := &Settings{
-		Models: ModelsSettings{
-			Provider: ProviderGoogle,
-			Providers: map[string]ProviderConfig{
-				string(ProviderGoogle):    {Model: "gemini-1.5-flash"},
-				string(ProviderOpenAI):    {Model: "gpt-4o"},
-				string(ProviderAnthropic): {Model: "claude-3-5-sonnet-latest"},
-			},
+		Provider: ProviderGoogle,
+		Providers: map[string]ProviderConfig{
+			string(ProviderGoogle):    {Model: "gemini-3.5-flash"},
+			string(ProviderOpenAI):    {Model: "gpt-5.5"},
+			string(ProviderAnthropic): {Model: "claude-5-sonnet-latest"},
 		},
 	}
 	err := s.Validate()
@@ -113,13 +109,11 @@ func TestSettings_Validate_MissingAPIKey(t *testing.T) {
 
 func TestSettings_Validate_BadProvider(t *testing.T) {
 	s := &Settings{
-		Models: ModelsSettings{
-			Provider: Provider("unknown-provider"),
-			Providers: map[string]ProviderConfig{
-				string(ProviderGoogle):    {Model: "gemini-1.5-flash"},
-				string(ProviderOpenAI):    {Model: "gpt-4o"},
-				string(ProviderAnthropic): {Model: "claude-3-5-sonnet-latest"},
-			},
+		Provider: Provider("unknown-provider"),
+		Providers: map[string]ProviderConfig{
+			string(ProviderGoogle):    {Model: "gemini-3.5-flash"},
+			string(ProviderOpenAI):    {Model: "gpt-5.5"},
+			string(ProviderAnthropic): {Model: "claude-5-sonnet-latest"},
 		},
 	}
 	if err := s.Validate(); err == nil {
@@ -129,13 +123,11 @@ func TestSettings_Validate_BadProvider(t *testing.T) {
 
 func TestSettings_Validate_BadURL(t *testing.T) {
 	s := &Settings{
-		Models: ModelsSettings{
-			Provider: ProviderOpenAI,
-			Providers: map[string]ProviderConfig{
-				string(ProviderGoogle):    {Model: "gemini-1.5-flash"},
-				string(ProviderOpenAI):    {APIKey: testAPIKey, Model: "gpt-4o", BaseURL: testBadURL},
-				string(ProviderAnthropic): {Model: "claude-3-5-sonnet-latest"},
-			},
+		Provider: ProviderOpenAI,
+		Providers: map[string]ProviderConfig{
+			string(ProviderGoogle):    {Model: "gemini-3.5-flash"},
+			string(ProviderOpenAI):    {APIKey: testAPIKey, Model: "gpt-5.5", BaseURL: testBadURL},
+			string(ProviderAnthropic): {Model: "claude-5-sonnet-latest"},
 		},
 	}
 	if err := s.Validate(); err == nil {

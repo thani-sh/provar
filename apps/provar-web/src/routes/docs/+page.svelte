@@ -22,7 +22,7 @@
 			title: "Generated code",
 			summary: "AI-written code. Runs without one.",
 			detail:
-				"The TypeScript the AI writes from your graph, sitting in your project as a regular file — reviewable, diffable, runnable on its own. The AI writes it once when the step is first added; after that it's just code. CI runs the script with no LLM in the loop. You only need an API key at author-time, not at run-time. That separation is what makes 'AI-assisted' not 'AI-dependent.'"
+				"The machine-friendly code the AI writes from your graph, sitting in your project as a regular file — reviewable, diffable, runnable on its own. The AI writes it once when the step is first added; after that it's just code. CI runs the script with no LLM in the loop. You only need an API key at author-time, not at run-time. That separation is what makes 'AI-assisted' not 'AI-dependent.'"
 		}
 	];
 
@@ -110,8 +110,8 @@
 		</div>
 		<p class="text-on-surface text-sm font-semibold">The command-line interface</p>
 		<p class="text-on-surface-variant text-xs leading-relaxed">
-			Compile and run <code>.test.yml</code> files from a terminal. Tiny surface, runs anywhere
-			Bun runs — including CI, including a 1-vps side project.
+			Compile and run <code>.test.yml</code> files from a terminal. Tiny surface, runs
+			anywhere a static Go binary runs — including CI, including a 1-vps side project.
 		</p>
 	</a>
 </div>

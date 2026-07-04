@@ -17,6 +17,7 @@ type CompileResult struct {
 type RunOptions struct {
 	Headless bool
 	Vars     map[string]string
+	UpTo     string
 }
 
 // RunResult represents the execution results.

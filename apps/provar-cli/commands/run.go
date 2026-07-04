@@ -14,15 +14,19 @@ import (
 // runFlags are the typed flags for the run command. The `validate:"-"` tag tells the
 // validator to skip this field (it's runtime configuration, not a validateable input).
 type runFlags struct {
-	Headless bool `flag:"headless" validate:"-"`
+	Headless bool   `flag:"headless" validate:"-"`
+	UpTo     string `flag:"up-to" validate:"omitempty,regexp=^[A-Za-z0-9_-]+$"`
 }
 
 // Validate runs struct-tag rules on the flags struct.
 func (f *runFlags) Validate() error { return helpers.ValidateStruct(f) }
 
 var runFlagBinding = helpers.FlagBinding{
-	Specs: []helpers.FlagSpec{{Name: "headless", HasValue: true}},
-	New:   func() helpers.Flags { return &runFlags{} },
+	Specs: []helpers.FlagSpec{
+		{Name: "headless", HasValue: true},
+		{Name: "up-to", HasValue: true},
+	},
+	New: func() helpers.Flags { return &runFlags{} },
 }
 
 var runCmd = helpers.Command{
@@ -33,7 +37,7 @@ var runCmd = helpers.Command{
 	Run:         runHandler,
 }
 
-// runHandler implements `provar run <target> [--headless <bool>]`. Reads the compiled
+// runHandler implements `provar run <target> [--headless <bool>] [--up-to <action-id>]`. Reads the compiled
 // .test.lua next to each .test.yml, calls engine.Runner.Run, and renders events to the
 // printer as they stream. Per-file errors are non-fatal; the run continues.
 func runHandler(ctx context.Context, target string, raw helpers.Flags, p *helpers.Printer) int {
@@ -61,7 +65,16 @@ func runHandler(ctx context.Context, target string, raw helpers.Flags, p *helper
 			failed++
 			continue
 		}
-		job, err := runner.Run(ctx, actions, string(luaCode), engine.RunOptions{Headless: headless, Vars: project.Vars})
+		if fl.UpTo != "" {
+			truncated, ok := truncateUpTo(actions, fl.UpTo)
+			if !ok {
+				p.Warn("skip %s: --up-to target %q not found", file.Path, fl.UpTo)
+				failed++
+				continue
+			}
+			actions = truncated
+		}
+		job, err := runner.Run(ctx, actions, string(luaCode), engine.RunOptions{Headless: headless, Vars: project.Vars, UpTo: fl.UpTo})
 		if err != nil {
 			p.Error("run %s: %v", file.Path, err)
 			failed++

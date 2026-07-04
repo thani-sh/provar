@@ -13,7 +13,7 @@ import (
 func TestGoogleClient_Streaming(t *testing.T) {
 	var receivedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1beta/models/gemini-1.5-flash:streamGenerateContent" {
+		if r.URL.Path != "/v1beta/models/gemini-3.5-flash:streamGenerateContent" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -37,7 +37,7 @@ func TestGoogleClient_Streaming(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	client, err := NewClient(Google, mockKey, server.URL, "gemini-1.5-flash")
+	client, err := NewClient(Google, mockKey, server.URL, "gemini-3.5-flash")
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestGoogleClient_Streaming(t *testing.T) {
 func TestGoogleClient_ImageStreaming(t *testing.T) {
 	var receivedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1beta/models/gemini-1.5-flash:streamGenerateContent" {
+		if r.URL.Path != "/v1beta/models/gemini-3.5-flash:streamGenerateContent" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -104,7 +104,7 @@ func TestGoogleClient_ImageStreaming(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	client, err := NewClient(Google, mockKey, server.URL, "gemini-1.5-flash")
+	client, err := NewClient(Google, mockKey, server.URL, "gemini-3.5-flash")
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}
@@ -164,7 +164,7 @@ func TestGoogleClient_ImageStreaming(t *testing.T) {
 func TestGoogleClient_SystemPrompt(t *testing.T) {
 	var receivedBody []byte
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1beta/models/gemini-1.5-flash:streamGenerateContent" {
+		if r.URL.Path != "/v1beta/models/gemini-3.5-flash:streamGenerateContent" {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
@@ -184,7 +184,7 @@ func TestGoogleClient_SystemPrompt(t *testing.T) {
 		}
 	}))
 	defer server.Close()
-	client, err := NewClient(Google, mockKey, server.URL, "gemini-1.5-flash")
+	client, err := NewClient(Google, mockKey, server.URL, "gemini-3.5-flash")
 	if err != nil {
 		t.Fatalf("failed to create client: %v", err)
 	}

@@ -4,15 +4,15 @@ This file is the conventions reference for anyone writing a page under `apps/pro
 
 ## 1. Use the terms from `docs/PRODUCT.md` § 3
 
-| Use | Don't use |
-|---|---|
-| project | workspace, repo (in a Provar context) |
-| step | task, action, operation |
-| path | flow, scenario, run |
-| snapshot | screenshot, capture, image |
-| baseline | reference, golden image |
-| canvas | graph editor, visual editor |
-| run | execution, invocation |
+| Use      | Don't use                             |
+| -------- | ------------------------------------- |
+| project  | workspace, repo (in a Provar context) |
+| step     | task, action, operation               |
+| path     | flow, scenario, run                   |
+| snapshot | screenshot, capture, image            |
+| baseline | reference, golden image               |
+| canvas   | graph editor, visual editor           |
+| run      | execution, invocation                 |
 
 The engineering-flavored synonyms `Task`, `Graph`, `Path`, `File` may appear in code, type names, and JSDoc — they are the canonical internal types. User-facing copy uses the words above.
 

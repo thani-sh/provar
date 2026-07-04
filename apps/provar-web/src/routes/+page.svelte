@@ -26,33 +26,29 @@
 		heroReady = true;
 	});
 
-	const releasesHref = `${buildInfo.githubRepo}/releases/latest`;
-
 	const downloadLinks = [
 		{
 			os: "macOS",
 			subtitle: "Apple Silicon & Intel",
 			file: "provar-desktop.dmg",
-			href: releasesHref,
+			href: `${buildInfo.url}/downloads/provar-desktop.dmg`,
 			status: "available" as const
 		},
 		{
 			os: "Windows",
 			subtitle: "x64",
 			file: "provar-desktop.exe",
-			href: releasesHref,
+			href: `${buildInfo.url}/downloads/provar-desktop.exe`,
 			status: "coming-soon" as const
 		},
 		{
 			os: "Linux",
 			subtitle: "AppImage · deb · rpm",
 			file: "provar-desktop.AppImage",
-			href: releasesHref,
+			href: `${buildInfo.url}/downloads/provar-desktop.AppImage`,
 			status: "coming-soon" as const
 		}
 	];
-
-	const installCommand = `curl -fsSL ${buildInfo.installBase}/install.sh | bash`;
 </script>
 
 <svelte:head>
@@ -83,8 +79,9 @@
 		<p class="text-on-surface-variant mt-6 max-w-2xl text-lg leading-relaxed">
 			End-to-end tests shouldn't fall apart every time a button moves. Provar turns each
 			user journey into a visual flow you can sketch, inspect, and version in git — then
-			an AI agent picks the selectors, writes the assertions, and self-heals when the UI
-			shifts. Runs locally, in CI, with no cloud account required.
+			an AI agent picks the selectors and writes the underlying code. When the UI drifts,
+			recompile the affected test and the agent rewrites the broken step. Runs locally,
+			in CI, with no cloud account required.
 		</p>
 
 		<div class="mt-10 flex flex-wrap items-center gap-3">
@@ -109,7 +106,7 @@
 		<div class="mt-12 max-w-3xl">
 			<div class="beam"></div>
 			<p class="text-on-surface-variant/70 mt-3 font-mono text-xs">
-				$ npm install -g @provar/provar-cli &nbsp;·&nbsp; or grab the desktop app below
+				$ curl -fsSL {buildInfo.url}/install.sh | bash &nbsp;·&nbsp; or grab a binary from GitHub
 			</p>
 		</div>
 
@@ -178,54 +175,26 @@
 			{/each}
 		</div>
 
-		<!-- CLI install: gated behind PUBLIC_INSTALL_LIVE. Until the one-line installer ships,
-		     show a "coming soon" card and a docs link instead of a 404-ing command. -->
-		{#if buildInfo.installLive}
+		<!-- CLI install: macOS and Linux. Windows users fall back to GitHub releases. -->
+		<div
+			class="border-outline-variant/40 bg-surface-container-lowest mt-8 overflow-hidden rounded-xl border"
+		>
 			<div
-				class="border-outline-variant/40 bg-surface-container-lowest mt-8 overflow-hidden rounded-xl border"
+				class="border-outline-variant/40 flex items-center justify-between border-b px-4 py-2"
 			>
-				<div
-					class="border-outline-variant/40 flex items-center justify-between border-b px-4 py-2"
-				>
-					<span class="text-on-surface-variant font-mono text-xs">terminal</span>
-					<span class="text-outline font-mono text-xs">install via curl</span>
-				</div>
-				<pre
-					class="text-on-surface overflow-x-auto p-4 font-mono text-sm leading-relaxed"><code
-						><span class="text-outline">$</span> {installCommand}</code
-					></pre>
+				<span class="text-on-surface-variant font-mono text-xs">terminal</span>
+				<span class="text-outline font-mono text-xs">macos · linux</span>
 			</div>
-		{:else}
-			<div
-				class="border-outline-variant/40 bg-surface-container-lowest mt-8 flex flex-col gap-3 rounded-xl border p-5 sm:flex-row sm:items-center sm:justify-between"
-			>
-				<div>
-					<p class="text-on-surface text-sm font-semibold">
-						One-line installer is coming soon.
-					</p>
-					<p class="text-on-surface-variant mt-1 text-xs">
-						In the meantime, follow the manual steps on the install page — the quickstart
-						gets you to a passing test in under five minutes.
-					</p>
-				</div>
-				<a
-					href="/docs/quickstart"
-					class="border-outline-variant text-on-surface hover:bg-surface-container inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
-				>
-					Read the quickstart
-					<span aria-hidden="true">→</span>
-				</a>
-			</div>
-		{/if}
+			<pre
+				class="text-on-surface overflow-x-auto p-4 font-mono text-sm leading-relaxed"><code
+					><span class="text-outline">$</span> curl -fsSL {buildInfo.url}/install.sh | bash</code
+				></pre>
+		</div>
 
 		<p class="text-on-surface-variant mt-4 text-xs">
-			All builds are published on the
-			<a
-				href="https://github.com/thani-sh/provar/releases"
-				target="_blank"
-				rel="noopener noreferrer"
-				class="text-primary hover:underline">GitHub releases page</a
-			>. Checksums and signatures are included.
+			All desktop builds live under
+			<code class="text-on-surface">{buildInfo.url}/downloads/</code>. Checksums and
+			signatures ship alongside.
 		</p>
 	</div>
 </section>

@@ -43,9 +43,9 @@
   // user only has to type their key.
   $effect(() => {
     if (provider === "openai") {
-      model = model || "gpt-4o";
+      model = model || "gpt-5.5";
     } else if (provider === "google-generative-ai") {
-      model = model || "gemini-1.5-flash";
+      model = model || "gemini-3.5-flash";
     } else if (provider === "minimax") {
       model = model || "MiniMax-M3";
     }
@@ -61,7 +61,7 @@
           providers: {
             openai: {
               apiKey: provider === "openai" ? apiKey : "",
-              model: provider === "openai" ? model : "gpt-4o",
+              model: provider === "openai" ? model : "gpt-5.5",
               baseUrl: provider === "openai" ? baseUrl : "",
             },
             "google-generative-ai": {
@@ -69,7 +69,7 @@
               model:
                 provider === "google-generative-ai"
                   ? model
-                  : "gemini-1.5-flash",
+                  : "gemini-3.5-flash",
             },
             minimax: {
               apiKey: provider === "minimax" ? apiKey : "",
@@ -221,10 +221,10 @@
                 bind:value={model}
                 class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] px-4 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
                 placeholder={provider === "openai"
-                  ? "gpt-4o"
+                  ? "gpt-5.5"
                   : provider === "minimax"
                     ? "MiniMax-M3"
-                    : "gemini-1.5-flash"}
+                    : "gemini-3.5-flash"}
               />
             </div>
 

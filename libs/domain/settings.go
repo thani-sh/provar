@@ -33,16 +33,12 @@ type ProviderConfig struct {
 	BaseURL string `yaml:"baseUrl" validate:"omitempty,url"`
 }
 
-// ModelsSettings holds the active provider and a credential bundle for every supported
-// provider. The active provider must have a non-empty APIKey (enforced by Validate).
-type ModelsSettings struct {
+// Settings is the full on-disk settings structure, loaded from ~/.provar/settings.yml.
+// It holds the active provider and a credential bundle for every supported provider.
+// The active provider must have a non-empty APIKey (enforced by Validate).
+type Settings struct {
 	Provider  Provider                  `yaml:"provider"  validate:"required,oneof=google openai anthropic"`
 	Providers map[string]ProviderConfig `yaml:"providers" validate:"required,min=1,dive"`
-}
-
-// Settings is the full on-disk settings structure, loaded from ~/.provar/settings.yml.
-type Settings struct {
-	Models ModelsSettings `yaml:"models" validate:"required"`
 }
 
 // LoadSettings reads ~/.provar/settings.yml. A missing file is not an error — the default
@@ -73,18 +69,18 @@ func (s *Settings) Validate() error {
 	if err := validate.Struct(s); err != nil {
 		return err
 	}
-	cfg, ok := s.Models.Providers[string(s.Models.Provider)]
+	cfg, ok := s.Providers[string(s.Provider)]
 	if !ok {
-		return fmt.Errorf("active provider %q has no configuration entry", s.Models.Provider)
+		return fmt.Errorf("active provider %q has no configuration entry", s.Provider)
 	}
 	if cfg.APIKey == "" {
-		return fmt.Errorf("active provider %q has no API key configured", s.Models.Provider)
+		return fmt.Errorf("active provider %q has no API key configured", s.Provider)
 	}
 	return nil
 }
 
 // validate is the package-level validator instance. WithRequiredStructEnabled is required
-// for the "required" tag to fire on struct (non-pointer) fields like Settings.Models.
+// for the "required" tag to fire on struct (non-pointer) fields like Settings.Providers.
 var validate = validator.New(validator.WithRequiredStructEnabled())
 
 // defaultSettings is the first-run settings: every supported provider gets a default model,
@@ -92,13 +88,11 @@ var validate = validator.New(validator.WithRequiredStructEnabled())
 // the active provider's API key.
 func defaultSettings() *Settings {
 	return &Settings{
-		Models: ModelsSettings{
-			Provider: ProviderGoogle,
-			Providers: map[string]ProviderConfig{
-				string(ProviderGoogle):    {Model: "gemini-1.5-flash"},
-				string(ProviderOpenAI):    {Model: "gpt-4o"},
-				string(ProviderAnthropic): {Model: "claude-3-5-sonnet-latest"},
-			},
+		Provider: ProviderGoogle,
+		Providers: map[string]ProviderConfig{
+			string(ProviderGoogle):    {Model: "gemini-3.5-flash"},
+			string(ProviderOpenAI):    {Model: "gpt-5.5"},
+			string(ProviderAnthropic): {Model: "claude-5-sonnet-latest"},
 		},
 	}
 }

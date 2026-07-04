@@ -106,6 +106,9 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 					},
 				})
 			}
+			if opts.UpTo != "" && action.ID == opts.UpTo {
+				break
+			}
 		}
 		finalStatus := job.GetStatus()
 		if finalStatus == domain.JobRunning {

@@ -1,7 +1,3 @@
-<script>
-	import DocsPlaceholder from "$lib/components/docs-placeholder.svelte";
-</script>
-
 <h1>Troubleshooting</h1>
 <p>
 	The ten most common ways a first run goes sideways, in roughly the order they tend to come
@@ -17,13 +13,14 @@
 	name.)</p>
 
 <h2>"My API key isn't being accepted"</h2>
-<p>
-	Open the Settings dialog (Provar → Settings…). Re-paste the key, hit save, close the
-	dialog, reopen the test. The key is stored at <code>~/.provar/settings.json</code>; you can
-	also <code>cat</code> that file to confirm the save actually took. (If the file doesn't
-	exist, the editor hasn't written anything yet.)</p>
-
-<DocsPlaceholder caption="Settings dialog with the API key field (placeholder)" />
+	<p>
+		The CLI reads the API key from <code>~/.provar/settings.yml</code>. If the file doesn't
+		exist yet, the CLI ships sensible defaults on first run — just edit it and add an
+		<code>apiKey</code> for the provider you want to use. The compile step validates the key
+		before doing any work; if the active provider has an empty key, it fails with a clear
+		error pointing at the file. From the editor, open the Settings dialog (Provar →
+		Settings…), re-paste the key, hit save, close the dialog, reopen the test.
+	</p>
 
 <h2>"Compile is taking forever"</h2>
 <p>
@@ -34,11 +31,13 @@
 </p>
 
 <h2>"The browser never opens"</h2>
-<p>
-	Install the Playwright browsers once: <code>bunx playwright install chromium</code>. If the
-	editor still can't find them, set the <code>PLAYWRIGHT_BROWSERS_PATH</code> environment
-	variable to the install location and restart. (On macOS the default location is buried deep
-	in your home directory, which is why the env var exists.)</p>
+	<p>
+		The CLI ships its own browser bundle — there's no separate browser install step. If a
+		run fails with "failed to launch browser", the most common cause is a missing system
+		library (libnss, libgbm, libdrm on Linux). On Linux runners, install the deps before
+		invoking the CLI: <code>sudo apt-get install -y libnss3 libgbm1 libdrm2</code> or the
+		equivalent for your distro.
+	</p>
 
 <h2>"My step passed visually but failed the snapshot diff"</h2>
 <p>
@@ -62,12 +61,12 @@
 </p>
 
 <h2>"Tests pass locally but fail in CI"</h2>
-<p>
-	Nine times out of ten it's one of two things. Missing Playwright browsers — run
-	<code>bunx playwright install</code> in the job. Missing API key — set it as a CI secret
-	and pass it as <code>OPENAI_API_KEY</code>, not as a literal in the workflow file. The CI
-	page has the full recipe.
-</p>
+	<p>
+		Nine times out of ten it's one of two things. Missing browser system libraries — install
+		the deps for your runner image (see "The browser never opens" above). Missing API key —
+		ship it as a CI secret and write it into <code>~/.provar/settings.yml</code> in a pre-step;
+		don't bake the key into the workflow file. The CI page has the full recipe.
+	</p>
 
 <h2>"I want to undo accepting a baseline"</h2>
 <p>

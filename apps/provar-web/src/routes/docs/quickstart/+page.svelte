@@ -121,10 +121,10 @@ bun run dev</code></pre>
 	code for a step (via the Regenerate button) or use the assistant panel.
 </p>
 <p>
-	Supported providers: OpenAI, Anthropic, or any OpenAI-shape endpoint. Set the key once via
-	Provar → Settings… and the editor stores it locally at
-	<code>~/.provar/settings.json</code>. It never leaves your machine.
-</p>
+		Supported providers: OpenAI, Anthropic, or any OpenAI-shape endpoint. Set the key once via
+		Provar → Settings… and the editor stores it locally at
+		<code>~/.provar/settings.yml</code>. It never leaves your machine.
+	</p>
 <p class="text-on-surface-variant text-sm">
 	If you'd rather drive everything from a terminal — no GUI, no key required for the test
 	loop — see the <a href="/docs/products/provar-cli">provar-cli quickstart</a>. It uses the

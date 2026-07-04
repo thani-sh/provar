@@ -14,7 +14,7 @@ import (
 
 // compileFlags are the typed flags for the compile command.
 type compileFlags struct {
-	UpTo string `flag:"up-to" validate:"omitempty,alphanum"`
+	UpTo string `flag:"up-to" validate:"omitempty,regexp=^[A-Za-z0-9_-]+$"`
 }
 
 // Validate runs struct-tag rules on the flags struct.
@@ -38,7 +38,7 @@ var compileCmd = helpers.Command{
 // translate each file's actions into Lua. Per-file parse errors are warnings (continue),
 // per-file compile errors are errors (continue and report at the end).
 func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helpers.Printer) int {
-	_ = raw.(*compileFlags)
+	fl := raw.(*compileFlags)
 	project, err := domain.LoadProject(target)
 	if err != nil {
 		p.Error("load project: %v", err)
@@ -57,13 +57,13 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		p.Error("%v", err)
 		return int(helpers.ExitRuntime)
 	}
-	active, ok := settings.Models.Providers[string(settings.Models.Provider)]
+	active, ok := settings.Providers[string(settings.Provider)]
 	if !ok {
-		p.Error("active provider %q has no configuration entry", settings.Models.Provider)
+		p.Error("active provider %q has no configuration entry", settings.Provider)
 		return int(helpers.ExitRuntime)
 	}
 	client, err := models.NewClient(
-		mapDomainProvider(settings.Models.Provider),
+		mapDomainProvider(settings.Provider),
 		active.APIKey,
 		active.BaseURL,
 		active.Model,
@@ -85,6 +85,15 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 			p.Warn("skip %s: %v", file.Path, err)
 			failed++
 			continue
+		}
+		if fl.UpTo != "" {
+			truncated, ok := truncateUpTo(actions, fl.UpTo)
+			if !ok {
+				p.Warn("skip %s: --up-to target %q not found", file.Path, fl.UpTo)
+				failed++
+				continue
+			}
+			actions = truncated
 		}
 		result, err := compiler.Compile(ctx, actions, engine.CompileOptions{SpecPath: file.Path})
 		if err != nil {
@@ -118,4 +127,15 @@ func mapDomainProvider(p domain.Provider) models.Provider {
 		return models.Anthropic
 	}
 	return ""
+}
+
+// truncateUpTo returns the prefix of actions ending with and including the action whose
+// ID equals target. The bool reports whether the target was found.
+func truncateUpTo(actions []domain.Action, target string) ([]domain.Action, bool) {
+	for i, a := range actions {
+		if a.ID == target {
+			return actions[:i+1], true
+		}
+	}
+	return nil, false
 }
