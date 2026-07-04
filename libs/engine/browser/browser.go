@@ -12,10 +12,27 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
-// defaultBrowserTimeout caps every page/element call inside the compile-time browser.
-// Rod's default sleeper retries indefinitely; without this a missing selector or a
-// stalled page hangs the whole compile.
+// defaultBrowserTimeout caps every page/element call inside the compile-time
+// browser. Rod's default sleeper retries indefinitely; without this a missing
+// selector or a stalled page hangs the whole compile.
+//
+// IMPORTANT: page.Timeout(d) sets a deadline on the page's *entire* context,
+// so the wall clock applies to the lifetime of the page, not to a single
+// call. A 5s value here would dead-letter every subsequent operation after
+// the first 5s, sending the LLM into a permanent retry loop.
+//
+// So this stays at 15s for now (long enough for navigate/waitLoad on slow
+// sites, short enough that the compile doesn't hang indefinitely). The
+// per-tool "5s max" implicit-wait cap that the spec asks for is enforced at
+// the *call site* via `el.Timeout(5s).WaitVisible()` instead, which scopes
+// the deadline to that one wait.
 const defaultBrowserTimeout = 15 * time.Second
+
+// implicitWaitTimeout caps the per-call implicit wait that click/fill/
+// assert_exists do before acting on an element. Spec: all implicit waits
+// must be 5s or less. Used by Session.Click / Fill / AssertExists as a
+// per-call `el.Timeout(...)` so the deadline doesn't leak onto the page.
+const implicitWaitTimeout = 5 * time.Second
 
 // Action represents one recorded browser interaction. It is the source of truth for what
 // happened during a compile-time loop; the compiler reads the action log and translates
@@ -154,11 +171,18 @@ func (s *Session) Navigate(url string) error {
 	return nil
 }
 
-// Click finds the element matching the CSS selector and clicks it.
+// Click finds the element matching the CSS selector, waits up to
+// implicitWaitTimeout for it to be visible, and clicks it. The per-call
+// `el.Timeout(implicitWaitTimeout)` scopes the deadline to this single
+// wait — using `page.Timeout(5s)` instead would dead-letter every operation
+// after 5s of wall clock.
 func (s *Session) Click(selector string) error {
 	el, err := s.page.Element(selector)
 	if err != nil {
 		return fmt.Errorf("click %q: find element: %w", selector, err)
+	}
+	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+		return fmt.Errorf("click %q: not visible: %w", selector, err)
 	}
 	if err := el.Click(proto.InputMouseButtonLeft, 1); err != nil {
 		return fmt.Errorf("click %q: %w", selector, err)
@@ -166,14 +190,35 @@ func (s *Session) Click(selector string) error {
 	return nil
 }
 
-// Fill finds the input element matching the CSS selector and types the value into it.
+// Fill finds the input element matching the CSS selector, waits up to
+// implicitWaitTimeout for it to be visible, and types the value into it.
+// Same per-call timeout pattern as Click — see Click for the rationale.
 func (s *Session) Fill(selector, value string) error {
 	el, err := s.page.Element(selector)
 	if err != nil {
 		return fmt.Errorf("fill %q: find element: %w", selector, err)
 	}
+	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+		return fmt.Errorf("fill %q: not visible: %w", selector, err)
+	}
 	if err := el.Input(value); err != nil {
 		return fmt.Errorf("fill %q: %w", selector, err)
+	}
+	return nil
+}
+
+// AssertExists waits up to implicitWaitTimeout for the element matching the
+// CSS selector to become visible, returning an error naming the selector if
+// it doesn't. Used by the compile-time tool wrapper to record a verification
+// step the LLM emits as `assert_exists` — the corresponding Lua runtime
+// method (page:assertExists) does the same check at run time.
+func (s *Session) AssertExists(selector string) error {
+	el, err := s.page.Element(selector)
+	if err != nil {
+		return fmt.Errorf("assertExists %q: %w", selector, err)
+	}
+	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+		return fmt.Errorf("assertExists %q: not visible: %w", selector, err)
 	}
 	return nil
 }

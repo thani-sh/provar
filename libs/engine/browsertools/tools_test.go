@@ -1,8 +1,13 @@
 package browsertools
 
 import (
+	"context"
+	"encoding/json"
 	"strings"
 	"testing"
+
+	"github.com/thani-sh/provar/libs/engine/browser"
+	"github.com/thani-sh/provar/libs/models"
 )
 
 // TestRequireNonBlank locks in the empty/whitespace rejection across all the
@@ -21,6 +26,7 @@ func TestRequireNonBlank(t *testing.T) {
 		{"click", "selector", "", true},
 		{"fill", "selector", "", true},
 		{"wait_for", "selector", "", true},
+		{"assert_exists", "selector", "", true},
 
 		// Should pass: real values, including the placeholder form
 		{"navigate", "url", "https://demo.thani.sh/", false},
@@ -30,6 +36,7 @@ func TestRequireNonBlank(t *testing.T) {
 		{"click", "selector", "input[type='text']", false},
 		{"fill", "selector", "#username", false},
 		{"wait_for", "selector", "body", false},
+		{"assert_exists", "selector", `input[placeholder="Password"]`, false},
 
 		// requireNonBlank treats every (tool, field) the same way; the policy
 		// of "empty value is allowed for fill because it clears the field"
@@ -56,4 +63,38 @@ func TestRequireNonBlank(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestAssertExistsToolRejectsBlank verifies the new assert_exists tool wrapper
+// applies the same blank-arg guard as the rest — it doesn't talk to a browser,
+// it just has to bail with a clear refusal when the LLM emits empty selector.
+func TestAssertExistsToolRejectsBlank(t *testing.T) {
+	tool := &assertExistsTool{}
+	result, err := tool.Execute(context.Background(), json.RawMessage(`{"selector":"   "}`))
+	if err != nil {
+		t.Fatalf("Execute should not return a Go error for a bad-arg refusal, got %v", err)
+	}
+	if len(result.Content) != 1 || result.Content[0].Type != models.AttachmentTypeText {
+		t.Fatalf("expected one text attachment, got %+v", result.Content)
+	}
+	msg := result.Content[0].Text
+	if !strings.Contains(msg, "assert_exists") || !strings.Contains(msg, "selector") {
+		t.Errorf("refusal should name tool and field, got %q", msg)
+	}
+}
+
+// TestToolsIncludesAssertExists locks the public toolset: assert_exists must be
+// present so the LLM sees it. Reordering or dropping it would silently take the
+// assertion option away from the model.
+func TestToolsIncludesAssertExists(t *testing.T) {
+	got := Tools((*browser.Session)(nil))
+	want := "assert_exists"
+	names := make([]string, len(got))
+	for i, t := range got {
+		names[i] = t.Name()
+		if t.Name() == want {
+			return
+		}
+	}
+	t.Errorf("Tools() should include %q, got %v", want, names)
 }

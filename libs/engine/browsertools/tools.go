@@ -19,14 +19,15 @@ import (
 )
 
 // Tools returns the standard tool set for the compile-time loop: navigation, fill,
-// click, wait_for, get_page_source, get_page_screenshot, and a done sentinel. The
-// returned slice can be passed directly to models.Client.CreateSession.
+// click, wait_for, assert_exists, get_page_source, get_page_screenshot, and a done
+// sentinel. The returned slice can be passed directly to models.Client.CreateSession.
 func Tools(b *browser.Session) []models.ModelTool {
 	return []models.ModelTool{
 		&navigateTool{b: b},
 		&fillTool{b: b},
 		&clickTool{b: b},
 		&waitForTool{b: b},
+		&assertExistsTool{b: b},
 		&getPageSourceTool{b: b},
 		&getPageScreenshotTool{b: b},
 		&doneTool{},
@@ -39,10 +40,10 @@ type navigateTool struct{ b *browser.Session }
 
 func (t *navigateTool) Name() string { return "navigate" }
 func (t *navigateTool) Description() string {
-	return "Navigate the browser to the given absolute URL and wait for the page to load. Use {{var}} placeholders inside the URL string for project variables (e.g. \"{{baseUrl}}/login\")."
+	return "Navigate the browser to the given absolute URL and wait for the page to load."
 }
 func (t *navigateTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"url":{"type":"string","description":"Absolute URL to navigate to. May contain {{var}} placeholders."}},"required":["url"]}`)
+	return json.RawMessage(`{"type":"object","properties":{"url":{"type":"string","description":"Absolute URL to navigate to."}},"required":["url"]}`)
 }
 func (t *navigateTool) Execute(ctx context.Context, args json.RawMessage) (models.ToolResult, error) {
 	var p struct {
@@ -55,10 +56,13 @@ func (t *navigateTool) Execute(ctx context.Context, args json.RawMessage) (model
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real URL, or use {{baseUrl}}."}}}, nil
 	}
 	logger.Debug("tool", "name", "navigate", "url", p.URL)
-	t.b.RecordAction("navigate", map[string]any{"url": p.URL})
 	if err := t.b.Navigate(p.URL); err != nil {
+		// Failed navigations aren't recorded — the debug log already shows the
+		// attempt, and a failed line in the compiled Lua would just break the
+		// test at run time. Only emit successful actions.
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "navigate failed: " + err.Error()}}}, nil
 	}
+	t.b.RecordAction("navigate", map[string]any{"url": p.URL})
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "navigated to " + p.URL}}}, nil
 }
 
@@ -68,7 +72,7 @@ type clickTool struct{ b *browser.Session }
 
 func (t *clickTool) Name() string { return "click" }
 func (t *clickTool) Description() string {
-	return "Click the first element matching the given CSS selector. Use this for buttons, links, and any clickable element."
+	return "Click the first element matching the given CSS selector. Use this for buttons, links, and any clickable element. Waits up to 5s for the element to appear."
 }
 func (t *clickTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector passed to document.querySelector."}},"required":["selector"]}`)
@@ -84,10 +88,10 @@ func (t *clickTool) Execute(ctx context.Context, args json.RawMessage) (models.T
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "click", "selector", p.Selector)
-	t.b.RecordAction("click", map[string]any{"selector": p.Selector})
 	if err := t.b.Click(p.Selector); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "click failed: " + err.Error()}}}, nil
 	}
+	t.b.RecordAction("click", map[string]any{"selector": p.Selector})
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "clicked " + p.Selector}}}, nil
 }
 
@@ -97,10 +101,10 @@ type fillTool struct{ b *browser.Session }
 
 func (t *fillTool) Name() string { return "fill" }
 func (t *fillTool) Description() string {
-	return "Fill an input element matching the given CSS selector with the given value."
+	return "Fill an input element matching the given CSS selector with the given value. Waits up to 5s for the element to appear. Empty `value` is allowed and clears the field."
 }
 func (t *fillTool) Parameters() json.RawMessage {
-	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector for the input element."},"value":{"type":"string","description":"Value to type into the input. May contain {{var}} placeholders."}},"required":["selector","value"]}`)
+	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector for the input element."},"value":{"type":"string","description":"Value to type into the input."}},"required":["selector","value"]}`)
 }
 func (t *fillTool) Execute(ctx context.Context, args json.RawMessage) (models.ToolResult, error) {
 	var p struct {
@@ -115,10 +119,10 @@ func (t *fillTool) Execute(ctx context.Context, args json.RawMessage) (models.To
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "fill", "selector", p.Selector)
-	t.b.RecordAction("fill", map[string]any{"selector": p.Selector, "value": p.Value})
 	if err := t.b.Fill(p.Selector, p.Value); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "fill failed: " + err.Error()}}}, nil
 	}
+	t.b.RecordAction("fill", map[string]any{"selector": p.Selector, "value": p.Value})
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "filled " + p.Selector + " with " + p.Value}}}, nil
 }
 
@@ -128,7 +132,7 @@ type waitForTool struct{ b *browser.Session }
 
 func (t *waitForTool) Name() string { return "wait_for" }
 func (t *waitForTool) Description() string {
-	return "Block until the element matching the given CSS selector becomes visible. Raises if the element never appears. Use this to verify that the page reached a particular state (e.g. \"wait_for 'dashboard-heading'\" confirms the dashboard rendered)."
+	return "Block until the element matching the given CSS selector becomes visible (up to 5s). Use this when you need to block on an element that an interaction won't already wait for — click, fill, and assert_exists all wait on their selector already."
 }
 func (t *waitForTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector for the element to wait for."}},"required":["selector"]}`)
@@ -144,17 +148,47 @@ func (t *waitForTool) Execute(ctx context.Context, args json.RawMessage) (models
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "wait_for", "selector", p.Selector)
-	t.b.RecordAction("wait_for", map[string]any{"selector": p.Selector})
 	el, err := t.b.Element(p.Selector)
 	if err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "wait_for failed: " + err.Error()}}}, nil
 	}
-	// Bounded timeout: rod's default sleeper retries indefinitely. Without this, a
-	// selector that never appears hangs the whole compile.
-	if err := el.Timeout(15 * time.Second).WaitVisible(); err != nil {
+	if err := el.Timeout(5 * time.Second).WaitVisible(); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "wait_for failed: " + err.Error()}}}, nil
 	}
+	t.b.RecordAction("wait_for", map[string]any{"selector": p.Selector})
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "wait_for ok: " + p.Selector}}}, nil
+}
+
+// --- assert_exists ---
+
+type assertExistsTool struct{ b *browser.Session }
+
+func (t *assertExistsTool) Name() string { return "assert_exists" }
+func (t *assertExistsTool) Description() string {
+	return "Verify that an element matching the given CSS selector is visible. Records a `page:assertExists(...)` line into the compiled Lua so the assertion runs at test time, not just compile time. Use this to confirm the page reached the state described by the current step before calling done (e.g. assert_exists(\"input[placeholder=\\\"Password\\\"]\") after the login form has rendered). Waits up to 5s for the element to appear."
+}
+func (t *assertExistsTool) Parameters() json.RawMessage {
+	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector for the element whose visibility proves the page is in the expected state."}},"required":["selector"]}`)
+}
+func (t *assertExistsTool) Execute(ctx context.Context, args json.RawMessage) (models.ToolResult, error) {
+	var p struct {
+		Selector string `json:"selector"`
+	}
+	if err := json.Unmarshal(args, &p); err != nil {
+		return models.ToolResult{}, fmt.Errorf("assert_exists: bad args: %w", err)
+	}
+	if err := requireNonBlank("assert_exists", "selector", p.Selector); err != nil {
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
+	}
+	logger.Debug("tool", "name", "assert_exists", "selector", p.Selector)
+	if err := t.b.AssertExists(p.Selector); err != nil {
+		// Failed assertions aren't recorded — if the LLM got it wrong, we
+		// don't want a permanent `page:assertExists(broken-selector)` line in
+		// the test. The debug log already shows the attempt.
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "assert_exists failed: " + err.Error()}}}, nil
+	}
+	t.b.RecordAction("assert_exists", map[string]any{"selector": p.Selector})
+	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "assert_exists ok: " + p.Selector}}}, nil
 }
 
 type getPageSourceTool struct{ b *browser.Session }

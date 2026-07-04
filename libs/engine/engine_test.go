@@ -22,6 +22,41 @@ func TestInterpolateVars(t *testing.T) {
 	}
 }
 
+// TestTranslateActions emits the Lua shape we want for a realistic recorded
+// action log covering every supported action. Locks the per-tool Lua spelling
+// so a refactor of translateActions can't silently drift (e.g. emit `page:
+// assert_exists` instead of `page:assertExists`). String-form selector with
+// double quotes exercises luaString's escaping too.
+func TestTranslateActions(t *testing.T) {
+	actions := []browser.Action{
+		{Name: "navigate", Args: map[string]any{"url": "https://demo.thani.sh/"}},
+		{Name: "click", Args: map[string]any{"selector": "header button"}},
+		{Name: "assert_exists", Args: map[string]any{"selector": `input[placeholder="Password"]`}},
+		{Name: "fill", Args: map[string]any{"selector": `input[placeholder="Username"]`, "value": "demo"}},
+		{Name: "wait_for", Args: map[string]any{"selector": "body"}},
+		// Observation tools and done produce no Lua output.
+		{Name: "get_page_source"},
+		{Name: "get_page_screenshot"},
+		{Name: "done"},
+	}
+	got := translateActions(actions)
+	wantLines := []string{
+		`page:navigate("https://demo.thani.sh/")`,
+		`page:locator("header button"):click()`,
+		`page:assertExists("input[placeholder=\"Password\"]")`,
+		`page:locator("input[placeholder=\"Username\"]"):fill("demo")`,
+		`page:locator("body"):waitFor()`,
+	}
+	for _, want := range wantLines {
+		if !strings.Contains(got, want) {
+			t.Errorf("translateActions missing %q in:\n%s", want, got)
+		}
+	}
+	if strings.Contains(got, "get_page_source") || strings.Contains(got, "get_page_screenshot") || strings.Contains(got, "done") {
+		t.Errorf("observation/done tools must not emit Lua, got:\n%s", got)
+	}
+}
+
 func TestRunWaitLoop(t *testing.T) {
 	job := domain.NewJob("test-job", domain.JobStopped)
 	if runWaitLoop(context.Background(), job) {
@@ -50,11 +85,33 @@ func TestSystemPromptTeachesTheLoop(t *testing.T) {
 		"get_page_source",
 		"Do NOT repeat",
 		"empty or whitespace-only",
+		"assert_exists",
 		"call done",
 	}
 	for _, want := range mustContain {
 		if !strings.Contains(p, want) {
 			t.Errorf("systemPrompt() missing %q", want)
+		}
+	}
+}
+
+// TestSystemPromptTeachesAssertions locks in the new framing: the LLM is told
+// the action's scope covers all setup (including clicks that reveal UI), and
+// that assert_exists must be called before done. Without these instructions
+// the compiled Lua reverts to the bad pattern we saw (the header-button click
+// leaking into the next action, no assertions anywhere).
+func TestSystemPromptTeachesAssertions(t *testing.T) {
+	p := systemPrompt()
+	mustContain := []string{
+		"An action's scope",   // explains scope so clicks don't drift to the next action
+		"assert_exists",       // explicit tool mention
+		"BEFORE calling done", // tells LLM the assertion is the gate to done
+		"5s",                  // implicit-wait cap so the LLM doesn't assume indefinite waits
+		":has-text",           // warns the LLM away from Playwright pseudo-classes
+	}
+	for _, want := range mustContain {
+		if !strings.Contains(p, want) {
+			t.Errorf("systemPrompt() should teach %q, got:\n%s", want, p)
 		}
 	}
 }

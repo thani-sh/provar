@@ -105,6 +105,10 @@ func translateActions(actions []browser.Action) string {
 			if sel, ok := a.Args["selector"].(string); ok {
 				fmt.Fprintf(&sb, "page:locator(%s):waitFor()\n", luaString(sel))
 			}
+		case "assert_exists":
+			if sel, ok := a.Args["selector"].(string); ok {
+				fmt.Fprintf(&sb, "page:assertExists(%s)\n", luaString(sel))
+			}
 		}
 	}
 	return sb.String()
@@ -220,16 +224,19 @@ PROCESS — follow this loop every turn:
 1. If you don't already know what page you're on, call get_page_source (or get_page_screenshot for layout-only checks) to locate the elements you need.
 2. Do one user-intent interaction — navigate, click, or fill — with a real selector or URL. One tool call per turn.
 3. Read the result. It tells you whether the call worked and hints at the new page state. If the page clearly transitioned to something you don't recognise, observe again: get_page_source, or wait_for on a known element, then check the result of that.
-4. With the new state understood, decide the next interaction and loop back to step 2. If the step's intent is realised, call done.
+4. With the new state understood, decide the next interaction and loop back to step 2. If the step's intent is realised, call assert_exists on a stable element that proves the page is in the expected state, then call done.
 
 RULES:
 - Do NOT repeat the same call with the same arguments after it succeeded. Retry only if the call failed, and only after observing why.
+- An action's scope covers everything needed to put the page into the state described by the action's intent. If a click reveals the UI you need, that click belongs in the current action — not a later one. Example: an "open login page" step that requires clicking a header button must include both the click and the resulting form, not stop after navigate alone.
+- ALWAYS call assert_exists on a stable element that proves the page reached the expected state BEFORE calling done. Pick a selector that only appears once the step's intent is realised — e.g. after opening the login page, assert_exists("input[placeholder=\"Password\"]") proves the form rendered. This is the gate to done, not an optional extra.
 - Do NOT call navigate, click, fill, or wait_for with empty or whitespace-only arguments. Those calls produce dead code in the test.
 - Drive the app through its UI: click, fill, navigate. Do not invent workarounds (no direct URL hacks, no API calls, no evaluating JavaScript).
 - All selectors, URLs, and field values must be visible on the page or come from the "Available values" section of your action prompt. If a value is missing, generate a unique one (e.g. a timestamp-based email) rather than guessing.
 - Use the values listed under "Available values" in your action prompt directly in tool arguments. Compose them when one value isn't enough on its own (e.g. base URL + path, identifier + suffix).
-- get_page_source returns the full HTML — call it only when you actually need selectors. get_page_screenshot is for visual layout.
-- CSS selectors only.`
+- click, fill, and assert_exists do an implicit wait (up to 5s) for the element to appear, so you rarely need explicit wait_for. Use wait_for only when you need to block on an element that the next interaction doesn't already wait for.
+- CSS selectors only. The ':has-text(...)' pseudo-class is Playwright syntax and is not valid CSS — stick to attribute, id, class, and structural selectors.
+`
 }
 
 func buildActionPrompt(action domain.Action, vars map[string]string) string {
