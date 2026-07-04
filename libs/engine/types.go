@@ -1,10 +1,16 @@
 package engine
 
-import "time"
+import (
+	"time"
+
+	"github.com/thani-sh/provar/libs/engine/browser"
+)
 
 // CompileOptions configures the compilation execution.
 type CompileOptions struct {
 	SpecPath string
+	Vars     map[string]string
+	Browser  *browser.Session
 }
 
 // CompileResult represents the compilation output.

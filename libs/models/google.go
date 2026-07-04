@@ -2,6 +2,8 @@ package models
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 
 	"google.golang.org/genai"
 )
@@ -26,7 +28,7 @@ func NewGoogleClient(apiKey string, baseURL string, model string) Client {
 	}
 }
 
-func (c *googleClient) CreateSession(ctx context.Context, systemPrompt string) (Session, error) {
+func (c *googleClient) CreateSession(ctx context.Context, systemPrompt string, tools ...ModelTool) (Session, error) {
 	if c.model == "" {
 		return nil, errModelRequired
 	}
@@ -50,6 +52,8 @@ func (c *googleClient) CreateSession(ctx context.Context, systemPrompt string) (
 		client:       client,
 		model:        c.model,
 		systemPrompt: systemPrompt,
+		tools:        tools,
+		contents:     nil,
 		ch:           make(chan string, chanBuffer),
 	}, nil
 }
@@ -58,6 +62,7 @@ type googleSession struct {
 	client       *genai.Client
 	model        string
 	systemPrompt string
+	tools        []ModelTool
 	contents     []*genai.Content
 	ch           chan string
 }
@@ -78,59 +83,128 @@ func (s *googleSession) Send(ctx context.Context, attachments []Attachment) erro
 			})
 		}
 	}
-	userContent := &genai.Content{
+	s.contents = append(s.contents, &genai.Content{
 		Role:  roleUser,
 		Parts: parts,
-	}
-	s.contents = append(s.contents, userContent)
-	var config *genai.GenerateContentConfig
-	if s.systemPrompt != "" {
-		config = &genai.GenerateContentConfig{
-			SystemInstruction: &genai.Content{
-				Parts: []*genai.Part{
-					{Text: s.systemPrompt},
-				},
-			},
-		}
-	}
-	stream := s.client.Models.GenerateContentStream(ctx, s.model, s.contents, config)
+	})
 	s.ch = make(chan string, chanBuffer)
-	go func() {
-		defer close(s.ch)
-		var filter thinkFilter
-		var fullContent string
-		for resp, err := range stream {
-			if err != nil {
-				return
-			}
-			for _, candidate := range resp.Candidates {
-				if candidate.Content != nil {
-					for _, part := range candidate.Content.Parts {
-						filtered := filter.Process(part.Text)
-						if filtered != "" {
-							s.ch <- filtered
-							fullContent += filtered
-						}
-					}
-				}
-			}
-		}
-		flushed := filter.Flush()
-		if flushed != "" {
-			s.ch <- flushed
-			fullContent += flushed
-		}
-		modelContent := &genai.Content{
-			Role: roleModel,
-			Parts: []*genai.Part{
-				{Text: fullContent},
-			},
-		}
-		s.contents = append(s.contents, modelContent)
-	}()
+	go s.runLoop(ctx)
 	return nil
 }
 
 func (s *googleSession) Recv() <-chan string {
 	return s.ch
+}
+
+func (s *googleSession) runLoop(ctx context.Context) {
+	defer close(s.ch)
+	toolByName := make(map[string]ModelTool, len(s.tools))
+	for _, t := range s.tools {
+		toolByName[t.Name()] = t
+	}
+	for iter := 0; ; iter++ {
+		if len(s.tools) > 0 && iter >= maxToolIterations {
+			s.ch <- "error: exceeded max tool iterations"
+			return
+		}
+		modelParts, functionCalls, err := s.streamOnce(ctx)
+		if err != nil {
+			return
+		}
+		s.contents = append(s.contents, &genai.Content{
+			Role:  roleModel,
+			Parts: modelParts,
+		})
+		if len(functionCalls) == 0 {
+			return
+		}
+		var responseParts []*genai.Part
+		for _, fc := range functionCalls {
+			tool, ok := toolByName[fc.Name]
+			if !ok {
+				responseParts = append(responseParts, &genai.Part{
+					FunctionResponse: &genai.FunctionResponse{
+						Name:     fc.Name,
+						Response: map[string]any{"error": fmt.Sprintf("unknown tool %q", fc.Name)},
+					},
+				})
+				continue
+			}
+			argsJSON, _ := json.Marshal(fc.Args)
+			result, execErr := tool.Execute(ctx, json.RawMessage(argsJSON))
+			if execErr != nil {
+				s.ch <- fmt.Sprintf("error: tool %q: %v", fc.Name, execErr)
+				return
+			}
+			responseParts = append(responseParts, &genai.Part{
+				FunctionResponse: &genai.FunctionResponse{
+					ID:   fc.ID,
+					Name: fc.Name,
+					Response: map[string]any{
+						"content": toolResultText(result),
+					},
+				},
+			})
+		}
+		s.contents = append(s.contents, &genai.Content{
+			Role:  roleUser,
+			Parts: responseParts,
+		})
+	}
+}
+
+// streamOnce runs one round-trip to the model. It streams text to Recv as it arrives
+// and returns the full model content plus any function calls detected.
+func (s *googleSession) streamOnce(ctx context.Context) ([]*genai.Part, []*genai.FunctionCall, error) {
+	config := &genai.GenerateContentConfig{}
+	if s.systemPrompt != "" {
+		config.SystemInstruction = &genai.Content{
+			Parts: []*genai.Part{{Text: s.systemPrompt}},
+		}
+	}
+	if len(s.tools) > 0 {
+		decls := make([]*genai.FunctionDeclaration, 0, len(s.tools))
+		for _, t := range s.tools {
+			var params map[string]any
+			if err := json.Unmarshal(t.Parameters(), &params); err != nil {
+				params = map[string]any{"type": "object"}
+			}
+			decls = append(decls, &genai.FunctionDeclaration{
+				Name:                 t.Name(),
+				Description:          t.Description(),
+				ParametersJsonSchema: params,
+			})
+		}
+		config.Tools = []*genai.Tool{{FunctionDeclarations: decls}}
+	}
+	stream := s.client.Models.GenerateContentStream(ctx, s.model, s.contents, config)
+	var modelParts []*genai.Part
+	var functionCalls []*genai.FunctionCall
+	var filter thinkFilter
+	for resp, err := range stream {
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, candidate := range resp.Candidates {
+			if candidate.Content == nil {
+				continue
+			}
+			for _, part := range candidate.Content.Parts {
+				modelParts = append(modelParts, part)
+				if part.FunctionCall != nil {
+					functionCalls = append(functionCalls, part.FunctionCall)
+				}
+				if part.Text != "" {
+					filtered := filter.Process(part.Text)
+					if filtered != "" {
+						s.ch <- filtered
+					}
+				}
+			}
+		}
+	}
+	if flushed := filter.Flush(); flushed != "" {
+		s.ch <- flushed
+	}
+	return modelParts, functionCalls, nil
 }

@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -21,6 +22,10 @@ const (
 
 const (
 	chanBuffer = 100
+	// maxToolIterations caps the per-session tool-call loop as a safety net against
+	// runaway loops. Generous enough for realistic interactions; small enough that a
+	// stuck agent bails quickly.
+	maxToolIterations = 64
 )
 
 var (
@@ -46,15 +51,39 @@ type Attachment struct {
 	MIME string
 }
 
-// Session represents a stateful chat session keeping conversation history.
+// ModelTool is the provider-agnostic shape of a tool the LLM can call. The interface
+// lives in models so the providers can declare tools at session creation; implementations
+// live outside models so they can be domain-specific (compiler, runner, future agents)
+// without coupling the transport layer to any one caller. Tools should be stateless.
+type ModelTool interface {
+	Name() string
+	Description() string
+	Parameters() json.RawMessage
+	Execute(ctx context.Context, args json.RawMessage) (ToolResult, error)
+}
+
+// ToolResult is what a tool returns to the session after Execute. Content is sent back
+// to the model as the tool_result message. Returning a non-nil error is reserved for
+// unrecoverable conditions (programmer bugs, panics); a "statement failed: missing
+// element" result is just content — the model should react and retry.
+type ToolResult struct {
+	Content []Attachment
+}
+
+// Session represents a stateful chat session keeping conversation history. The session
+// drives the tool-call loop internally: when the LLM calls a tool, the session invokes
+// Execute, sends the result back as a tool_result, and continues. Recv only delivers
+// the LLM's text output — tool-call events are not exposed.
 type Session interface {
 	Send(ctx context.Context, attachments []Attachment) error
 	Recv() <-chan string
 }
 
-// Client defines the common interface for establishing chat sessions.
+// Client defines the common interface for establishing chat sessions. Tools are
+// declared once at session creation; the empty case behaves exactly like a text-only
+// session.
 type Client interface {
-	CreateSession(ctx context.Context, systemPrompt string) (Session, error)
+	CreateSession(ctx context.Context, systemPrompt string, tools ...ModelTool) (Session, error)
 }
 
 // NewClient initializes a Client based on the selected provider.
@@ -131,4 +160,23 @@ func (f *thinkFilter) Flush() string {
 	res := f.buf
 	f.buf = ""
 	return res
+}
+
+// toolResultText flattens a ToolResult's content into a single string. Image
+// attachments are represented by a placeholder so the LLM knows something was returned
+// without us having to thread multimodal content through every provider's tool-result
+// format (which differs across Google / OpenAI / Anthropic).
+func toolResultText(r ToolResult) string {
+	var sb strings.Builder
+	for _, a := range r.Content {
+		if a.Type == AttachmentTypeImage {
+			fmt.Fprintf(&sb, "[image:%s:%dB]\n", a.MIME, len(a.Data))
+			continue
+		}
+		sb.WriteString(a.Text)
+		if !strings.HasSuffix(a.Text, "\n") {
+			sb.WriteString("\n")
+		}
+	}
+	return sb.String()
 }

@@ -3,6 +3,7 @@ package helpers
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -129,6 +130,12 @@ func setField(field reflect.Value, value string) error {
 // through ValidateStruct below. Named "validate" (not "validator") to avoid colliding with
 // the imported package name.
 var validate = validator.New(validator.WithRequiredStructEnabled())
+
+func init() {
+	_ = validate.RegisterValidation("regexp", func(fl validator.FieldLevel) bool {
+		return regexp.MustCompile(fl.Param()).MatchString(fl.Field().String())
+	})
+}
 
 // ValidateStruct runs the shared validator against s. Per-command flag structs call this
 // from their Validate() method so struct-tag rules run.

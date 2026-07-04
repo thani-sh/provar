@@ -9,6 +9,7 @@ import (
 	"github.com/thani-sh/provar/apps/provar-cli/helpers"
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine"
+	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/models"
 )
 
@@ -34,9 +35,10 @@ var compileCmd = helpers.Command{
 }
 
 // runCompile implements `provar compile <target> [--up-to <action-id>]`. Loads the
-// project, validates settings, opens a model session, and asks the engine compiler to
-// translate each file's actions into Lua. Per-file parse errors are warnings (continue),
-// per-file compile errors are errors (continue and report at the end).
+// project, opens a browser session, asks the engine compiler to translate each file's
+// actions into Lua via the LLM tool loop, and writes the result next to each .test.yml.
+// Per-file parse errors are warnings (continue), per-file compile errors are errors
+// (continue and report at the end).
 func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helpers.Printer) int {
 	fl := raw.(*compileFlags)
 	project, err := domain.LoadProject(target)
@@ -72,12 +74,13 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		p.Error("client: %v", err)
 		return int(helpers.ExitRuntime)
 	}
-	session, err := client.CreateSession(ctx, "")
+	browserSession, err := browser.NewSession(ctx, true)
 	if err != nil {
-		p.Error("session: %v", err)
+		p.Error("launch browser: %v", err)
 		return int(helpers.ExitRuntime)
 	}
-	compiler := engine.NewCompiler(session)
+	defer func() { _ = browserSession.Close() }()
+	compiler := engine.NewCompiler(client)
 	failed := 0
 	for _, file := range project.Files {
 		actions, err := domain.ParseFile(project.Path, file.Path)
@@ -95,7 +98,7 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 			}
 			actions = truncated
 		}
-		result, err := compiler.Compile(ctx, actions, engine.CompileOptions{SpecPath: file.Path})
+		result, err := compiler.Compile(ctx, actions, engine.CompileOptions{SpecPath: file.Path, Vars: project.Vars, Browser: browserSession})
 		if err != nil {
 			p.Error("compile %s: %v", file.Path, err)
 			failed++
