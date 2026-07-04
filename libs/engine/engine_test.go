@@ -57,6 +57,52 @@ func TestTranslateActions(t *testing.T) {
 	}
 }
 
+// TestAssembleLuaIndentsAndBreaks locks the assembly-time presentation of the
+// compiled script: each step body is indented two spaces inside its function
+// with no blank lines around it, and functions are separated by a single
+// blank line. Earlier iterations blank-lined the body too, which made the
+// "function ... end" boundaries blur into the statements next to them.
+func TestAssembleLuaIndentsAndBreaks(t *testing.T) {
+	actions := []domain.Action{
+		{ID: "open_login_page", Name: "Open Login Page", Info: "..."},
+		{ID: "verify_dashboard", Name: "Verify Dashboard", Info: "..."},
+	}
+	bodies := []string{
+		"page:navigate(\"{{baseUrl}}\")\npage:locator(\"header button\"):click()\n",
+		"page:assertExists(\"#post-composer-textarea\")\n",
+	}
+	got := assembleLua(actions, bodies)
+
+	wantLines := []string{
+		"function steps.open_login_page(page)",
+		"  page:navigate(\"{{baseUrl}}\")",
+		"  page:locator(\"header button\"):click()",
+		"end",
+		"",
+		"function steps.verify_dashboard(page)",
+		"  page:assertExists(\"#post-composer-textarea\")",
+		"end",
+	}
+	for _, want := range wantLines {
+		if !strings.Contains(got, want+"\n") {
+			t.Errorf("assembleLua missing line %q in:\n%s", want, got)
+		}
+	}
+	// Body lines must be indented; the function signature/end lines must not be.
+	for _, line := range strings.Split(got, "\n") {
+		switch {
+		case strings.HasPrefix(line, "page:"):
+			if !strings.HasPrefix(line, "  page:") {
+				t.Errorf("body line must be indented, got %q in:\n%s", line, got)
+			}
+		case strings.HasPrefix(line, "function"), line == "end":
+			if strings.HasPrefix(line, " ") {
+				t.Errorf("signature/end must not be indented, got %q in:\n%s", line, got)
+			}
+		}
+	}
+}
+
 func TestRunWaitLoop(t *testing.T) {
 	job := domain.NewJob("test-job", domain.JobStopped)
 	if runWaitLoop(context.Background(), job) {

@@ -67,13 +67,24 @@ func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts
 	return body, nil
 }
 
+// assembleLua joins the per-step bodies into a single Lua script. Each step's
+// body is indented two spaces inside its function; functions are separated by
+// a single blank line, with no blank lines inside a function body. That keeps
+// "function ... end" boundaries visually distinct from the statements inside
+// them — putting blank lines around the body made it hard to tell where one
+// function ends and the next begins.
 func assembleLua(actions []domain.Action, bodies []string) string {
 	var sb strings.Builder
 	sb.WriteString("local steps = {}\n\n")
 	for i, a := range actions {
 		fmt.Fprintf(&sb, "function steps.%s(page)\n", a.ID)
-		sb.WriteString(bodies[i])
-		if !strings.HasSuffix(bodies[i], "\n") {
+		// Indent each non-empty body line by two spaces. translateActions emits
+		// one statement per line with a trailing newline; we split + indent
+		// here so translateActions stays free of presentation concerns.
+		body := strings.TrimRight(bodies[i], "\n")
+		for _, line := range strings.Split(body, "\n") {
+			sb.WriteString("  ")
+			sb.WriteString(line)
 			sb.WriteString("\n")
 		}
 		sb.WriteString("end\n\n")
