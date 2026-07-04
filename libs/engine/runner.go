@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
+	"github.com/thani-sh/provar/libs/logger"
 )
 
 const (
@@ -31,6 +32,7 @@ func NewRunner() *Runner {
 
 // Run executes a compiled scenario and returns a Job tracking the progress.
 func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode string, opts RunOptions) (*domain.Job, error) {
+	logger.Debug("run start", "actions", len(actions), "headless", opts.Headless)
 	job := domain.NewJob(uuid.New().String(), domain.JobRunning)
 	go func() {
 		startTime := time.Now()
@@ -74,6 +76,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 					"title":  action.Name,
 				},
 			})
+			logger.Debug("run step start", "id", action.ID, "name", action.Name)
 			err = s.ExecuteStep(action.ID)
 			if err != nil {
 				job.SetStatus(domain.JobFailed)

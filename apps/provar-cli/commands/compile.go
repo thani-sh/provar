@@ -10,6 +10,7 @@ import (
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine"
 	"github.com/thani-sh/provar/libs/engine/browser"
+	"github.com/thani-sh/provar/libs/logger"
 	"github.com/thani-sh/provar/libs/models"
 )
 
@@ -116,6 +117,7 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 			failed++
 			continue
 		}
+		logger.Debug("compiled file", "path", outPath, "bytes", len(result.LuaCode))
 		p.Success("compiled %s", outPath)
 	}
 	if failed > 0 {

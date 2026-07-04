@@ -9,6 +9,7 @@ import (
 
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/thani-sh/provar/libs/logger"
 )
 
 type openaiClient struct {
@@ -59,6 +60,7 @@ func (c *openaiClient) CreateSession(ctx context.Context, systemPrompt string, t
 			},
 		})
 	}
+	logger.Debug("model session", "provider", "openai", "model", c.model, "tools", len(tools))
 	return &openaiSession{
 		client:      &client,
 		model:       c.model,

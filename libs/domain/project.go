@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/thani-sh/provar/libs/logger"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -86,6 +87,7 @@ func LoadProject(projectDir string) (*Project, error) {
 		return nil, err
 	}
 	project.Files = files
+	logger.Debug("loaded project", "path", projectDir, "vars", len(project.Vars), "files", len(project.Files))
 	return project, nil
 }
 

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/thani-sh/provar/libs/engine/browser"
+	"github.com/thani-sh/provar/libs/logger"
 	"github.com/thani-sh/provar/libs/models"
 )
 
@@ -49,6 +50,7 @@ func (t *navigateTool) Execute(ctx context.Context, args json.RawMessage) (model
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("navigate: bad args: %w", err)
 	}
+	logger.Debug("tool", "name", "navigate", "url", p.URL)
 	t.b.RecordAction("navigate", map[string]any{"url": p.URL})
 	if err := t.b.Navigate(p.URL); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "navigate failed: " + err.Error()}}}, nil
@@ -74,6 +76,7 @@ func (t *clickTool) Execute(ctx context.Context, args json.RawMessage) (models.T
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("click: bad args: %w", err)
 	}
+	logger.Debug("tool", "name", "click", "selector", p.Selector)
 	t.b.RecordAction("click", map[string]any{"selector": p.Selector})
 	if err := t.b.Click(p.Selector); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "click failed: " + err.Error()}}}, nil
@@ -100,6 +103,7 @@ func (t *fillTool) Execute(ctx context.Context, args json.RawMessage) (models.To
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("fill: bad args: %w", err)
 	}
+	logger.Debug("tool", "name", "fill", "selector", p.Selector)
 	t.b.RecordAction("fill", map[string]any{"selector": p.Selector, "value": p.Value})
 	if err := t.b.Fill(p.Selector, p.Value); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "fill failed: " + err.Error()}}}, nil
@@ -125,6 +129,7 @@ func (t *waitForTool) Execute(ctx context.Context, args json.RawMessage) (models
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("wait_for: bad args: %w", err)
 	}
+	logger.Debug("tool", "name", "wait_for", "selector", p.Selector)
 	t.b.RecordAction("wait_for", map[string]any{"selector": p.Selector})
 	el, err := t.b.Element(p.Selector)
 	if err != nil {
@@ -152,6 +157,7 @@ func (t *getPageSourceTool) Execute(ctx context.Context, args json.RawMessage) (
 	if err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "get_page_source failed: " + err.Error()}}}, nil
 	}
+	logger.Debug("tool", "name", "get_page_source", "bytes", len(html))
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: html}}}, nil
 }
 
@@ -171,6 +177,7 @@ func (t *getPageScreenshotTool) Execute(ctx context.Context, args json.RawMessag
 	if err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "get_page_screenshot failed: " + err.Error()}}}, nil
 	}
+	logger.Debug("tool", "name", "get_page_screenshot", "bytes", len(shot))
 	return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeImage, Data: shot, MIME: "image/png"}}}, nil
 }
 
@@ -186,5 +193,6 @@ func (t *doneTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{}}`)
 }
 func (t *doneTool) Execute(ctx context.Context, args json.RawMessage) (models.ToolResult, error) {
+	logger.Debug("tool", "name", "done")
 	return models.ToolResult{}, nil
 }

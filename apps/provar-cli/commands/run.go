@@ -9,6 +9,7 @@ import (
 	"github.com/thani-sh/provar/apps/provar-cli/helpers"
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine"
+	"github.com/thani-sh/provar/libs/logger"
 )
 
 // runFlags are the typed flags for the run command. The `validate:"-"` tag tells the
@@ -75,6 +76,7 @@ func runHandler(ctx context.Context, target string, raw helpers.Flags, p *helper
 			actions = truncated
 		}
 		job, err := runner.Run(ctx, actions, string(luaCode), engine.RunOptions{Headless: headless, Vars: project.Vars, UpTo: fl.UpTo})
+		logger.Debug("ran file", "path", luaPath)
 		if err != nil {
 			p.Error("run %s: %v", file.Path, err)
 			failed++

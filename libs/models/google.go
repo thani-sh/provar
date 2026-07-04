@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/thani-sh/provar/libs/logger"
 	"google.golang.org/genai"
 )
 
@@ -48,6 +49,7 @@ func (c *googleClient) CreateSession(ctx context.Context, systemPrompt string, t
 	if err != nil {
 		return nil, err
 	}
+	logger.Debug("model session", "provider", "google", "model", c.model, "tools", len(tools))
 	return &googleSession{
 		client:       client,
 		model:        c.model,

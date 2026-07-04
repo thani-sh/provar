@@ -9,6 +9,7 @@ import (
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/engine/browsertools"
+	"github.com/thani-sh/provar/libs/logger"
 	"github.com/thani-sh/provar/libs/models"
 )
 
@@ -47,6 +48,7 @@ func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts Co
 func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts CompileOptions) (string, error) {
 	opts.Browser.ClearActions()
 	tools := browsertools.Tools(opts.Browser)
+	logger.Debug("compile action start", "id", action.ID, "tools", len(tools))
 	session, err := c.Client.CreateSession(ctx, systemPrompt(), tools...)
 	if err != nil {
 		return "", fmt.Errorf("create session: %w", err)
@@ -61,6 +63,7 @@ func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts
 	if body == "" {
 		return "", fmt.Errorf("no actions recorded by LLM")
 	}
+	logger.Debug("compile action end", "id", action.ID, "bytes", len(body))
 	return body, nil
 }
 

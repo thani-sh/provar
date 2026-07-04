@@ -8,6 +8,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/thani-sh/provar/libs/logger"
 )
 
 const (
@@ -62,6 +63,7 @@ func (c *anthropicClient) CreateSession(ctx context.Context, systemPrompt string
 			},
 		})
 	}
+	logger.Debug("model session", "provider", "anthropic", "model", c.model, "tools", len(tools))
 	return &anthropicSession{
 		client:       &client,
 		model:        c.model,

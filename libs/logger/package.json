@@ -1,0 +1,6 @@
+{
+  "name": "@provar/logger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Minimal level-gated logger with LOG_LEVEL env support"
+}
