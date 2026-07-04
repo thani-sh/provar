@@ -1,4 +1,4 @@
-# 002 - Sample Project Uses a Live-Hosted Demo
+# 002 - Sample Uses a Live Website
 
 ## Context
 
