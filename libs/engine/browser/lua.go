@@ -48,12 +48,16 @@ func pageGoto(L *lua.LState) int {
 		return 0
 	}
 	url := L.CheckString(2)
-	err := lp.page.Navigate(url)
+	// Per-call 5s timeout — clones the page so the deadline doesn't leak
+	// onto the page's lifetime (would otherwise dead-letter every subsequent
+	// operation across the whole test run).
+	p := lp.page.Timeout(implicitWaitTimeout)
+	err := p.Navigate(url)
 	if err != nil {
 		L.RaiseError("failed to navigate to %s: %v", url, err)
 		return 0
 	}
-	err = lp.page.WaitLoad()
+	err = p.WaitLoad()
 	if err != nil {
 		L.RaiseError("failed to wait load: %v", err)
 	}
@@ -89,12 +93,13 @@ func pageAssertExists(L *lua.LState) int {
 		return 0
 	}
 	selector := L.CheckString(2)
-	el, err := lp.page.Element(selector)
+	p := lp.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(selector)
 	if err != nil {
 		L.RaiseError("assertExists %q: %v", selector, err)
 		return 0
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		L.RaiseError("assertExists %q: %v", selector, err)
 		return 0
 	}
@@ -109,12 +114,13 @@ func locatorFill(L *lua.LState) int {
 		return 0
 	}
 	value := L.CheckString(2)
-	el, err := ll.page.Element(ll.selector)
+	p := ll.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(ll.selector)
 	if err != nil {
 		L.RaiseError("failed to find element %s: %v", ll.selector, err)
 		return 0
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		L.RaiseError("element %s did not become visible: %v", ll.selector, err)
 		return 0
 	}
@@ -132,12 +138,13 @@ func locatorClick(L *lua.LState) int {
 		L.RaiseError("expected *luaLocator")
 		return 0
 	}
-	el, err := ll.page.Element(ll.selector)
+	p := ll.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(ll.selector)
 	if err != nil {
 		L.RaiseError("failed to find element %s: %v", ll.selector, err)
 		return 0
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		L.RaiseError("element %s did not become visible: %v", ll.selector, err)
 		return 0
 	}
@@ -155,12 +162,13 @@ func locatorWaitFor(L *lua.LState) int {
 		L.RaiseError("expected *luaLocator")
 		return 0
 	}
-	el, err := ll.page.Element(ll.selector)
+	p := ll.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(ll.selector)
 	if err != nil {
 		L.RaiseError("failed to find element %s: %v", ll.selector, err)
 		return 0
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		L.RaiseError("element %s did not become visible: %v", ll.selector, err)
 		return 0
 	}

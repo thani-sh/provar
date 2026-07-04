@@ -12,26 +12,16 @@ import (
 	"github.com/yuin/gopher-lua"
 )
 
-// defaultBrowserTimeout caps every page/element call inside the compile-time
-// browser. Rod's default sleeper retries indefinitely; without this a missing
-// selector or a stalled page hangs the whole compile.
-//
-// IMPORTANT: page.Timeout(d) sets a deadline on the page's *entire* context,
-// so the wall clock applies to the lifetime of the page, not to a single
-// call. A 5s value here would dead-letter every subsequent operation after
-// the first 5s, sending the LLM into a permanent retry loop.
-//
-// So this stays at 15s for now (long enough for navigate/waitLoad on slow
-// sites, short enough that the compile doesn't hang indefinitely). The
-// per-tool "5s max" implicit-wait cap that the spec asks for is enforced at
-// the *call site* via `el.Timeout(5s).WaitVisible()` instead, which scopes
-// the deadline to that one wait.
-const defaultBrowserTimeout = 15 * time.Second
-
 // implicitWaitTimeout caps the per-call implicit wait that click/fill/
 // assert_exists do before acting on an element. Spec: all implicit waits
-// must be 5s or less. Used by Session.Click / Fill / AssertExists as a
-// per-call `el.Timeout(...)` so the deadline doesn't leak onto the page.
+// must be 5s or less.
+//
+// Applied via `s.page.Timeout(implicitWaitTimeout).Element(...)` (and
+// equivalent for the other operations), which returns a *clone* of the page
+// with the deadline — the original page context is untouched, so the page
+// never dies wall-clock style. A previous version applied `page.Timeout(d)`
+// once in NewSession and accidentally set a deadline on the page's entire
+// lifetime, dead-lettering every operation after d seconds.
 const implicitWaitTimeout = 5 * time.Second
 
 // Action represents one recorded browser interaction. It is the source of truth for what
@@ -54,6 +44,12 @@ type Session struct {
 }
 
 // NewSession starts a browser and initializes the Lua VM.
+//
+// IMPORTANT: do NOT call `page.Timeout(d)` here — it sets a wall-clock
+// deadline on the page's entire context, which dead-letters every operation
+// once d elapses. Per-call timeouts are applied at the Session.* methods
+// via `s.page.Timeout(implicitWaitTimeout).X(...)` instead, which scopes the
+// deadline to a single call without leaking onto the page.
 func NewSession(ctx context.Context, headless bool) (*Session, error) {
 	l := launcher.New().Headless(headless)
 	u, err := l.Launch()
@@ -70,9 +66,6 @@ func NewSession(ctx context.Context, headless bool) (*Session, error) {
 		_ = browser.Close()
 		return nil, fmt.Errorf("failed to open page: %w", err)
 	}
-	// Bound every subsequent page/element call so a missing selector or unresponsive
-	// page doesn't hang the whole compile. Rod's default sleeper retries forever.
-	page = page.Timeout(defaultBrowserTimeout)
 	L := lua.NewState()
 	L.SetContext(ctx)
 	registerPageType(L)
@@ -160,28 +153,32 @@ func (s *Session) ClearActions() {
 
 // --- compile-time primitives (called by tool wrappers, not by the runtime Lua VM) ---
 
-// Navigate loads the given URL and waits for the page to settle.
+// Navigate loads the given URL and waits for the page to settle. The per-call
+// `s.page.Timeout(...)` clone scopes the deadline to navigate+waitLoad —
+// without this, the page context would have no upper bound on a stalled site.
 func (s *Session) Navigate(url string) error {
-	if err := s.page.Navigate(url); err != nil {
+	p := s.page.Timeout(implicitWaitTimeout)
+	if err := p.Navigate(url); err != nil {
 		return fmt.Errorf("navigate %q: %w", url, err)
 	}
-	if err := s.page.WaitLoad(); err != nil {
+	if err := p.WaitLoad(); err != nil {
 		return fmt.Errorf("navigate %q: wait load: %w", url, err)
 	}
 	return nil
 }
 
 // Click finds the element matching the CSS selector, waits up to
-// implicitWaitTimeout for it to be visible, and clicks it. The per-call
-// `el.Timeout(implicitWaitTimeout)` scopes the deadline to this single
-// wait — using `page.Timeout(5s)` instead would dead-letter every operation
-// after 5s of wall clock.
+// implicitWaitTimeout for it to be visible, and clicks it. The whole
+// find+wait+click is bounded by implicitWaitTimeout — the `page.Timeout()`
+// clone scopes the deadline to this single call without leaking onto the
+// page's lifetime.
 func (s *Session) Click(selector string) error {
-	el, err := s.page.Element(selector)
+	p := s.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(selector)
 	if err != nil {
 		return fmt.Errorf("click %q: find element: %w", selector, err)
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		return fmt.Errorf("click %q: not visible: %w", selector, err)
 	}
 	if err := el.Click(proto.InputMouseButtonLeft, 1); err != nil {
@@ -194,11 +191,12 @@ func (s *Session) Click(selector string) error {
 // implicitWaitTimeout for it to be visible, and types the value into it.
 // Same per-call timeout pattern as Click — see Click for the rationale.
 func (s *Session) Fill(selector, value string) error {
-	el, err := s.page.Element(selector)
+	p := s.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(selector)
 	if err != nil {
 		return fmt.Errorf("fill %q: find element: %w", selector, err)
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		return fmt.Errorf("fill %q: not visible: %w", selector, err)
 	}
 	if err := el.Input(value); err != nil {
@@ -213,25 +211,27 @@ func (s *Session) Fill(selector, value string) error {
 // step the LLM emits as `assert_exists` — the corresponding Lua runtime
 // method (page:assertExists) does the same check at run time.
 func (s *Session) AssertExists(selector string) error {
-	el, err := s.page.Element(selector)
+	p := s.page.Timeout(implicitWaitTimeout)
+	el, err := p.Element(selector)
 	if err != nil {
 		return fmt.Errorf("assertExists %q: %w", selector, err)
 	}
-	if err := el.Timeout(implicitWaitTimeout).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		return fmt.Errorf("assertExists %q: not visible: %w", selector, err)
 	}
 	return nil
 }
 
 // GetPageSource returns the current page's outer HTML. Used as a tool result so the LLM
-// can observe the post-action DOM.
+// can observe the post-action DOM. Per-call 5s timeout so a wedged page doesn't hang.
 func (s *Session) GetPageSource() (string, error) {
-	return s.page.HTML()
+	return s.page.Timeout(implicitWaitTimeout).HTML()
 }
 
 // Element resolves a CSS selector against the current page and returns the underlying
 // rod element. Used by tool wrappers that need to do something more than a single
-// primitive call (e.g. wait_for needs to call WaitVisible).
+// primitive call (e.g. wait_for needs to call WaitVisible). The returned element
+// inherits a 5s context from the per-call page.Timeout clone.
 func (s *Session) Element(selector string) (*rod.Element, error) {
-	return s.page.Element(selector)
+	return s.page.Timeout(implicitWaitTimeout).Element(selector)
 }

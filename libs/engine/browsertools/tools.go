@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/logger"
@@ -148,11 +147,14 @@ func (t *waitForTool) Execute(ctx context.Context, args json.RawMessage) (models
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "wait_for", "selector", p.Selector)
+	// Session.Element() returns an element with the per-call 5s budget baked
+	// in via the page.Timeout() clone, so WaitVisible shares that budget
+	// (find + wait_for is bounded by 5s total — see Session.Element).
 	el, err := t.b.Element(p.Selector)
 	if err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "wait_for failed: " + err.Error()}}}, nil
 	}
-	if err := el.Timeout(5 * time.Second).WaitVisible(); err != nil {
+	if err := el.WaitVisible(); err != nil {
 		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: "wait_for failed: " + err.Error()}}}, nil
 	}
 	t.b.RecordAction("wait_for", map[string]any{"selector": p.Selector})
