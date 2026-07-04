@@ -82,6 +82,15 @@ type openaiSession struct {
 
 func (s *openaiSession) Send(ctx context.Context, attachments []Attachment) error {
 	s.messages = append(s.messages, userMessage(attachments))
+	var textSnippets []string
+	for _, a := range attachments {
+		if a.Type == AttachmentTypeText {
+			textSnippets = append(textSnippets, truncate(a.Text, 400))
+		}
+	}
+	if len(textSnippets) > 0 {
+		logger.Debug("model input", "provider", "openai", "texts", textSnippets)
+	}
 	s.ch = make(chan string, chanBuffer)
 	go s.runLoop(ctx)
 	return nil
@@ -134,6 +143,12 @@ func (s *openaiSession) runLoop(ctx context.Context) {
 			}
 			builder.args.WriteString(tc.Function.Arguments)
 		}
+		if assistantText != "" {
+			logger.Debug("model text", "provider", "openai", "iter", iter, "len", len(assistantText), "snippet", truncate(assistantText, 400))
+		}
+		for _, builder := range toolCallBuilders {
+			logger.Debug("model tool call", "provider", "openai", "iter", iter, "name", builder.name, "args", truncate(builder.args.String(), 400))
+		}
 		for _, builder := range toolCallBuilders {
 			tool, ok := toolByName[builder.name]
 			if !ok {
@@ -145,7 +160,9 @@ func (s *openaiSession) runLoop(ctx context.Context) {
 				s.ch <- fmt.Sprintf("error: tool %q: %v", builder.name, execErr)
 				return
 			}
-			s.messages = append(s.messages, openai.ToolMessage(toolResultText(result), builder.id))
+			content := toolResultText(result)
+			logger.Debug("model tool result", "provider", "openai", "name", builder.name, "content", truncate(content, 400))
+			s.messages = append(s.messages, openai.ToolMessage(content, builder.id))
 		}
 	}
 }

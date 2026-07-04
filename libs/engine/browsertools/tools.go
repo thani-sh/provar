@@ -10,6 +10,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/thani-sh/provar/libs/engine/browser"
@@ -50,6 +51,9 @@ func (t *navigateTool) Execute(ctx context.Context, args json.RawMessage) (model
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("navigate: bad args: %w", err)
 	}
+	if err := requireNonBlank("navigate", "url", p.URL); err != nil {
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real URL, or use {{baseUrl}}."}}}, nil
+	}
 	logger.Debug("tool", "name", "navigate", "url", p.URL)
 	t.b.RecordAction("navigate", map[string]any{"url": p.URL})
 	if err := t.b.Navigate(p.URL); err != nil {
@@ -75,6 +79,9 @@ func (t *clickTool) Execute(ctx context.Context, args json.RawMessage) (models.T
 	}
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("click: bad args: %w", err)
+	}
+	if err := requireNonBlank("click", "selector", p.Selector); err != nil {
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "click", "selector", p.Selector)
 	t.b.RecordAction("click", map[string]any{"selector": p.Selector})
@@ -103,6 +110,10 @@ func (t *fillTool) Execute(ctx context.Context, args json.RawMessage) (models.To
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("fill: bad args: %w", err)
 	}
+	// Empty `value` is allowed (clears the field). Empty `selector` is not.
+	if err := requireNonBlank("fill", "selector", p.Selector); err != nil {
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
+	}
 	logger.Debug("tool", "name", "fill", "selector", p.Selector)
 	t.b.RecordAction("fill", map[string]any{"selector": p.Selector, "value": p.Value})
 	if err := t.b.Fill(p.Selector, p.Value); err != nil {
@@ -128,6 +139,9 @@ func (t *waitForTool) Execute(ctx context.Context, args json.RawMessage) (models
 	}
 	if err := json.Unmarshal(args, &p); err != nil {
 		return models.ToolResult{}, fmt.Errorf("wait_for: bad args: %w", err)
+	}
+	if err := requireNonBlank("wait_for", "selector", p.Selector); err != nil {
+		return models.ToolResult{Content: []models.Attachment{{Type: models.AttachmentTypeText, Text: err.Error() + " — call get_page_source to find a real selector."}}}, nil
 	}
 	logger.Debug("tool", "name", "wait_for", "selector", p.Selector)
 	t.b.RecordAction("wait_for", map[string]any{"selector": p.Selector})
@@ -195,4 +209,16 @@ func (t *doneTool) Parameters() json.RawMessage {
 func (t *doneTool) Execute(ctx context.Context, args json.RawMessage) (models.ToolResult, error) {
 	logger.Debug("tool", "name", "done")
 	return models.ToolResult{}, nil
+}
+
+// requireNonBlank refuses tool args that the LLM sometimes emits as empty or
+// whitespace-only strings — values that would otherwise silently produce dead
+// `page:navigate("")` / `page:locator(""):click()` lines in the compiled Lua
+// and (worse) trigger rod's empty-URL path. Returns a descriptive error meant
+// to be returned to the LLM as a tool result so the model can react.
+func requireNonBlank(tool, field, value string) error {
+	if strings.TrimSpace(value) == "" {
+		return fmt.Errorf("%s refused: %s is empty or whitespace-only", tool, field)
+	}
+	return nil
 }

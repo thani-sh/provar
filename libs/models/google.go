@@ -71,6 +71,7 @@ type googleSession struct {
 
 func (s *googleSession) Send(ctx context.Context, attachments []Attachment) error {
 	var parts []*genai.Part
+	var textSnippets []string
 	for _, a := range attachments {
 		if a.Type == AttachmentTypeImage {
 			parts = append(parts, &genai.Part{
@@ -83,12 +84,16 @@ func (s *googleSession) Send(ctx context.Context, attachments []Attachment) erro
 			parts = append(parts, &genai.Part{
 				Text: a.Text,
 			})
+			textSnippets = append(textSnippets, truncate(a.Text, 400))
 		}
 	}
 	s.contents = append(s.contents, &genai.Content{
 		Role:  roleUser,
 		Parts: parts,
 	})
+	if len(textSnippets) > 0 {
+		logger.Debug("model input", "provider", "google", "texts", textSnippets)
+	}
 	s.ch = make(chan string, chanBuffer)
 	go s.runLoop(ctx)
 	return nil
@@ -117,6 +122,15 @@ func (s *googleSession) runLoop(ctx context.Context) {
 			Role:  roleModel,
 			Parts: modelParts,
 		})
+		for _, p := range modelParts {
+			if p.Text != "" {
+				logger.Debug("model text", "provider", "google", "iter", iter, "len", len(p.Text), "snippet", truncate(p.Text, 400))
+			}
+		}
+		for _, fc := range functionCalls {
+			argsJSON, _ := json.Marshal(fc.Args)
+			logger.Debug("model tool call", "provider", "google", "iter", iter, "name", fc.Name, "args", truncate(string(argsJSON), 400))
+		}
 		if len(functionCalls) == 0 {
 			return
 		}
@@ -138,12 +152,14 @@ func (s *googleSession) runLoop(ctx context.Context) {
 				s.ch <- fmt.Sprintf("error: tool %q: %v", fc.Name, execErr)
 				return
 			}
+			content := toolResultText(result)
+			logger.Debug("model tool result", "provider", "google", "name", fc.Name, "content", truncate(content, 400))
 			responseParts = append(responseParts, &genai.Part{
 				FunctionResponse: &genai.FunctionResponse{
 					ID:   fc.ID,
 					Name: fc.Name,
 					Response: map[string]any{
-						"content": toolResultText(result),
+						"content": content,
 					},
 				},
 			})

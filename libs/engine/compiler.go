@@ -59,7 +59,7 @@ func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts
 	}
 	for range session.Recv() {
 	}
-	body := translateActions(opts.Browser.Actions())
+	body := translateActions(reverseSubstituteActions(opts.Browser.Actions(), opts.Vars))
 	if body == "" {
 		return "", fmt.Errorf("no actions recorded by LLM")
 	}
@@ -110,6 +110,84 @@ func translateActions(actions []browser.Action) string {
 	return sb.String()
 }
 
+// reverseSubstituteActions walks every string arg in the recorded action log and,
+// where the value matches a project variable, rewrites it to the {{name}} placeholder
+// form so the compiled Lua stays portable across environments. The LLM is free to
+// emit either the placeholder form or the resolved value during compile — this step
+// normalises the result.
+//
+// Matching rules:
+//   - Empty values are skipped. An empty vars["x"] = "" would otherwise replace
+//     every empty string in the script.
+//   - Exact match: full string equality is replaced.
+//   - URL prefix: when s starts with val, the boundary must be unambiguous. If
+//     val ends with "/", the trailing slash is consumed by the placeholder so
+//     {{var}}/rest == val + rest. If val doesn't end with "/", the next char in
+//     s must be a URL separator (/, ?, #, &) before we accept the prefix match.
+//   - Vars are tried longest-value first. Two vars whose values overlap (e.g.,
+//     "demo" and "demo.thani.sh") pick the more-specific one.
+//   - Non-string args pass through untouched. Single pass: a substitution never
+//     re-triggers on a previously placed placeholder.
+//
+// The function mutates the input slice's Args maps in place — safe here because
+// the input comes from Browser.Actions(), whose slice is a fresh copy and whose
+// inner maps are only re-read by the next compileAction (which ClearsActions first).
+func reverseSubstituteActions(actions []browser.Action, vars map[string]string) []browser.Action {
+	type pair struct{ name, val string }
+	pairs := make([]pair, 0, len(vars))
+	for k, v := range vars {
+		if v != "" {
+			pairs = append(pairs, pair{k, v})
+		}
+	}
+	sort.Slice(pairs, func(i, j int) bool { return len(pairs[i].val) > len(pairs[j].val) })
+
+	for i := range actions {
+		for k, v := range actions[i].Args {
+			s, ok := v.(string)
+			if !ok {
+				continue
+			}
+			for _, p := range pairs {
+				switch {
+				case s == p.val:
+					s = "{{" + p.name + "}}"
+				case len(s) > len(p.val) && strings.HasPrefix(s, p.val):
+					var rest string
+					switch {
+					case strings.HasSuffix(p.val, "/"):
+						// val's trailing slash becomes part of the placeholder, so
+						// keep s starting from one position before len(val) — that's
+						// the slash plus everything after it.
+						rest = s[len(p.val)-1:]
+					case isURLSeparator(s[len(p.val)]):
+						rest = s[len(p.val):]
+					default:
+						continue
+					}
+					s = "{{" + p.name + "}}" + rest
+				default:
+					continue
+				}
+				break
+			}
+			actions[i].Args[k] = s
+		}
+	}
+	return actions
+}
+
+// isURLSeparator reports whether c is a structural URL/Path character that can
+// safely follow a variable value without ambiguity. Used by reverseSubstituteActions
+// to decide whether a prefix match is safe.
+func isURLSeparator(c byte) bool {
+	switch c {
+	case '/', '?', '#', '&':
+		return true
+	}
+	return false
+}
+
 // luaString formats a Go string as a Lua double-quoted string literal. The runtime
 // accepts only `page:navigate(url)` style literals, so we always emit double quotes
 // and escape the same characters Lua's loader does.
@@ -148,8 +226,8 @@ RULES:
 - Do NOT repeat the same call with the same arguments after it succeeded. Retry only if the call failed, and only after observing why.
 - Do NOT call navigate, click, fill, or wait_for with empty or whitespace-only arguments. Those calls produce dead code in the test.
 - Drive the app through its UI: click, fill, navigate. Do not invent workarounds (no direct URL hacks, no API calls, no evaluating JavaScript).
-- All selectors, URLs, and field values must be visible on the page or come from the project variables in your action prompt. If a value is missing, generate a unique one (e.g. a timestamp-based email) rather than guessing.
-- {{var}} placeholders work inside string arguments. Use the placeholder form in tool arguments; the runtime resolves the value at execution time. Do not paste resolved values into tool arguments — placeholders keep tests portable across environments.
+- All selectors, URLs, and field values must be visible on the page or come from the "Available values" section of your action prompt. If a value is missing, generate a unique one (e.g. a timestamp-based email) rather than guessing.
+- Use the values listed under "Available values" in your action prompt directly in tool arguments. Compose them when one value isn't enough on its own (e.g. base URL + path, identifier + suffix).
 - get_page_source returns the full HTML — call it only when you actually need selectors. get_page_screenshot is for visual layout.
 - CSS selectors only.`
 }
@@ -158,15 +236,17 @@ func buildActionPrompt(action domain.Action, vars map[string]string) string {
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "Step ID: %s\n\n", action.ID)
 	fmt.Fprintf(&sb, "User's intent: %s — %s\n\n", action.Name, action.Info)
-	if len(vars) > 0 {
-		keys := make([]string, 0, len(vars))
-		for k := range vars {
+	keys := make([]string, 0, len(vars))
+	for k, v := range vars {
+		if v != "" {
 			keys = append(keys, k)
 		}
+	}
+	if len(keys) > 0 {
 		sort.Strings(keys)
-		sb.WriteString("Project variables (use {{name}} placeholders in tool arguments; the runtime substitutes them at execution time):\n")
+		sb.WriteString("Available values (use them as-is in tool arguments):\n")
 		for _, k := range keys {
-			fmt.Fprintf(&sb, "  {{%s}}\n", k)
+			fmt.Fprintf(&sb, "  %s = %s\n", k, vars[k])
 		}
 		sb.WriteString("\n")
 	}

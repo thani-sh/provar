@@ -53,12 +53,15 @@ func (c *anthropicClient) CreateSession(ctx context.Context, systemPrompt string
 		if err := json.Unmarshal(t.Parameters(), &params); err != nil {
 			params = map[string]any{"type": "object"}
 		}
+		props, required := extractSchemaFields(params)
 		anthTools = append(anthTools, anthropic.ToolUnionParam{
 			OfTool: &anthropic.ToolParam{
 				Name:        t.Name(),
 				Description: anthropic.String(t.Description()),
 				InputSchema: anthropic.ToolInputSchemaParam{
-					Properties: params,
+					Type:       "object",
+					Properties: props,
+					Required:   required,
 				},
 			},
 		})
@@ -86,6 +89,7 @@ type anthropicSession struct {
 
 func (s *anthropicSession) Send(ctx context.Context, attachments []Attachment) error {
 	var parts []anthropic.ContentBlockParamUnion
+	var textSnippets []string
 	for _, a := range attachments {
 		if a.Type == AttachmentTypeImage {
 			base64Data := base64.StdEncoding.EncodeToString(a.Data)
@@ -95,9 +99,13 @@ func (s *anthropicSession) Send(ctx context.Context, attachments []Attachment) e
 			}))
 		} else {
 			parts = append(parts, anthropic.NewTextBlock(a.Text))
+			textSnippets = append(textSnippets, truncate(a.Text, 400))
 		}
 	}
 	s.messages = append(s.messages, anthropic.NewUserMessage(parts...))
+	if len(textSnippets) > 0 {
+		logger.Debug("model input", "provider", "anthropic", "texts", textSnippets)
+	}
 	s.ch = make(chan string, chanBuffer)
 	go s.runLoop(ctx)
 	return nil
@@ -124,9 +132,11 @@ func (s *anthropicSession) runLoop(ctx context.Context) {
 		}
 		var assistantBlocks []anthropic.ContentBlockParamUnion
 		if textContent != "" {
+			logger.Debug("model text", "provider", "anthropic", "iter", iter, "len", len(textContent), "snippet", truncate(textContent, 400))
 			assistantBlocks = append(assistantBlocks, anthropic.NewTextBlock(textContent))
 		}
 		for _, tu := range toolUses {
+			logger.Debug("model tool call", "provider", "anthropic", "iter", iter, "name", tu.Name, "args", truncate(tu.Args.String(), 400))
 			assistantBlocks = append(assistantBlocks, anthropic.NewToolUseBlock(tu.ID, json.RawMessage(tu.Args.String()), tu.Name))
 		}
 		s.messages = append(s.messages, anthropic.NewAssistantMessage(assistantBlocks...))
@@ -145,7 +155,9 @@ func (s *anthropicSession) runLoop(ctx context.Context) {
 				s.ch <- "error: tool \"" + tu.Name + "\": " + execErr.Error()
 				return
 			}
-			resultBlocks = append(resultBlocks, anthropic.NewToolResultBlock(tu.ID, toolResultText(result), false))
+			content := toolResultText(result)
+			logger.Debug("model tool result", "provider", "anthropic", "name", tu.Name, "content", truncate(content, 400))
+			resultBlocks = append(resultBlocks, anthropic.NewToolResultBlock(tu.ID, content, false))
 		}
 		s.messages = append(s.messages, anthropic.NewUserMessage(resultBlocks...))
 	}
@@ -155,6 +167,29 @@ type anthropicToolUse struct {
 	ID   string
 	Name string
 	Args strings.Builder
+}
+
+// extractSchemaFields pulls the inner `properties` map and the `required` string
+// list out of a JSON Schema object, returning them in a form the Anthropic SDK's
+// ToolInputSchemaParam can ingest directly. The SDK's Properties field is only
+// for the properties map; if you hand the whole schema as Properties, the
+// `required` array is silently dropped — which is what lets the model emit
+// invalid tool calls like {"properties": ""} for `navigate` and have them
+// accepted by the SDK. Required must be a sibling parameter for the schema
+// to be enforced server-side.
+func extractSchemaFields(params map[string]any) (props map[string]any, required []string) {
+	props, _ = params["properties"].(map[string]any)
+	if props == nil {
+		props = map[string]any{}
+	}
+	if r, ok := params["required"].([]any); ok {
+		for _, item := range r {
+			if s, ok := item.(string); ok {
+				required = append(required, s)
+			}
+		}
+	}
+	return props, required
 }
 
 // streamOnce runs one round-trip to the model. It streams text to Recv as it arrives

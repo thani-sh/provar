@@ -180,3 +180,13 @@ func toolResultText(r ToolResult) string {
 	}
 	return sb.String()
 }
+
+// truncate keeps a log line bounded by returning s unchanged when it's short
+// enough, or s[:max] + "..." when it's longer. Used by the per-provider debug
+// logging so a verbose LLM response doesn't blow up a single log entry.
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
+}
