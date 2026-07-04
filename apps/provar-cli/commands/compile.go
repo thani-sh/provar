@@ -13,17 +13,23 @@ import (
 	"github.com/thani-sh/provar/libs/models"
 )
 
-// compileFlags are the typed flags for the compile command.
+// compileFlags are the typed flags for the compile command. Headless mirrors the same
+// flag on `provar run` so the two commands behave consistently: default is a visible
+// browser (handy while iterating); pass `--headless=true` for CI / batch use.
 type compileFlags struct {
-	UpTo string `flag:"up-to" validate:"omitempty,regexp=^[A-Za-z0-9_-]+$"`
+	Headless bool   `flag:"headless" validate:"-"`
+	UpTo     string `flag:"up-to" validate:"omitempty,regexp=^[A-Za-z0-9_-]+$"`
 }
 
 // Validate runs struct-tag rules on the flags struct.
 func (f *compileFlags) Validate() error { return helpers.ValidateStruct(f) }
 
 var compileFlagBinding = helpers.FlagBinding{
-	Specs: []helpers.FlagSpec{{Name: "up-to", HasValue: true}},
-	New:   func() helpers.Flags { return &compileFlags{} },
+	Specs: []helpers.FlagSpec{
+		{Name: "headless", HasValue: true},
+		{Name: "up-to", HasValue: true},
+	},
+	New: func() helpers.Flags { return &compileFlags{} },
 }
 
 var compileCmd = helpers.Command{
@@ -34,11 +40,11 @@ var compileCmd = helpers.Command{
 	Run:         runCompile,
 }
 
-// runCompile implements `provar compile <target> [--up-to <action-id>]`. Loads the
-// project, opens a browser session, asks the engine compiler to translate each file's
-// actions into Lua via the LLM tool loop, and writes the result next to each .test.yml.
-// Per-file parse errors are warnings (continue), per-file compile errors are errors
-// (continue and report at the end).
+// runCompile implements `provar compile <target> [--headless <bool>] [--up-to <action-id>]`.
+// Loads the project, opens a browser session, asks the engine compiler to translate each
+// file's actions into Lua via the LLM tool loop, and writes the result next to each
+// .test.yml. Per-file parse errors are warnings (continue), per-file compile errors are
+// errors (continue and report at the end).
 func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helpers.Printer) int {
 	fl := raw.(*compileFlags)
 	project, err := domain.LoadProject(target)
@@ -74,7 +80,7 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		p.Error("client: %v", err)
 		return int(helpers.ExitRuntime)
 	}
-	browserSession, err := browser.NewSession(ctx, true)
+	browserSession, err := browser.NewSession(ctx, fl.Headless)
 	if err != nil {
 		p.Error("launch browser: %v", err)
 		return int(helpers.ExitRuntime)

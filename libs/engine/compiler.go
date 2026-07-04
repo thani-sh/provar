@@ -133,40 +133,40 @@ func luaString(s string) string {
 }
 
 func systemPrompt() string {
-	return `You drive a real browser to complete one user-facing action of an end-to-end test.
+	return `You complete one step of an end-to-end browser test by driving a real browser through tool calls. Each step starts fresh: the browser is on whatever page the previous step left it on, but you have no memory of how it got there. Drive, observe, decide, repeat.
 
-Use the provided tools to perform the action step by step. After each tool call you see the result (often an error message, or a snapshot of the new page state). Use the result to decide your next move.
+PROCESS — follow this loop every turn:
+1. If you don't already know what page you're on, call get_page_source (or get_page_screenshot for layout-only checks) to locate the elements you need.
+2. Do one user-intent interaction — navigate, click, or fill — with a real selector or URL. One tool call per turn.
+3. Read the result. It tells you whether the call worked and hints at the new page state. If the page clearly transitioned to something you don't recognise, observe again: get_page_source, or wait_for on a known element, then check the result of that.
+4. With the new state understood, decide the next interaction and loop back to step 2. If the step's intent is realised, call done.
 
-When the action is fully complete — every step a real user would perform has been done — call the done tool. Do NOT call done prematurely.
-
-If a tool call fails, do not give up. Read the error, observe the page (with get_page_source or get_page_screenshot), pick a corrected selector or value, and try again. You may retry as many times as you need.
-
-Rules:
-- Drive the app through its UI: click, fill, navigate. Do not invent workarounds.
-- All selectors, field names, URLs, and values must be visible on the page or in the project variables listed below. If a value is missing, generate a unique one (e.g. a timestamp-based email) rather than guessing.
-- {{var}} placeholders work inside string values for tool arguments; they are substituted at run time.
-- CSS selectors only. Use get_page_source to inspect the DOM if you're unsure.
-- get_page_source and get_page_screenshot are observation tools — they do not produce Lua code, just information for you.`
+RULES:
+- Do NOT repeat the same call with the same arguments after it succeeded. Retry only if the call failed, and only after observing why.
+- Do NOT call navigate, click, fill, or wait_for with empty or whitespace-only arguments. Those calls produce dead code in the test.
+- Drive the app through its UI: click, fill, navigate. Do not invent workarounds (no direct URL hacks, no API calls, no evaluating JavaScript).
+- All selectors, URLs, and field values must be visible on the page or come from the project variables in your action prompt. If a value is missing, generate a unique one (e.g. a timestamp-based email) rather than guessing.
+- {{var}} placeholders work inside string arguments. Use the placeholder form in tool arguments; the runtime resolves the value at execution time. Do not paste resolved values into tool arguments — placeholders keep tests portable across environments.
+- get_page_source returns the full HTML — call it only when you actually need selectors. get_page_screenshot is for visual layout.
+- CSS selectors only.`
 }
 
 func buildActionPrompt(action domain.Action, vars map[string]string) string {
 	var sb strings.Builder
-	fmt.Fprintf(&sb, "Complete this action end-to-end:\n\n")
-	fmt.Fprintf(&sb, "Action ID: %s\n", action.ID)
-	fmt.Fprintf(&sb, "Action Title: %s\n", action.Name)
-	fmt.Fprintf(&sb, "Action Description: %s\n\n", action.Info)
+	fmt.Fprintf(&sb, "Step ID: %s\n\n", action.ID)
+	fmt.Fprintf(&sb, "User's intent: %s — %s\n\n", action.Name, action.Info)
 	if len(vars) > 0 {
 		keys := make([]string, 0, len(vars))
 		for k := range vars {
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		sb.WriteString("Available project variables (use {{name}} in tool arguments; substituted at run time):\n")
+		sb.WriteString("Project variables (use {{name}} placeholders in tool arguments; the runtime substitutes them at execution time):\n")
 		for _, k := range keys {
-			fmt.Fprintf(&sb, "- {{%s}} = %s\n", k, vars[k])
+			fmt.Fprintf(&sb, "  {{%s}}\n", k)
 		}
 		sb.WriteString("\n")
 	}
-	sb.WriteString("Drive the browser with the tools. Call done when the action is complete.")
+	sb.WriteString("The browser state carries across steps in this file. After the first step, the browser is wherever the previous step left it; on the first step it starts on an empty tab. If you don't already know what page you're on, call get_page_source before acting. Follow the process loop in your system prompt. Call done when the user's intent is realised.")
 	return sb.String()
 }
