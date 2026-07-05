@@ -254,6 +254,79 @@ func TestParseFile_Missing(t *testing.T) {
 	}
 }
 
+func TestSaveFile_RoundTrip(t *testing.T) {
+	tempDir := t.TempDir()
+	relPath := testLoginRelPath
+	want := []Action{
+		{ID: "open_page", Name: "Open Page", Info: "navigate", Next: []string{"enter_creds"}},
+		{ID: "enter_creds", Name: "Enter Credentials", Info: "fill form"},
+	}
+	if err := SaveFile(tempDir, relPath, want); err != nil {
+		t.Fatalf("SaveFile returned error: %v", err)
+	}
+	got, err := ParseFile(tempDir, relPath)
+	if err != nil {
+		t.Fatalf("ParseFile after SaveFile returned error: %v", err)
+	}
+	if len(got) != len(want) {
+		t.Fatalf("round-trip action count: got %d want %d", len(got), len(want))
+	}
+	for i := range want {
+		w := want[i]
+		g := got[i]
+		if g.ID != w.ID || g.Name != w.Name || g.Info != w.Info {
+			t.Errorf("action[%d] scalars: got %+v want %+v", i, g, w)
+		}
+		if len(g.Next) != len(w.Next) {
+			t.Errorf("action[%d] Next length: got %d want %d", i, len(g.Next), len(w.Next))
+			continue
+		}
+		for j := range w.Next {
+			if g.Next[j] != w.Next[j] {
+				t.Errorf("action[%d].Next[%d]: got %q want %q", i, j, g.Next[j], w.Next[j])
+			}
+		}
+	}
+}
+
+func TestSaveFile_CreatesMissingParentDir(t *testing.T) {
+	tempDir := t.TempDir()
+	relPath := testAuthDir + "/nested.test.yml"
+	actions := []Action{{ID: "x", Name: "X", Info: "y"}}
+	if err := SaveFile(tempDir, relPath, actions); err != nil {
+		t.Fatalf("SaveFile returned error: %v", err)
+	}
+	got, err := ParseFile(tempDir, relPath)
+	if err != nil {
+		t.Fatalf("ParseFile after SaveFile returned error: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != "x" {
+		t.Errorf("round-trip nested: got %+v", got)
+	}
+}
+
+func TestSaveFile_OverwritesExisting(t *testing.T) {
+	tempDir := t.TempDir()
+	relPath := testEmptyRelPath
+	if err := os.MkdirAll(filepath.Join(tempDir, testTestsDir), dirPerm); err != nil {
+		t.Fatalf("mkdir tests: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(tempDir, relPath), []byte("- id: old\n  name: Old\n  info: stale\n"), filePerm); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+	want := []Action{{ID: "new", Name: "New", Info: "fresh"}}
+	if err := SaveFile(tempDir, relPath, want); err != nil {
+		t.Fatalf("SaveFile returned error: %v", err)
+	}
+	got, err := ParseFile(tempDir, relPath)
+	if err != nil {
+		t.Fatalf("ParseFile: %v", err)
+	}
+	if len(got) != 1 || got[0].ID != "new" {
+		t.Errorf("overwrite: got %+v", got)
+	}
+}
+
 func TestInitProject_Empty(t *testing.T) {
 	tempDir := t.TempDir()
 	target := filepath.Join(tempDir, "myproj")

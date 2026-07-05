@@ -216,6 +216,25 @@ func ParseFile(projectDir, relPath string) ([]Action, error) {
 	return actions, nil
 }
 
+// SaveFile writes actions back to a test file at relPath, replacing whatever
+// is on disk. The byte output is the YAML encoding used by ParseFile so
+// round-tripping (Get → Save → Get) is byte-stable for any test file the
+// editor produces. Parent directories are created if missing.
+func SaveFile(projectDir, relPath string, actions []Action) error {
+	absPath := filepath.Join(projectDir, relPath)
+	if err := os.MkdirAll(filepath.Dir(absPath), dirPerm); err != nil {
+		return fmt.Errorf("create parent dir for %s: %w", relPath, err)
+	}
+	data, err := yaml.Marshal(actions)
+	if err != nil {
+		return fmt.Errorf("encode %s: %w", relPath, err)
+	}
+	if err := os.WriteFile(absPath, data, filePerm); err != nil {
+		return fmt.Errorf("write %s: %w", relPath, err)
+	}
+	return nil
+}
+
 // InitProject creates a new project at target. If useSample is true, writes a sample
 // .test.yml pointing at SampleDemoURL plus a config.yml whose baseUrl is set to it. If
 // force is false and target already exists, returns an error; if force is true, removes
