@@ -1,0 +1,25 @@
+// Health reports whether the server is alive and accepting RPCs. Used by
+// orchestrators and by the client package's connect-with-retry logic.
+syntax = "proto3";
+
+package provar.v1;
+
+import "provar/v1/common.proto";
+
+option go_package = "github.com/thani-sh/provar/apps/provar-api/gen/provar/v1;provarv1";
+
+service HealthService {
+  rpc Check(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  HealthServingStatus status = 1;
+}
+
+enum HealthServingStatus {
+  HEALTH_SERVING_STATUS_UNSPECIFIED = 0;
+  HEALTH_SERVING_STATUS_SERVING = 1;
+  HEALTH_SERVING_STATUS_NOT_SERVING = 2;
+}

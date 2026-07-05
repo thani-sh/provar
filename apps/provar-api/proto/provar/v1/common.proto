@@ -1,0 +1,9 @@
+// Package provar.v1 holds shared types used across the provar API.
+//
+// Versioning: breaking changes go in a new package (provar.v2); in-package
+// changes must be additive (new fields, new RPCs, new enum values).
+syntax = "proto3";
+
+package provar.v1;
+
+option go_package = "github.com/thani-sh/provar/apps/provar-api/gen/provar/v1;provarv1";
