@@ -14,12 +14,12 @@ import (
 )
 
 const (
-	eventRunStarted             = "run-started"
-	eventTaskStarted            = "task-started"
-	eventTaskFinished           = "task-finished"
-	eventTaskFailed             = "task-failed"
-	eventVisualCompareTriggered = "visual-comparison-triggered"
-	eventRunFinished            = "run-finished"
+	EventRunStarted             = "run-started"
+	EventTaskStarted            = "task-started"
+	EventTaskFinished           = "task-finished"
+	EventTaskFailed             = "task-failed"
+	EventVisualCompareTriggered = "visual-comparison-triggered"
+	EventRunFinished            = "run-finished"
 )
 
 // Runner manages the execution of compiled scenarios.
@@ -38,7 +38,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 		startTime := time.Now()
 		job.Emit(domain.Event{
 			ID:   uuid.New().String(),
-			Type: eventRunStarted,
+			Type: EventRunStarted,
 		})
 		w, h := opts.Browser.Resolved()
 		s, err := browser.NewSession(ctx, browser.Options{
@@ -50,7 +50,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			job.SetStatus(domain.JobFailed)
 			job.Emit(domain.Event{
 				ID:   uuid.New().String(),
-				Type: eventRunFinished,
+				Type: EventRunFinished,
 				Data: err.Error(),
 			})
 			return
@@ -64,7 +64,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			job.SetStatus(domain.JobFailed)
 			job.Emit(domain.Event{
 				ID:   uuid.New().String(),
-				Type: eventRunFinished,
+				Type: EventRunFinished,
 				Data: err.Error(),
 			})
 			return
@@ -75,7 +75,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			}
 			job.Emit(domain.Event{
 				ID:   uuid.New().String(),
-				Type: eventTaskStarted,
+				Type: EventTaskStarted,
 				Data: map[string]string{
 					"taskId": action.ID,
 					"title":  action.Name,
@@ -87,7 +87,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 				job.SetStatus(domain.JobFailed)
 				job.Emit(domain.Event{
 					ID:   uuid.New().String(),
-					Type: eventTaskFailed,
+					Type: EventTaskFailed,
 					Data: map[string]string{
 						"taskId": action.ID,
 						"error":  err.Error(),
@@ -97,7 +97,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			}
 			job.Emit(domain.Event{
 				ID:   uuid.New().String(),
-				Type: eventTaskFinished,
+				Type: EventTaskFinished,
 				Data: map[string]string{
 					"taskId": action.ID,
 				},
@@ -107,7 +107,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 				screenshotBase64 := base64.StdEncoding.EncodeToString(screenshotBytes)
 				job.Emit(domain.Event{
 					ID:   uuid.New().String(),
-					Type: eventVisualCompareTriggered,
+					Type: EventVisualCompareTriggered,
 					Data: map[string]any{
 						"taskId":           action.ID,
 						"screenshotBase64": screenshotBase64,
@@ -125,7 +125,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 		}
 		job.Emit(domain.Event{
 			ID:   uuid.New().String(),
-			Type: eventRunFinished,
+			Type: EventRunFinished,
 			Data: map[string]any{
 				"status":   string(finalStatus),
 				"duration": time.Since(startTime).String(),
