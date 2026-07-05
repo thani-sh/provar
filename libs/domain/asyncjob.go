@@ -1,9 +1,10 @@
 package domain
 
 import (
+	"fmt"
 	"sync"
 
-	"github.com/google/uuid"
+	"github.com/thani-sh/suuid-go"
 )
 
 // JobStatus represents the state of a running job.
@@ -53,7 +54,7 @@ type Job struct {
 // internally — callers don't inject one.
 func NewJob(status JobStatus) *Job {
 	return &Job{
-		ID:     uuid.New().String(),
+		ID:     newID(),
 		Status: status,
 	}
 }
@@ -63,10 +64,20 @@ func NewJob(status JobStatus) *Job {
 // four-line struct literals.
 func NewEvent(typ string, data any) Event {
 	return Event{
-		ID:   uuid.New().String(),
+		ID:   newID(),
 		Type: typ,
 		Data: data,
 	}
+}
+
+// newID generates a short base62 ID. Panics on failure — entropy exhaustion
+// is unrecoverable for an event stream that depends on unique IDs.
+func newID() string {
+	id, err := suuid.V4()
+	if err != nil {
+		panic(fmt.Sprintf("generate id: %v", err))
+	}
+	return id
 }
 
 // GetStatus returns the current status of the job thread-safely.

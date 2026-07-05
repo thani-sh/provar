@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/thani-sh/suuid-go"
 )
 
 const (
@@ -519,8 +519,8 @@ func TestInitProject_CreatesParentDirs(t *testing.T) {
 
 func TestJob_Lifecycle(t *testing.T) {
 	job := NewJob(JobIdle)
-	if _, err := uuid.Parse(job.ID); err != nil {
-		t.Errorf("expected job ID to be a valid UUID, got %q (error: %v)", job.ID, err)
+	if _, err := suuid.Decode(job.ID); err != nil {
+		t.Errorf("expected job ID to be a valid suuid, got %q (error: %v)", job.ID, err)
 	}
 	if job.Status != JobIdle {
 		t.Errorf("expected Status to be JobIdle, got %q", job.Status)
@@ -536,8 +536,8 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if _, err := uuid.Parse(ev.ID); err != nil {
-			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
+		if _, err := suuid.Decode(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid suuid, got %q (error: %v)", ev.ID, err)
 		}
 		if ev.Type != testPauseType {
 			t.Errorf("expected event Type to be paused, got %q", ev.Type)
@@ -557,8 +557,8 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if _, err := uuid.Parse(ev.ID); err != nil {
-			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
+		if _, err := suuid.Decode(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid suuid, got %q (error: %v)", ev.ID, err)
 		}
 		if ev.Type != testResumeType {
 			t.Errorf("expected event Type to be resumed, got %q", ev.Type)
@@ -575,8 +575,8 @@ func TestJob_Lifecycle(t *testing.T) {
 	}
 	select {
 	case ev := <-ch:
-		if _, err := uuid.Parse(ev.ID); err != nil {
-			t.Errorf("expected event ID to be a valid UUID, got %q (error: %v)", ev.ID, err)
+		if _, err := suuid.Decode(ev.ID); err != nil {
+			t.Errorf("expected event ID to be a valid suuid, got %q (error: %v)", ev.ID, err)
 		}
 		if ev.Type != testStopType {
 			t.Errorf("expected event Type to be stopped, got %q", ev.Type)
