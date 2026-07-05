@@ -33,6 +33,15 @@ type Flags interface {
 // Parse fills the binding's Flags struct from args. Unknown flags and missing required
 // flags error. After binding, Parse calls flags.Validate() so struct-tag rules run.
 func Parse(args []string, binding FlagBinding) (Flags, error) {
+	if binding.New == nil {
+		// Commands with no flags still need a non-nil Flags so the dispatcher's
+		// type assertion doesn't panic. Provide an empty no-op implementation
+		// rather than forcing every flagless command to declare one.
+		binding = FlagBinding{
+			Specs: binding.Specs,
+			New:   func() Flags { return noFlags{} },
+		}
+	}
 	flags := binding.New()
 	byName := indexSpecs(binding.Specs)
 	consumed := map[string]bool{}
@@ -130,6 +139,13 @@ func setField(field reflect.Value, value string) error {
 // through ValidateStruct below. Named "validate" (not "validator") to avoid colliding with
 // the imported package name.
 var validate = validator.New(validator.WithRequiredStructEnabled())
+
+// noFlags is the empty Flags implementation used by commands that don't
+// accept any CLI flags. Validate is a no-op so the dispatcher's validation
+// pass is happy even though there's nothing to check.
+type noFlags struct{}
+
+func (noFlags) Validate() error { return nil }
 
 func init() {
 	_ = validate.RegisterValidation("regexp", func(fl validator.FieldLevel) bool {

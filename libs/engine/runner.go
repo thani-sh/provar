@@ -40,7 +40,12 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			ID:   uuid.New().String(),
 			Type: eventRunStarted,
 		})
-		s, err := browser.NewSession(ctx, opts.Headless)
+		w, h := opts.Browser.Resolved()
+		s, err := browser.NewSession(ctx, browser.Options{
+			Headless: opts.Headless,
+			Width:    w,
+			Height:   h,
+		})
 		if err != nil {
 			job.SetStatus(domain.JobFailed)
 			job.Emit(domain.Event{
@@ -126,6 +131,10 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 				"duration": time.Since(startTime).String(),
 			},
 		})
+		// Close the listener channels so consumers ranging over Subscribe()
+		// can break out. Without this the run loops forever waiting for
+		// events that will never come.
+		job.Close()
 	}()
 	return job, nil
 }

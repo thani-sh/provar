@@ -3,6 +3,7 @@ package engine
 import (
 	"time"
 
+	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
 )
 
@@ -24,6 +25,7 @@ type RunOptions struct {
 	Headless bool
 	Vars     map[string]string
 	UpTo     string
+	Browser  domain.BrowserConfig // effective (defaults applied) viewport — passed to browser.NewSession
 }
 
 // RunResult represents the execution results.

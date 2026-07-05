@@ -14,12 +14,15 @@ import (
 	"github.com/thani-sh/provar/libs/models"
 )
 
-// compileFlags are the typed flags for the compile command. Headless mirrors the same
-// flag on `provar run` so the two commands behave consistently: default is a visible
-// browser (handy while iterating); pass `--headless=true` for CI / batch use.
+// compileFlags mirror runFlags so the `test` command can pass the same
+// parsed flags through to both phases. Extra fields (--format, --from,
+// --test, --verbose) are accepted but ignored during compile; only
+// --headless and --up-to are honoured here.
 type compileFlags struct {
 	Headless bool   `flag:"headless" validate:"-"`
 	UpTo     string `flag:"up-to" validate:"omitempty,regexp=^[A-Za-z0-9_-]+$"`
+	Test     string `flag:"test" validate:"-"`
+	Verbose  bool   `flag:"verbose" validate:"-"`
 }
 
 // Validate runs struct-tag rules on the flags struct.
@@ -29,6 +32,8 @@ var compileFlagBinding = helpers.FlagBinding{
 	Specs: []helpers.FlagSpec{
 		{Name: "headless", HasValue: true},
 		{Name: "up-to", HasValue: true},
+		{Name: "test", HasValue: true},
+		{Name: "verbose"},
 	},
 	New: func() helpers.Flags { return &compileFlags{} },
 }
@@ -41,13 +46,14 @@ var compileCmd = helpers.Command{
 	Run:         runCompile,
 }
 
-// runCompile implements `provar compile <target> [--headless <bool>] [--up-to <action-id>]`.
-// Loads the project, opens a browser session, asks the engine compiler to translate each
-// file's actions into Lua via the LLM tool loop, and writes the result next to each
-// .test.yml. Per-file parse errors are warnings (continue), per-file compile errors are
-// errors (continue and report at the end).
+// runCompile implements `provar compile <target> [--headless <bool>] [--up-to <action-id>] [--test <pattern>] [--verbose]`.
+// Honors --headless, --up-to, and --test. --verbose is accepted (mirrors run)
+// but no-op here — compile already streams debug logs.
 func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helpers.Printer) int {
 	fl := raw.(*compileFlags)
+	if fl.Verbose {
+		_ = os.Setenv("LOG_LEVEL", "debug")
+	}
 	project, err := domain.LoadProject(target)
 	if err != nil {
 		p.Error("load project: %v", err)
@@ -56,6 +62,11 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 	if len(project.Files) == 0 {
 		p.Warn("no test files in %s", target)
 		return int(helpers.ExitSuccess)
+	}
+	files, err := selectFiles(project, fl.Test)
+	if err != nil {
+		p.Error("%v", err)
+		return int(helpers.ExitUsage)
 	}
 	settings, err := domain.LoadSettings()
 	if err != nil {
@@ -81,7 +92,12 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		p.Error("client: %v", err)
 		return int(helpers.ExitRuntime)
 	}
-	browserSession, err := browser.NewSession(ctx, fl.Headless)
+	w, h := project.Browser.Resolved()
+	browserSession, err := browser.NewSession(ctx, browser.Options{
+		Headless: fl.Headless,
+		Width:    w,
+		Height:   h,
+	})
 	if err != nil {
 		p.Error("launch browser: %v", err)
 		return int(helpers.ExitRuntime)
@@ -89,7 +105,7 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 	defer func() { _ = browserSession.Close() }()
 	compiler := engine.NewCompiler(client)
 	failed := 0
-	for _, file := range project.Files {
+	for _, file := range files {
 		actions, err := domain.ParseFile(project.Path, file.Path)
 		if err != nil {
 			p.Warn("skip %s: %v", file.Path, err)
@@ -140,8 +156,9 @@ func mapDomainProvider(p domain.Provider) models.Provider {
 	return ""
 }
 
-// truncateUpTo returns the prefix of actions ending with and including the action whose
-// ID equals target. The bool reports whether the target was found.
+// truncateUpTo returns the prefix of actions ending with and including the
+// action whose ID equals target. The bool reports whether the target was
+// found. Used by compile and run to honour --up-to.
 func truncateUpTo(actions []domain.Action, target string) ([]domain.Action, bool) {
 	for i, a := range actions {
 		if a.ID == target {

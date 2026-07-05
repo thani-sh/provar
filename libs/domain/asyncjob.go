@@ -145,3 +145,16 @@ func (j *Job) Emit(e Event) {
 	defer j.mu.Unlock()
 	j.emit(e)
 }
+
+// Close terminates all listener channels so consumers ranging over
+// Subscribe() can break out. Safe to call multiple times. After Close the
+// job is effectively dead — emitting more events is a no-op for the
+// listeners that already saw the close.
+func (j *Job) Close() {
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	for _, ch := range j.listeners {
+		close(ch)
+	}
+	j.listeners = nil
+}

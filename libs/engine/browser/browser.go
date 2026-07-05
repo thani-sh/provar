@@ -24,6 +24,15 @@ import (
 // lifetime, dead-lettering every operation after d seconds.
 const implicitWaitTimeout = 5 * time.Second
 
+// Options bundles the chrome settings NewSession needs. Kept as a struct
+// (instead of positional args) so adding a field like DeviceScaleFactor
+// later doesn't churn every caller.
+type Options struct {
+	Headless bool
+	Width    int
+	Height   int
+}
+
 // Action represents one recorded browser interaction. It is the source of truth for what
 // happened during a compile-time loop; the compiler reads the action log and translates
 // each entry 1:1 to a Lua statement.
@@ -50,8 +59,12 @@ type Session struct {
 // once d elapses. Per-call timeouts are applied at the Session.* methods
 // via `s.page.Timeout(implicitWaitTimeout).X(...)` instead, which scopes the
 // deadline to a single call without leaking onto the page.
-func NewSession(ctx context.Context, headless bool) (*Session, error) {
-	l := launcher.New().Headless(headless)
+//
+// Width/Height in opts are applied to the page viewport. Pass 0 for either
+// to use the rod default; callers that want explicit control should resolve
+// defaults upstream (see domain.BrowserConfig.resolved).
+func NewSession(ctx context.Context, opts Options) (*Session, error) {
+	l := launcher.New().Headless(opts.Headless)
 	u, err := l.Launch()
 	if err != nil {
 		return nil, fmt.Errorf("failed to launch browser: %w", err)
@@ -65,6 +78,18 @@ func NewSession(ctx context.Context, headless bool) (*Session, error) {
 	if err != nil {
 		_ = browser.Close()
 		return nil, fmt.Errorf("failed to open page: %w", err)
+	}
+	if opts.Width > 0 && opts.Height > 0 {
+		// We don't emulate touch or scale — just plain desktop pixels.
+		if err := page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
+			Width:             opts.Width,
+			Height:            opts.Height,
+			DeviceScaleFactor: 1.0,
+			Mobile:            false,
+		}); err != nil {
+			_ = browser.Close()
+			return nil, fmt.Errorf("set viewport %dx%d: %w", opts.Width, opts.Height, err)
+		}
 	}
 	L := lua.NewState()
 	L.SetContext(ctx)

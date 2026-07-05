@@ -11,8 +11,18 @@ import (
 )
 
 // Registry is the ordered list of known commands. Adding a subcommand = one new file in
-// this package + one entry here.
-var Registry = []helpers.Command{setupCmd, compileCmd, runCmd}
+// this package + one entry here. Order is the help-screen display order.
+var Registry = []helpers.Command{
+	setupCmd,
+	listCmd,
+	validateCmd,
+	compileCmd,
+	runCmd,
+	testCmd,
+	doctorCmd,
+	cleanCmd,
+	acceptBaselineCmd,
+}
 
 // Dispatch parses argv, finds the matching command, and runs it. It handles --help (top
 // level and per-command), unknown commands, and missing positionals before the per-command

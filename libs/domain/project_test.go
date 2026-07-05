@@ -3,6 +3,7 @@ package domain
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -267,6 +268,107 @@ func TestInitProject_Empty(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(target, ".provar", "tests", "login.test.yml")); err == nil {
 		t.Error("expected no sample test file in empty mode")
+	}
+}
+
+// TestInitProject_WritesGitignore locks in the .gitignore generation so a
+// freshly-set-up project is Git-clean from the first commit. Without this,
+// users routinely commit compiled .test.lua and current-run screenshots
+// before noticing the noise.
+func TestInitProject_WritesGitignore(t *testing.T) {
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "myproj")
+	if err := InitProject(target, false, false); err != nil {
+		t.Fatalf("InitProject returned error: %v", err)
+	}
+	data, err := os.ReadFile(filepath.Join(target, ".gitignore"))
+	if err != nil {
+		t.Fatalf("expected .gitignore to exist: %v", err)
+	}
+	body := string(data)
+	// Compiled Lua must be ignored (regeneratable from .test.yml).
+	if !strings.Contains(body, ".provar/tests/**/*.test.lua") {
+		t.Errorf(".gitignore should ignore compiled .test.lua, got:\n%s", body)
+	}
+	// Current-run screenshots must be ignored.
+	if !strings.Contains(body, ".provar/visual/") {
+		t.Errorf(".gitignore should ignore .provar/visual/, got:\n%s", body)
+	}
+	// Baselines must NOT be ignored — they're the visual source of truth.
+	for _, line := range strings.Split(body, "\n") {
+		if strings.Contains(line, "baselines") && !strings.HasPrefix(strings.TrimSpace(line), "#") {
+			t.Errorf(".gitignore should not ignore baselines, got line: %q", line)
+		}
+	}
+}
+
+// TestBrowserConfigResolvedDefaults locks in the default viewport. Without
+// the default, the browser.NewSession call would skip SetViewport entirely,
+// leaving the page at rod's default size — a regression for users who don't
+// (yet) configure browser.width/height.
+func TestBrowserConfigResolvedDefaults(t *testing.T) {
+	cases := []struct {
+		name         string
+		in           BrowserConfig
+		wantW, wantH int
+	}{
+		{"empty config", BrowserConfig{}, defaultBrowserWidth, defaultBrowserHeight},
+		{"only width", BrowserConfig{Width: 800}, 800, defaultBrowserHeight},
+		{"only height", BrowserConfig{Height: 600}, defaultBrowserWidth, 600},
+		{"both set", BrowserConfig{Width: 1920, Height: 1080}, 1920, 1080},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			gotW, gotH := c.in.Resolved()
+			if gotW != c.wantW || gotH != c.wantH {
+				t.Errorf("Resolved() = (%d, %d), want (%d, %d)", gotW, gotH, c.wantW, c.wantH)
+			}
+		})
+	}
+}
+
+// TestLoadProjectBrowserConfig verifies the project config's browser block
+// flows through to Project.Browser with defaults applied. The whole
+// pipeline (yaml parse → project field) is exercised here; NewSession-side
+// viewport application is verified end-to-end via the run smoke test.
+func TestLoadProjectBrowserConfig(t *testing.T) {
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "myproj")
+	if err := os.MkdirAll(filepath.Join(target, configSubdir), dirPerm); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	cfg := []byte("browser:\n  width: 800\n  height: 600\n")
+	if err := os.WriteFile(filepath.Join(target, configSubdir, configFilename), cfg, filePerm); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	p, err := LoadProject(target)
+	if err != nil {
+		t.Fatalf("LoadProject: %v", err)
+	}
+	if p.Browser.Width != 800 || p.Browser.Height != 600 {
+		t.Errorf("Browser = %+v, want 800x600", p.Browser)
+	}
+}
+
+// TestLoadProjectBrowserDefaults confirms LoadProject fills in defaults when
+// the config has no browser block at all (backward-compat for existing
+// projects with just `variables:`).
+func TestLoadProjectBrowserDefaults(t *testing.T) {
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "myproj")
+	if err := os.MkdirAll(filepath.Join(target, configSubdir), dirPerm); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	cfg := []byte("variables:\n  baseUrl: http://localhost:3000\n")
+	if err := os.WriteFile(filepath.Join(target, configSubdir, configFilename), cfg, filePerm); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	p, err := LoadProject(target)
+	if err != nil {
+		t.Fatalf("LoadProject: %v", err)
+	}
+	if p.Browser.Width != defaultBrowserWidth || p.Browser.Height != defaultBrowserHeight {
+		t.Errorf("Browser defaults = %+v, want %dx%d", p.Browser, defaultBrowserWidth, defaultBrowserHeight)
 	}
 }
 
