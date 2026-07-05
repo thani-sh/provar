@@ -12,8 +12,8 @@ import (
 )
 
 // newServer builds a *grpc.Server with the provar services registered.
-// Phase 4: HealthService, ProjectService, ScenarioService, CompileService,
-// RunService. Phase 5 adds UtilityService.
+// Phase 5: HealthService, ProjectService, ScenarioService, CompileService,
+// RunService, UtilityService.
 //
 // CompileService holds a clientFactory that builds a fresh models.Client
 // per call. The default factory loads ~/.provar/settings.yml; tests pass
@@ -28,6 +28,7 @@ func newServer() *grpc.Server {
 	provarv1.RegisterScenarioServiceServer(srv, &scenarioServer{})
 	provarv1.RegisterCompileServiceServer(srv, &compileServer{newClient: defaultClientFactory()})
 	provarv1.RegisterRunServiceServer(srv, &runServer{})
+	provarv1.RegisterUtilityServiceServer(srv, &utilityServer{})
 	reflection.Register(srv)
 	return srv
 }
