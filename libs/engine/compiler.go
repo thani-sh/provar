@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
@@ -12,6 +15,49 @@ import (
 	"github.com/thani-sh/provar/libs/logger"
 	"github.com/thani-sh/provar/libs/models"
 )
+
+// Compile event types emitted on the Job returned by Compile. Mirrors the
+// shape used by Runner.Run (run-started/task-started/task-finished/run-finished)
+// so consumers can use the same subscription pattern for both flows.
+const (
+	EventCompileStarted  = "compile-started"
+	EventActionStarted   = "action-started"
+	EventActionFinished  = "action-finished"
+	EventActionFailed    = "action-failed"
+	EventCompileFinished = "compile-finished"
+)
+
+// ActionStartedData is the payload of an EventActionStarted event. Tells
+// listeners which action the LLM is starting to author Lua for.
+type ActionStartedData struct {
+	ActionID string
+	Name     string
+}
+
+// ActionFinishedData is the payload of an EventActionFinished event.
+// Body is the per-action Lua source compiled by the LLM session; consumers
+// can assemble the full script by concatenating per-action bodies in order.
+type ActionFinishedData struct {
+	ActionID string
+	Body     string
+}
+
+// ActionFailedData is the payload of an EventActionFailed event. Compile
+// stops on the first failure, so no further Action* events fire after this.
+type ActionFailedData struct {
+	ActionID string
+	Error    string
+}
+
+// CompileFinishedData is the payload of the terminal EventCompileFinished
+// event. Status mirrors domain.JobStatus; LuaCode is populated on success
+// only and Error is populated on failure only.
+type CompileFinishedData struct {
+	Status   string
+	LuaCode  string
+	Duration string
+	Error    string
+}
 
 // Compiler turns a list of actions into a Lua script by walking each action in a fresh
 // LLM session. The LLM uses a fixed set of stateless browser tools (see browsertools)
@@ -26,23 +72,101 @@ func NewCompiler(client models.Client) *Compiler {
 	return &Compiler{Client: client}
 }
 
-// Compile walks actions in order. For each one it opens a fresh session with the browser
-// tools, asks the LLM to fulfil the action, drains Recv, then reads the browser's
-// action log and translates each entry to a Lua statement. The final Lua bundles every
-// action as `function steps.<id>(page) ... end`.
-func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts CompileOptions) (*CompileResult, error) {
+// Compile walks actions in order and emits lifecycle events on the returned
+// Job. The actual compilation runs in a goroutine; callers consume from
+// Job.Subscribe() to receive per-action progress and the final compiled
+// script (delivered in the EventCompileFinished payload).
+//
+// The caller owns the browser session (opts.Browser). The session must
+// outlive the Subscribe loop — the same browser is reused for every action
+// in the batch, with its action log cleared between actions.
+func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts CompileOptions) (*domain.Job, error) {
+	if opts.Browser == nil {
+		return nil, fmt.Errorf("compile: browser session is required")
+	}
+	logger.Debug("compile start", "actions", len(actions))
+	job := domain.NewJob(uuid.New().String(), domain.JobRunning)
+	go c.runCompile(ctx, job, actions, opts)
+	return job, nil
+}
+
+// runCompile is the goroutine body of Compile. Emits the full lifecycle
+// of events on job and closes the listeners when done. Any error after
+// compile-started is delivered via EventActionFailed + EventCompileFinished;
+// only pre-start failures (none today) would surface as a Job-level error.
+func (c *Compiler) runCompile(ctx context.Context, job *domain.Job, actions []domain.Action, opts CompileOptions) {
+	startTime := time.Now()
+	job.Emit(domain.Event{
+		ID:   uuid.New().String(),
+		Type: EventCompileStarted,
+	})
 	bodies := make([]string, 0, len(actions))
+	var compileErr error
 	for _, action := range actions {
+		if !compileWait(ctx, job) {
+			break
+		}
+		job.Emit(domain.Event{
+			ID:   uuid.New().String(),
+			Type: EventActionStarted,
+			Data: ActionStartedData{ActionID: action.ID, Name: action.Name},
+		})
+		logger.Debug("compile action start", "id", action.ID)
 		body, err := c.compileAction(ctx, action, opts)
 		if err != nil {
-			return nil, fmt.Errorf("compile %s: %w", action.ID, err)
+			compileErr = fmt.Errorf("compile %s: %w", action.ID, err)
+			job.SetStatus(domain.JobFailed)
+			job.Emit(domain.Event{
+				ID:   uuid.New().String(),
+				Type: EventActionFailed,
+				Data: ActionFailedData{ActionID: action.ID, Error: err.Error()},
+			})
+			break
 		}
 		bodies = append(bodies, body)
+		job.Emit(domain.Event{
+			ID:   uuid.New().String(),
+			Type: EventActionFinished,
+			Data: ActionFinishedData{ActionID: action.ID, Body: body},
+		})
 	}
-	return &CompileResult{
-		Success: true,
-		LuaCode: assembleLua(actions, bodies),
-	}, nil
+	finalStatus := job.GetStatus()
+	if finalStatus == domain.JobRunning {
+		finalStatus = domain.JobCompleted
+	}
+	data := CompileFinishedData{
+		Status:   string(finalStatus),
+		Duration: time.Since(startTime).String(),
+	}
+	switch finalStatus {
+	case domain.JobCompleted:
+		data.LuaCode = assembleLua(actions, bodies)
+	default:
+		if compileErr != nil {
+			data.Error = compileErr.Error()
+		}
+	}
+	job.Emit(domain.Event{
+		ID:   uuid.New().String(),
+		Type: EventCompileFinished,
+		Data: data,
+	})
+	job.Close()
+}
+
+// compileWait checks whether the caller has asked the compile to stop via
+// the Job's status. Returns false to break out of the action loop. Compile
+// has no Pause support at v1 — only Stop (via Stop or ctx cancellation).
+func compileWait(ctx context.Context, job *domain.Job) bool {
+	if err := ctx.Err(); err != nil {
+		job.SetStatus(domain.JobStopped)
+		return false
+	}
+	switch job.GetStatus() {
+	case domain.JobStopped:
+		return false
+	}
+	return true
 }
 
 func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts CompileOptions) (string, error) {

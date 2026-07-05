@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -127,13 +128,19 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 			failed++
 			continue
 		}
+		luaCode, compileErr := waitForCompile(result)
+		if compileErr != nil {
+			p.Error("compile %s: %v", file.Path, compileErr)
+			failed++
+			continue
+		}
 		outPath := strings.TrimSuffix(file.Path, ".test.yml") + ".test.lua"
-		if err := os.WriteFile(filepath.Join(project.Path, outPath), []byte(result.LuaCode), 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(project.Path, outPath), []byte(luaCode), 0o644); err != nil {
 			p.Error("write %s: %v", outPath, err)
 			failed++
 			continue
 		}
-		logger.Debug("compiled file", "path", outPath, "bytes", len(result.LuaCode))
+		logger.Debug("compiled file", "path", outPath, "bytes", len(luaCode))
 		p.Success("compiled %s", outPath)
 	}
 	if failed > 0 {
@@ -166,4 +173,26 @@ func truncateUpTo(actions []domain.Action, target string) ([]domain.Action, bool
 		}
 	}
 	return nil, false
+}
+
+// waitForCompile drains a compile Job's event stream and returns the final
+// Lua code on success or the captured error on failure. Mirrors how the
+// provar-api CompileService streams the same events over gRPC.
+func waitForCompile(job *domain.Job) (string, error) {
+	var luaCode string
+	for ev := range job.Subscribe() {
+		if ev.Type != engine.EventCompileFinished {
+			continue
+		}
+		data, ok := ev.Data.(engine.CompileFinishedData)
+		if !ok {
+			continue
+		}
+		if data.Status == string(domain.JobCompleted) {
+			luaCode = data.LuaCode
+			break
+		}
+		return "", fmt.Errorf("%s", data.Error)
+	}
+	return luaCode, nil
 }

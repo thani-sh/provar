@@ -14,12 +14,6 @@ type CompileOptions struct {
 	Browser  *browser.Session
 }
 
-// CompileResult represents the compilation output.
-type CompileResult struct {
-	Success bool
-	LuaCode string
-}
-
 // RunOptions configures the execution environment.
 type RunOptions struct {
 	Headless bool

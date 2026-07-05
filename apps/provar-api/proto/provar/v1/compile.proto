@@ -1,0 +1,58 @@
+// CompileService compiles a single .test.yml file with streamed progress.
+// Each request owns its own browser session for the duration of the call;
+// the wire shape mirrors the engine.Compiler event stream so a future
+// editor can show per-action progress and the final Lua in real time.
+syntax = "proto3";
+
+package provar.v1;
+
+import "provar/v1/common.proto";
+
+option go_package = "github.com/thani-sh/provar/apps/provar-api/gen/provar/v1;provarv1";
+
+service CompileService {
+  rpc Compile(CompileRequest) returns (stream CompileEvent);
+}
+
+message CompileRequest {
+  string project_path = 1;
+  string file_path = 2;
+  bool headless = 3;
+}
+
+// CompileEvent is a oneof over the lifecycle events emitted by a compile
+// job. The terminal event is always compile_finished; success carries
+// lua_code, failure carries error.
+message CompileEvent {
+  oneof event {
+    CompileStarted compile_started = 1;
+    ActionStarted action_started = 2;
+    ActionFinished action_finished = 3;
+    ActionFailed action_failed = 4;
+    CompileFinished compile_finished = 5;
+  }
+}
+
+message CompileStarted {}
+
+message ActionStarted {
+  string action_id = 1;
+  string name = 2;
+}
+
+message ActionFinished {
+  string action_id = 1;
+  string body = 2;
+}
+
+message ActionFailed {
+  string action_id = 1;
+  string error = 2;
+}
+
+message CompileFinished {
+  JobStatus status = 1;
+  string lua_code = 2;
+  string duration = 3;
+  string error = 4;
+}

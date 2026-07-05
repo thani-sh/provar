@@ -15,6 +15,7 @@ import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
+	sync "sync"
 	unsafe "unsafe"
 )
 
@@ -25,13 +26,92 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// JobStatus mirrors libs/domain.JobStatus for use in streaming RPC
+// terminal events. The domain package is the source of truth; the proto
+// representation exists so wire clients don't need to import Go types.
+type JobStatus int32
+
+const (
+	JobStatus_JOB_STATUS_UNSPECIFIED JobStatus = 0
+	JobStatus_JOB_STATUS_RUNNING     JobStatus = 1
+	JobStatus_JOB_STATUS_COMPLETED   JobStatus = 2
+	JobStatus_JOB_STATUS_FAILED      JobStatus = 3
+	JobStatus_JOB_STATUS_STOPPED     JobStatus = 4
+)
+
+// Enum value maps for JobStatus.
+var (
+	JobStatus_name = map[int32]string{
+		0: "JOB_STATUS_UNSPECIFIED",
+		1: "JOB_STATUS_RUNNING",
+		2: "JOB_STATUS_COMPLETED",
+		3: "JOB_STATUS_FAILED",
+		4: "JOB_STATUS_STOPPED",
+	}
+	JobStatus_value = map[string]int32{
+		"JOB_STATUS_UNSPECIFIED": 0,
+		"JOB_STATUS_RUNNING":     1,
+		"JOB_STATUS_COMPLETED":   2,
+		"JOB_STATUS_FAILED":      3,
+		"JOB_STATUS_STOPPED":     4,
+	}
+)
+
+func (x JobStatus) Enum() *JobStatus {
+	p := new(JobStatus)
+	*p = x
+	return p
+}
+
+func (x JobStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (JobStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_provar_v1_common_proto_enumTypes[0].Descriptor()
+}
+
+func (JobStatus) Type() protoreflect.EnumType {
+	return &file_provar_v1_common_proto_enumTypes[0]
+}
+
+func (x JobStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use JobStatus.Descriptor instead.
+func (JobStatus) EnumDescriptor() ([]byte, []int) {
+	return file_provar_v1_common_proto_rawDescGZIP(), []int{0}
+}
+
 var File_provar_v1_common_proto protoreflect.FileDescriptor
 
 const file_provar_v1_common_proto_rawDesc = "" +
 	"\n" +
-	"\x16provar/v1/common.proto\x12\tprovar.v1BCZAgithub.com/thani-sh/provar/apps/provar-api/gen/provar/v1;provarv1b\x06proto3"
+	"\x16provar/v1/common.proto\x12\tprovar.v1*\x88\x01\n" +
+	"\tJobStatus\x12\x1a\n" +
+	"\x16JOB_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
+	"\x12JOB_STATUS_RUNNING\x10\x01\x12\x18\n" +
+	"\x14JOB_STATUS_COMPLETED\x10\x02\x12\x15\n" +
+	"\x11JOB_STATUS_FAILED\x10\x03\x12\x16\n" +
+	"\x12JOB_STATUS_STOPPED\x10\x04BCZAgithub.com/thani-sh/provar/apps/provar-api/gen/provar/v1;provarv1b\x06proto3"
 
-var file_provar_v1_common_proto_goTypes = []any{}
+var (
+	file_provar_v1_common_proto_rawDescOnce sync.Once
+	file_provar_v1_common_proto_rawDescData []byte
+)
+
+func file_provar_v1_common_proto_rawDescGZIP() []byte {
+	file_provar_v1_common_proto_rawDescOnce.Do(func() {
+		file_provar_v1_common_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_provar_v1_common_proto_rawDesc), len(file_provar_v1_common_proto_rawDesc)))
+	})
+	return file_provar_v1_common_proto_rawDescData
+}
+
+var file_provar_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_provar_v1_common_proto_goTypes = []any{
+	(JobStatus)(0), // 0: provar.v1.JobStatus
+}
 var file_provar_v1_common_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
 	0, // [0:0] is the sub-list for method input_type
@@ -50,13 +130,14 @@ func file_provar_v1_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_provar_v1_common_proto_rawDesc), len(file_provar_v1_common_proto_rawDesc)),
-			NumEnums:      0,
+			NumEnums:      1,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_provar_v1_common_proto_goTypes,
 		DependencyIndexes: file_provar_v1_common_proto_depIdxs,
+		EnumInfos:         file_provar_v1_common_proto_enumTypes,
 	}.Build()
 	File_provar_v1_common_proto = out.File
 	file_provar_v1_common_proto_goTypes = nil
