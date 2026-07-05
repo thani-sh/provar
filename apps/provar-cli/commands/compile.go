@@ -176,8 +176,8 @@ func truncateUpTo(actions []domain.Action, target string) ([]domain.Action, bool
 }
 
 // waitForCompile drains a compile Job's event stream and returns the final
-// Lua code on success or the captured error on failure. Mirrors how the
-// provar-api CompileService streams the same events over gRPC.
+// Lua code on success or the captured error on failure. The same Job API is
+// used by the compile process entry in any future transport layer.
 func waitForCompile(job *domain.Job) (string, error) {
 	var luaCode string
 	for ev := range job.Subscribe() {

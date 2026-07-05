@@ -6,8 +6,6 @@
   "packageManager": "npm@11.17.0",
   "workspaces": [
     "apps/provar-cli",
-    "apps/provar-api",
-    "apps/provar-app",
     "apps/provar-web",
     "libs/domain",
     "libs/engine",
