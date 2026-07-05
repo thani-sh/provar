@@ -49,11 +49,23 @@ type Job struct {
 	listeners []chan Event
 }
 
-// NewJob initializes a new Job with the given ID and Status.
-func NewJob(id string, status JobStatus) *Job {
+// NewJob initializes a new Job in the given Status. The ID is generated
+// internally — callers don't inject one.
+func NewJob(status JobStatus) *Job {
 	return &Job{
-		ID:     id,
+		ID:     uuid.New().String(),
 		Status: status,
+	}
+}
+
+// NewEvent builds an Event with a freshly-generated ID. Used at every emit
+// site so call sites read as `job.Emit(NewEvent("started", nil))` instead of
+// four-line struct literals.
+func NewEvent(typ string, data any) Event {
+	return Event{
+		ID:   uuid.New().String(),
+		Type: typ,
+		Data: data,
 	}
 }
 
@@ -88,11 +100,7 @@ func (j *Job) Stop() error {
 		return nil
 	}
 	j.Status = JobStopped
-	j.emit(Event{
-		ID:   uuid.New().String(),
-		Type: eventStoppedType,
-		Data: eventStopMsg,
-	})
+	j.emit(NewEvent(eventStoppedType, eventStopMsg))
 	return nil
 }
 
@@ -104,11 +112,7 @@ func (j *Job) Pause() error {
 		return nil
 	}
 	j.Status = JobPaused
-	j.emit(Event{
-		ID:   uuid.New().String(),
-		Type: eventPausedType,
-		Data: eventPauseMsg,
-	})
+	j.emit(NewEvent(eventPausedType, eventPauseMsg))
 	return nil
 }
 
@@ -120,11 +124,7 @@ func (j *Job) Resume() error {
 		return nil
 	}
 	j.Status = JobRunning
-	j.emit(Event{
-		ID:   uuid.New().String(),
-		Type: eventResumedType,
-		Data: eventResumeMsg,
-	})
+	j.emit(NewEvent(eventResumedType, eventResumeMsg))
 	return nil
 }
 

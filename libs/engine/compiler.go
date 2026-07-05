@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/engine/browsertools"
@@ -85,7 +83,7 @@ func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts Co
 		return nil, fmt.Errorf("compile: browser session is required")
 	}
 	logger.Debug("compile start", "actions", len(actions))
-	job := domain.NewJob(uuid.New().String(), domain.JobRunning)
+	job := domain.NewJob(domain.JobRunning)
 	go c.runCompile(ctx, job, actions, opts)
 	return job, nil
 }
@@ -96,39 +94,24 @@ func (c *Compiler) Compile(ctx context.Context, actions []domain.Action, opts Co
 // only pre-start failures (none today) would surface as a Job-level error.
 func (c *Compiler) runCompile(ctx context.Context, job *domain.Job, actions []domain.Action, opts CompileOptions) {
 	startTime := time.Now()
-	job.Emit(domain.Event{
-		ID:   uuid.New().String(),
-		Type: EventCompileStarted,
-	})
+	job.Emit(domain.NewEvent(EventCompileStarted, nil))
 	bodies := make([]string, 0, len(actions))
 	var compileErr error
 	for _, action := range actions {
 		if !compileWait(ctx, job) {
 			break
 		}
-		job.Emit(domain.Event{
-			ID:   uuid.New().String(),
-			Type: EventActionStarted,
-			Data: ActionStartedData{ActionID: action.ID, Name: action.Name},
-		})
+		job.Emit(domain.NewEvent(EventActionStarted, ActionStartedData{ActionID: action.ID, Name: action.Name}))
 		logger.Debug("compile action start", "id", action.ID)
 		body, err := c.compileAction(ctx, action, opts)
 		if err != nil {
 			compileErr = fmt.Errorf("compile %s: %w", action.ID, err)
 			job.SetStatus(domain.JobFailed)
-			job.Emit(domain.Event{
-				ID:   uuid.New().String(),
-				Type: EventActionFailed,
-				Data: ActionFailedData{ActionID: action.ID, Error: err.Error()},
-			})
+			job.Emit(domain.NewEvent(EventActionFailed, ActionFailedData{ActionID: action.ID, Error: err.Error()}))
 			break
 		}
 		bodies = append(bodies, body)
-		job.Emit(domain.Event{
-			ID:   uuid.New().String(),
-			Type: EventActionFinished,
-			Data: ActionFinishedData{ActionID: action.ID, Body: body},
-		})
+		job.Emit(domain.NewEvent(EventActionFinished, ActionFinishedData{ActionID: action.ID, Body: body}))
 	}
 	finalStatus := job.GetStatus()
 	if finalStatus == domain.JobRunning {
@@ -146,11 +129,7 @@ func (c *Compiler) runCompile(ctx context.Context, job *domain.Job, actions []do
 			data.Error = compileErr.Error()
 		}
 	}
-	job.Emit(domain.Event{
-		ID:   uuid.New().String(),
-		Type: EventCompileFinished,
-		Data: data,
-	})
+	job.Emit(domain.NewEvent(EventCompileFinished, data))
 	job.Close()
 }
 

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/logger"
@@ -33,13 +32,10 @@ func NewRunner() *Runner {
 // Run executes a compiled scenario and returns a Job tracking the progress.
 func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode string, opts RunOptions) (*domain.Job, error) {
 	logger.Debug("run start", "actions", len(actions), "headless", opts.Headless)
-	job := domain.NewJob(uuid.New().String(), domain.JobRunning)
+	job := domain.NewJob(domain.JobRunning)
 	go func() {
 		startTime := time.Now()
-		job.Emit(domain.Event{
-			ID:   uuid.New().String(),
-			Type: EventRunStarted,
-		})
+		job.Emit(domain.NewEvent(EventRunStarted, nil))
 		w, h := opts.Browser.Resolved()
 		s, err := browser.NewSession(ctx, browser.Options{
 			Headless: opts.Headless,
@@ -48,11 +44,7 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 		})
 		if err != nil {
 			job.SetStatus(domain.JobFailed)
-			job.Emit(domain.Event{
-				ID:   uuid.New().String(),
-				Type: EventRunFinished,
-				Data: err.Error(),
-			})
+			job.Emit(domain.NewEvent(EventRunFinished, err.Error()))
 			return
 		}
 		defer func() {
@@ -62,57 +54,37 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 		err = s.LoadScript(interpolated)
 		if err != nil {
 			job.SetStatus(domain.JobFailed)
-			job.Emit(domain.Event{
-				ID:   uuid.New().String(),
-				Type: EventRunFinished,
-				Data: err.Error(),
-			})
+			job.Emit(domain.NewEvent(EventRunFinished, err.Error()))
 			return
 		}
 		for _, action := range actions {
 			if !runWaitLoop(ctx, job) {
 				break
 			}
-			job.Emit(domain.Event{
-				ID:   uuid.New().String(),
-				Type: EventTaskStarted,
-				Data: map[string]string{
-					"taskId": action.ID,
-					"title":  action.Name,
-				},
-			})
+			job.Emit(domain.NewEvent(EventTaskStarted, map[string]string{
+				"taskId": action.ID,
+				"title":  action.Name,
+			}))
 			logger.Debug("run step start", "id", action.ID, "name", action.Name)
 			err = s.ExecuteStep(action.ID)
 			if err != nil {
 				job.SetStatus(domain.JobFailed)
-				job.Emit(domain.Event{
-					ID:   uuid.New().String(),
-					Type: EventTaskFailed,
-					Data: map[string]string{
-						"taskId": action.ID,
-						"error":  err.Error(),
-					},
-				})
+				job.Emit(domain.NewEvent(EventTaskFailed, map[string]string{
+					"taskId": action.ID,
+					"error":  err.Error(),
+				}))
 				break
 			}
-			job.Emit(domain.Event{
-				ID:   uuid.New().String(),
-				Type: EventTaskFinished,
-				Data: map[string]string{
-					"taskId": action.ID,
-				},
-			})
+			job.Emit(domain.NewEvent(EventTaskFinished, map[string]string{
+				"taskId": action.ID,
+			}))
 			screenshotBytes, err := s.Screenshot()
 			if err == nil {
 				screenshotBase64 := base64.StdEncoding.EncodeToString(screenshotBytes)
-				job.Emit(domain.Event{
-					ID:   uuid.New().String(),
-					Type: EventVisualCompareTriggered,
-					Data: map[string]any{
-						"taskId":           action.ID,
-						"screenshotBase64": screenshotBase64,
-					},
-				})
+				job.Emit(domain.NewEvent(EventVisualCompareTriggered, map[string]any{
+					"taskId":           action.ID,
+					"screenshotBase64": screenshotBase64,
+				}))
 			}
 			if opts.UpTo != "" && action.ID == opts.UpTo {
 				break
@@ -123,14 +95,10 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			job.SetStatus(domain.JobCompleted)
 			finalStatus = domain.JobCompleted
 		}
-		job.Emit(domain.Event{
-			ID:   uuid.New().String(),
-			Type: EventRunFinished,
-			Data: map[string]any{
-				"status":   string(finalStatus),
-				"duration": time.Since(startTime).String(),
-			},
-		})
+		job.Emit(domain.NewEvent(EventRunFinished, map[string]any{
+			"status":   string(finalStatus),
+			"duration": time.Since(startTime).String(),
+		}))
 		// Close the listener channels so consumers ranging over Subscribe()
 		// can break out. Without this the run loops forever waiting for
 		// events that will never come.

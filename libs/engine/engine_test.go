@@ -104,15 +104,15 @@ func TestAssembleLuaIndentsAndBreaks(t *testing.T) {
 }
 
 func TestRunWaitLoop(t *testing.T) {
-	job := domain.NewJob("test-job", domain.JobStopped)
+	job := domain.NewJob(domain.JobStopped)
 	if runWaitLoop(context.Background(), job) {
 		t.Error("expected runWaitLoop to return false for Stopped job")
 	}
-	job = domain.NewJob("test-job", domain.JobRunning)
+	job = domain.NewJob(domain.JobRunning)
 	if !runWaitLoop(context.Background(), job) {
 		t.Error("expected runWaitLoop to return true for Running job")
 	}
-	job = domain.NewJob("test-job", domain.JobPaused)
+	job = domain.NewJob(domain.JobPaused)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 	if runWaitLoop(ctx, job) {

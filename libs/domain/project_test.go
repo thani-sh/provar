@@ -31,7 +31,6 @@ const (
 	testBrokenRelPath = ".provar/tests/broken.test.yml"
 	testActionOpenID  = "open_page"
 	testActionFillID  = "fill_credentials"
-	testJobID         = "job-123"
 	testPauseType     = "paused"
 	testPauseData     = "Job paused by user"
 	testResumeType    = "resumed"
@@ -519,9 +518,9 @@ func TestInitProject_CreatesParentDirs(t *testing.T) {
 }
 
 func TestJob_Lifecycle(t *testing.T) {
-	job := NewJob(testJobID, JobIdle)
-	if job.ID != testJobID {
-		t.Errorf("expected ID to be job-123, got %q", job.ID)
+	job := NewJob(JobIdle)
+	if _, err := uuid.Parse(job.ID); err != nil {
+		t.Errorf("expected job ID to be a valid UUID, got %q (error: %v)", job.ID, err)
 	}
 	if job.Status != JobIdle {
 		t.Errorf("expected Status to be JobIdle, got %q", job.Status)
