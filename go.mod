@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/anthropics/anthropic-sdk-go v1.52.0
+	github.com/coder/websocket v1.8.15
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/go-rod/rod v0.116.2
 	github.com/openai/openai-go v1.12.0

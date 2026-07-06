@@ -29,7 +29,7 @@ Every frame, both directions, is one JSON object:
   "meta": {
     "id": "5f1d…",
     "ts": 1718000000123,
-    "ack": "ab2c…"
+    "ak": "ab2c…"
   },
   "type": "v1/project/compile",
   "data": { … }
@@ -38,18 +38,18 @@ Every frame, both directions, is one JSON object:
 
 - `meta.id` — uuidv4, required, unique per frame.
 - `meta.ts` — ms-since-epoch, sender-clock. Never trusted for ordering.
-- `meta.ack` — set when this frame is a reply to a prior frame; carries the original frame's `meta.id`. Empty when this frame is not a reply.
+- `meta.ak` — set when this frame is a reply to a prior frame; carries the original frame's `meta.id`. Empty when this frame is not a reply.
 - `type` — versioned identifier. `v1/` prefix mandatory.
 - `data` — JSON object, never scalar or array.
 
-There is one type family: `v1/*`. Events flow in both directions. Reads reply (with `meta.ack` set). Writes may reply or not. Server-pushed progress events carry no `meta.ack`.
+There is one type family: `v1/*`. Events flow in both directions. Reads reply (with `meta.ak` set). Writes may reply or not. Server-pushed progress events carry no `meta.ak`.
 
-A reply's `type` mirrors the request's `type` — both the success reply and an error reply carry the same `type` as the message they answer. The client correlates replies to requests via `meta.ack`, not via `type`.
+A reply's `type` mirrors the request's `type` — both the success reply and an error reply carry the same `type` as the message they answer. The client correlates replies to requests via `meta.ak`, not via `type`.
 
 ### 3. Lifecycle
 
 1. Client opens the socket.
-2. Either side sends `v1/*`. The other side replies with `v1/*` carrying `meta.ack` for reads.
+2. Either side sends `v1/*`. The other side replies with `v1/*` carrying `meta.ak` for reads.
 3. Either side closes the TCP connection to end the session.
 
 Protocol errors close the connection. The server logs and tears down.
@@ -60,7 +60,7 @@ The catalog has three top-level entities: `project` (everything that operates on
 
 #### Client → server
 
-Writes (no reply expected beyond a single ack-paired status):
+Writes (no reply expected beyond a single ak-paired status):
 
 - `v1/project/create` — bootstrap a project. `data: { path, sample?, force? }`.
 - `v1/project/file/save` — persist a `.test.yml`. `data: { path, content }`. Creates the file if missing.
@@ -75,7 +75,7 @@ Writes (no reply expected beyond a single ack-paired status):
 - `v1/project/job/resume` — resume. `data: { jobId }`.
 - `v1/settings/save` — save `~/.provar/settings.yml`. `data: { settings }`.
 
-Reads (reply carries `meta.ack` and the data shape shown):
+Reads (reply carries `meta.ak` and the data shape shown):
 
 - `v1/project/file/list` — reply `{ files: string[] }`.
 - `v1/project/file/load` — `data: { path }` → reply `{ content }`.
@@ -87,7 +87,7 @@ Reads (reply carries `meta.ack` and the data shape shown):
 
 #### Server → client
 
-Server initiates these. Client routes by `type` and `jobId` (when present). None carry `meta.ack`.
+Server initiates these. Client routes by `type` and `jobId` (when present). None carry `meta.ak`.
 
 - `v1/project/compile/started` — `data: { jobId }`.
 - `v1/project/compile/action-started` — `data: { jobId, actionId, name }`.

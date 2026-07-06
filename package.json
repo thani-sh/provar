@@ -5,6 +5,7 @@
   "description": "Provar monorepo",
   "packageManager": "npm@11.17.0",
   "workspaces": [
+    "apps/provar-api",
     "apps/provar-cli",
     "apps/provar-web",
     "libs/domain",
@@ -16,9 +17,12 @@
     "fmt": "go fmt ./...",
     "vet": "go vet ./...",
     "test": "go test ./...",
-    "build": "go build -o bin/provar ./apps/provar-cli/cmd/provar",
-    "run": "npm run build && ./bin/provar",
+    "build:cli": "go build -o bin/provar ./apps/provar-cli/cmd/provar",
+    "build:api": "go build -o bin/provar-api ./apps/provar-api/cmd/provar-api",
+    "build": "npm run build:cli && npm run build:api",
+    "run": "npm run build:cli && ./bin/provar",
     "install:cli": "go install ./apps/provar-cli/cmd/provar",
+    "install:api": "go install ./apps/provar-api/cmd/provar-api",
     "tidy": "go mod tidy",
     "clean": "rm -rf bin/"
   }
