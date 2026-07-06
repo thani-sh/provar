@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/coder/websocket"
 
-	api "github.com/thani-sh/provar/apps/provar-api"
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/logger"
 )
@@ -47,10 +46,10 @@ type Forwarder struct {
 // If ctx is cancelled (client disconnected), Forward stops forwarding and
 // cleans up. The engine job itself isn't stopped — it runs to completion
 // because its events would otherwise be lost to any future subscriber.
-func (f *Forwarder) Forward(ctx context.Context, s *api.Server, c *websocket.Conn, job *domain.Job, cl closer) {
+func (f *Forwarder) Forward(ctx context.Context, s *Server, c *websocket.Conn, job *domain.Job, cl closer) {
 	for ev := range job.Subscribe() {
 		if state, ok := jobStateEvents[ev.Type]; ok {
-			if err := api.WriteEnvelope(ctx, c, "v1/project/job/state-changed", map[string]any{
+			if err := WriteEnvelope(ctx, c, "v1/project/job/state-changed", map[string]any{
 				"jobId": job.ID,
 				"state": state,
 			}, ""); err != nil {
@@ -71,7 +70,7 @@ func (f *Forwarder) Forward(ctx context.Context, s *api.Server, c *websocket.Con
 		if ev.Data != nil {
 			payload["data"] = ev.Data
 		}
-		if err := api.WriteEnvelope(ctx, c, wireType, payload, ""); err != nil {
+		if err := WriteEnvelope(ctx, c, wireType, payload, ""); err != nil {
 			// Connection broke. Let the engine finish on its own — its events
 			// would be lost to this client anyway. Don't Stop() the job: a
 			// later reconnect could pick it up if we wanted to support that.

@@ -1,4 +1,4 @@
-package handlers
+package project
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 // names) — the table is the only source of truth. The "action-*" keys
 // also appear in runForwarder pointing at v1/project/run/*, because the
 // engine reuses the same event type name across both code paths.
-var compileForwarder = &Forwarder{
+var compileForwarder = &api.Forwarder{
 	Events: map[string]string{
 		"compile-started":  "v1/project/compile/started",
 		"compile-finished": "v1/project/compile/finished",
