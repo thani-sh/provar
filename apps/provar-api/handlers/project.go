@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -18,29 +18,20 @@ import (
 )
 
 func init() {
-	api.Register("v1/project/create", handleProjectCreate)
-	api.Register("v1/project/file/list", handleProjectFileList)
-	api.Register("v1/project/file/load", handleProjectFileLoad)
-	api.Register("v1/project/file/save", handleProjectFileSave)
-	api.Register("v1/project/file/delete", handleProjectFileDelete)
-	api.Register("v1/project/config/load", handleProjectConfigLoad)
-	api.Register("v1/project/config/save", handleProjectConfigSave)
-	api.Register("v1/project/action/load", handleProjectActionLoad)
-	api.Register("v1/project/visual/load", handleProjectVisualLoad)
-	api.Register("v1/project/visual/accept", handleProjectVisualAccept)
-	api.Register("v1/project/clean", handleProjectClean)
+	api.Register("v1/project/create", &projectCreateHandler{})
+	api.Register("v1/project/file/list", &projectFileListHandler{})
+	api.Register("v1/project/file/load", &projectFileLoadHandler{})
+	api.Register("v1/project/file/save", &projectFileSaveHandler{})
+	api.Register("v1/project/file/delete", &projectFileDeleteHandler{})
+	api.Register("v1/project/config/load", &projectConfigLoadHandler{})
+	api.Register("v1/project/config/save", &projectConfigSaveHandler{})
+	api.Register("v1/project/action/load", &projectActionLoadHandler{})
+	api.Register("v1/project/visual/load", &projectVisualLoadHandler{})
+	api.Register("v1/project/visual/accept", &projectVisualAcceptHandler{})
+	api.Register("v1/project/clean", &projectCleanHandler{})
 }
 
-// okReply is the ak-paired success shape used by every v1/project/* write
-// endpoint. The ADR lists these as "no reply expected beyond a single
-// ak-paired status" — `{ok: true}` is the minimum useful payload.
-type okReply struct {
-	OK bool `json:"ok"`
-}
-
-func writeOK(ctx context.Context, c *websocket.Conn, env api.Envelope) error {
-	return api.WriteEnvelope(ctx, c, env.Type, okReply{OK: true}, env.Meta.ID)
-}
+// --- v1/project/create ---
 
 // projectCreateReq is the data shape for v1/project/create. path is the
 // absolute target directory; sample seeds a demo .test.yml + baseUrl
@@ -51,17 +42,23 @@ type projectCreateReq struct {
 	Force  bool   `json:"force,omitempty"`
 }
 
-func handleProjectCreate(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectCreateHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectCreateHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectCreateReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
 	if err := domain.InitProject(req.Path, req.Sample, req.Force); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	logger.Info("project created", "path", req.Path, "sample", req.Sample, "force", req.Force)
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
+
+// --- v1/project/file/list ---
 
 // projectFileListReq is the data shape for v1/project/file/list. project
 // is the absolute project root; the reply lists every .test.yml under it,
@@ -74,21 +71,27 @@ type projectFileListReply struct {
 	Files []string `json:"files"`
 }
 
-func handleProjectFileList(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectFileListHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectFileListHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectFileListReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	files := make([]string, len(project.Files))
 	for i, f := range project.Files {
 		files[i] = f.Path
 	}
-	return api.WriteEnvelope(ctx, c, env.Type, projectFileListReply{Files: files}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, projectFileListReply{Files: files})
 }
+
+// --- v1/project/file/load ---
 
 // projectFileLoadReq is the data shape for v1/project/file/load. path is
 // project-relative. The reply carries the raw bytes as a string — the
@@ -102,21 +105,27 @@ type projectFileLoadReply struct {
 	Content string `json:"content"`
 }
 
-func handleProjectFileLoad(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectFileLoadHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectFileLoadHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectFileLoadReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	data, err := os.ReadFile(filepath.Join(project.Path, req.Path))
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "read file: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
-	return api.WriteEnvelope(ctx, c, env.Type, projectFileLoadReply{Content: string(data)}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, projectFileLoadReply{Content: string(data)})
 }
+
+// --- v1/project/file/save ---
 
 // projectFileSaveReq is the data shape for v1/project/file/save. content
 // is the YAML encoding of the actions list. The handler parses it before
@@ -127,25 +136,31 @@ type projectFileSaveReq struct {
 	Content string `json:"content"`
 }
 
-func handleProjectFileSave(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectFileSaveHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectFileSaveHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectFileSaveReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	var actions []domain.Action
 	if err := yaml.Unmarshal([]byte(req.Content), &actions); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "parse yaml: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	if err := domain.SaveFile(project.Path, req.Path, actions); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "save file: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	logger.Info("file saved", "project", project.Path, "path", req.Path)
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
+
+// --- v1/project/file/delete ---
 
 // projectFileDeleteReq is the data shape for v1/project/file/delete. The
 // path may point at a file or a directory — both are removed. The handler
@@ -155,21 +170,27 @@ type projectFileDeleteReq struct {
 	Path    string `json:"path"`
 }
 
-func handleProjectFileDelete(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectFileDeleteHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectFileDeleteHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectFileDeleteReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	if err := domain.DeleteFile(project.Path, req.Path); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	logger.Info("file deleted", "project", project.Path, "path", req.Path)
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
+
+// --- v1/project/config/load ---
 
 // projectConfigLoadReq is the data shape for v1/project/config/load. The
 // reply carries the YAML as a generic map so unknown fields round-trip
@@ -182,21 +203,27 @@ type projectConfigLoadReply struct {
 	Config map[string]any `json:"config"`
 }
 
-func handleProjectConfigLoad(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectConfigLoadHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectConfigLoadHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectConfigLoadReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	cfg, err := domain.LoadConfig(project.Path)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load config: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
-	return api.WriteEnvelope(ctx, c, env.Type, projectConfigLoadReply{Config: cfg}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, projectConfigLoadReply{Config: cfg})
 }
+
+// --- v1/project/config/save ---
 
 // projectConfigSaveReq is the data shape for v1/project/config/save. config
 // is the same shape the load endpoint returns — handlers do not parse it
@@ -206,21 +233,27 @@ type projectConfigSaveReq struct {
 	Config  map[string]any `json:"config"`
 }
 
-func handleProjectConfigSave(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectConfigSaveHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectConfigSaveHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectConfigSaveReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	if err := domain.SaveConfig(project.Path, req.Config); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	logger.Info("config saved", "project", project.Path)
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
+
+// --- v1/project/action/load ---
 
 // projectActionLoadReq is the data shape for v1/project/action/load. file
 // is project-relative. The reply carries the compiled .test.lua (empty
@@ -236,18 +269,24 @@ type projectActionLoadReply struct {
 	UpToDate bool   `json:"upToDate"`
 }
 
-func handleProjectActionLoad(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectActionLoadHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectActionLoadHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectActionLoadReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	code, upToDate := domain.LoadCompiledLua(project.Path, req.File)
-	return api.WriteEnvelope(ctx, c, env.Type, projectActionLoadReply{Code: code, UpToDate: upToDate}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, projectActionLoadReply{Code: code, UpToDate: upToDate})
 }
+
+// --- v1/project/visual/load ---
 
 // projectVisualLoadReq is the data shape for v1/project/visual/load. file
 // and actionId locate a single (file, action) screenshot pair. baseline and
@@ -264,18 +303,24 @@ type projectVisualLoadReply struct {
 	Current  string `json:"current,omitempty"`
 }
 
-func handleProjectVisualLoad(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectVisualLoadHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectVisualLoadHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectVisualLoadReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	baseline, current := domain.LoadVisualPair(project.Path, req.File, req.ActionID)
-	return api.WriteEnvelope(ctx, c, env.Type, projectVisualLoadReply{Baseline: baseline, Current: current}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, projectVisualLoadReply{Baseline: baseline, Current: current})
 }
+
+// --- v1/project/visual/accept ---
 
 // projectVisualAcceptReq is the data shape for v1/project/visual/accept.
 // An empty file promotes screenshots for every test file in the project;
@@ -285,14 +330,18 @@ type projectVisualAcceptReq struct {
 	File    string `json:"file,omitempty"`
 }
 
-func handleProjectVisualAccept(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectVisualAcceptHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectVisualAcceptHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectVisualAcceptReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	if req.File == "" {
 		var total int
@@ -308,12 +357,14 @@ func handleProjectVisualAccept(ctx context.Context, s *api.Server, c *websocket.
 	} else {
 		n, err := domain.AcceptBaselines(project.Path, bucketFor(req.File))
 		if err != nil {
-			return api.WriteError(ctx, c, env.Type, env.Meta.ID, err.Error())
+			return h.WriteError(ctx, c, env, err)
 		}
 		logger.Info("baselines accepted", "project", project.Path, "file", req.File, "count", n)
 	}
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
+
+// --- v1/project/clean ---
 
 // projectCleanReq is the data shape for v1/project/clean. By default only
 // the current-run screenshots are removed; includeBaselines also drops the
@@ -326,14 +377,18 @@ type projectCleanReq struct {
 	DryRun           bool   `json:"dryRun,omitempty"`
 }
 
-func handleProjectClean(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectCleanHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectCleanHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectCleanReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	type cleanTarget struct {
 		path  string
@@ -353,14 +408,14 @@ func handleProjectClean(ctx context.Context, s *api.Server, c *websocket.Conn, e
 				logger.Info("skip clean", "label", t.label)
 				continue
 			}
-			return api.WriteError(ctx, c, env.Type, env.Meta.ID, "stat "+t.label+": "+err.Error())
+			return h.WriteError(ctx, c, env, fmt.Errorf("stat %s: %w", t.label, err))
 		}
 		if req.DryRun {
 			logger.Info("would remove", "label", t.label, "path", t.path)
 			continue
 		}
 		if err := os.RemoveAll(t.path); err != nil {
-			return api.WriteError(ctx, c, env.Type, env.Meta.ID, "remove "+t.label+": "+err.Error())
+			return h.WriteError(ctx, c, env, fmt.Errorf("remove %s: %w", t.label, err))
 		}
 		logger.Info("removed", "label", t.label, "path", t.path)
 	}
@@ -375,12 +430,12 @@ func handleProjectClean(ctx context.Context, s *api.Server, c *websocket.Conn, e
 				continue
 			}
 			if err := os.Remove(luaPath); err != nil {
-				return api.WriteError(ctx, c, env.Type, env.Meta.ID, "remove "+luaPath+": "+err.Error())
+				return h.WriteError(ctx, c, env, fmt.Errorf("remove %s: %w", luaPath, err))
 			}
 			logger.Info("removed compiled", "path", luaPath)
 		}
 	}
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }
 
 // bucketFor returns the per-file subdirectory under VisualDir / BaselinesDir

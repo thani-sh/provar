@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"io/fs"
 	"os"
@@ -15,8 +14,8 @@ import (
 )
 
 func init() {
-	api.Register("v1/settings/load", handleSettingsLoad)
-	api.Register("v1/settings/save", handleSettingsSave)
+	api.Register("v1/settings/load", &settingsLoadHandler{})
+	api.Register("v1/settings/save", &settingsSaveHandler{})
 }
 
 // settingsLoadReply is the reply for v1/settings/load. settings is the
@@ -29,23 +28,27 @@ type settingsLoadReply struct {
 	SettingsExists bool             `json:"settingsExists"`
 }
 
-func handleSettingsLoad(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type settingsLoadHandler struct {
+	api.BaseHandler
+}
+
+func (h *settingsLoadHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	settings, err := domain.LoadSettings()
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load settings: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	path, err := domain.SettingsPath()
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "locate settings: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	home, _ := os.UserHomeDir()
 	_, statErr := os.Stat(path)
 	exists := statErr == nil || !errors.Is(statErr, fs.ErrNotExist)
-	return api.WriteEnvelope(ctx, c, env.Type, settingsLoadReply{
+	return h.WriteReply(ctx, c, env, settingsLoadReply{
 		Settings:       settings,
 		Home:           home,
 		SettingsExists: exists,
-	}, env.Meta.ID)
+	})
 }
 
 // settingsSaveReq is the data shape for v1/settings/save. The full Settings
@@ -55,20 +58,24 @@ type settingsSaveReq struct {
 	Settings *domain.Settings `json:"settings"`
 }
 
-func handleSettingsSave(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type settingsSaveHandler struct {
+	api.BaseHandler
+}
+
+func (h *settingsSaveHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req settingsSaveReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
 	if req.Settings == nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "settings is required")
+		return h.WriteError(ctx, c, env, errors.New("settings is required"))
 	}
 	if err := req.Settings.Validate(); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "validate: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	if err := domain.SaveSettings(req.Settings); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "save: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	logger.Info("settings saved", "provider", req.Settings.Provider)
-	return writeOK(ctx, c, env)
+	return h.WriteOK(ctx, c, env)
 }

@@ -1,23 +1,9 @@
 package api
 
-import (
-	"context"
-
-	"github.com/coder/websocket"
-)
-
-// Handler is the signature every wire-type handler implements. It receives
-// the per-connection ctx (cancelled when the client disconnects), the
-// server-wide state, the websocket conn, and the decoded envelope.
-//
-// Handlers decode env.Data into their own typed shape. They reply via
-// WriteEnvelope(ctx, c, type, data, env.Meta.ID) — the third argument is the
-// type, the fourth the payload, the fifth the ak (echoes the request id so
-// the client can correlate).
-type Handler func(ctx context.Context, s *Server, c *websocket.Conn, env Envelope) error
-
-// dispatch is the central registry of wire types to handlers. Populated by
-// NewServer via init-style registration in each handlers/*.go file.
+// dispatch is the central registry of wire types to handlers. Populated
+// by Register from init() in each handlers/*.go file. The table holds
+// Handler interface values so each entry can be a struct that embeds
+// api.BaseHandler and implements Handle.
 var dispatch = map[string]Handler{}
 
 // Register adds a handler to the dispatch table. Called from package init()

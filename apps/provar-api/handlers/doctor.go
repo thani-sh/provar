@@ -10,6 +10,10 @@ import (
 	"github.com/thani-sh/provar/libs/engine/browser"
 )
 
+func init() {
+	api.Register("v1/doctor/run", &doctorRunHandler{})
+}
+
 // doctorCheck is one row in the doctor reply. ok is true when the check
 // passed; error carries the failure message (always omitted on success).
 type doctorCheck struct {
@@ -18,17 +22,17 @@ type doctorCheck struct {
 	Error string `json:"error,omitempty"`
 }
 
-func init() {
-	api.Register("v1/doctor/run", handleDoctorRun)
-}
-
 // doctorReply is the reply for v1/doctor/run. checks carries the per-check
 // result; the order is stable so the GUI can render a fixed-shape list.
 type doctorReply struct {
 	Checks []doctorCheck `json:"checks"`
 }
 
-func handleDoctorRun(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type doctorRunHandler struct {
+	api.BaseHandler
+}
+
+func (h *doctorRunHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	checks := []doctorCheck{}
 	addCheck := func(name string, err error) {
 		c := doctorCheck{Name: name, OK: err == nil}
@@ -53,5 +57,5 @@ func handleDoctorRun(ctx context.Context, s *api.Server, c *websocket.Conn, env 
 		addCheck("browser launches (headless)", nil)
 		_ = sess.Close()
 	}
-	return api.WriteEnvelope(ctx, c, env.Type, doctorReply{Checks: checks}, env.Meta.ID)
+	return h.WriteReply(ctx, c, env, doctorReply{Checks: checks})
 }

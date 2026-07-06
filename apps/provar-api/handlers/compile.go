@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/coder/websocket"
 
@@ -29,7 +28,7 @@ var compileForwarder = &Forwarder{
 }
 
 func init() {
-	api.Register("v1/project/compile", handleProjectCompile)
+	api.Register("v1/project/compile", &projectCompileHandler{})
 }
 
 // projectCompileReq is the data shape for v1/project/compile. project is
@@ -51,28 +50,32 @@ type projectCompileReply struct {
 	JobID string `json:"jobId"`
 }
 
-func handleProjectCompile(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectCompileHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectCompileHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectCompileReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 	actions, err := domain.ParseFile(project.Path, req.File)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "parse file: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
-	w, h := project.Browser.Resolved()
+	w, height := project.Browser.Resolved()
 	browserSession, err := browser.NewSession(ctx, browser.Options{
 		Headless: req.Headless,
 		Width:    w,
-		Height:   h,
+		Height:   height,
 	})
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "launch browser: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
 	job, err := s.Compile().Compile(ctx, actions, engine.CompileOptions{
@@ -82,14 +85,14 @@ func handleProjectCompile(ctx context.Context, s *api.Server, c *websocket.Conn,
 	})
 	if err != nil {
 		_ = browserSession.Close()
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "compile: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
 	jobID := s.RegisterJob(job)
 	logger.Info("compile started", "jobId", jobID, "file", req.File)
 
 	// Reply with the jobId so the client can correlate incoming v1/project/compile/* events.
-	if err := api.WriteEnvelope(ctx, c, env.Type, projectCompileReply{JobID: jobID}, env.Meta.ID); err != nil {
+	if err := h.WriteReply(ctx, c, env, projectCompileReply{JobID: jobID}); err != nil {
 		_ = job.Stop()
 		_ = browserSession.Close()
 		return err

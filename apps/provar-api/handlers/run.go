@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
+	"errors"
 	"os"
+	"strings"
 
 	"github.com/coder/websocket"
 
@@ -30,7 +31,7 @@ var runForwarder = &Forwarder{
 }
 
 func init() {
-	api.Register("v1/project/run", handleProjectRun)
+	api.Register("v1/project/run", &projectRunHandler{})
 }
 
 // projectRunReq is the data shape for v1/project/run. project is the
@@ -55,14 +56,18 @@ type projectRunReply struct {
 	JobID string `json:"jobId"`
 }
 
-func handleProjectRun(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
+type projectRunHandler struct {
+	api.BaseHandler
+}
+
+func (h *projectRunHandler) Handle(ctx context.Context, s *api.Server, c *websocket.Conn, env api.Envelope) error {
 	var req projectRunReq
-	if err := json.Unmarshal(env.Data, &req); err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "invalid data: "+err.Error())
+	if err := h.Decode(env, &req); err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	project, err := s.GetOrLoadProject(req.Project)
+	project, err := h.LoadProject(s, req.Project)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "load project: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
 	// file is the primary selector; pathIndex is the ADR's second slot,
@@ -72,7 +77,7 @@ func handleProjectRun(ctx context.Context, s *api.Server, c *websocket.Conn, env
 		file = req.PathIndex
 	}
 	if file == "" {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "file is required")
+		return h.WriteError(ctx, c, env, errors.New("file is required"))
 	}
 
 	// Runner needs both the .test.yml (for actions) and the compiled .test.lua.
@@ -80,12 +85,12 @@ func handleProjectRun(ctx context.Context, s *api.Server, c *websocket.Conn, env
 	// naming convention the CLI compile command writes.
 	actions, err := domain.ParseFile(project.Path, file)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "parse file: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
-	luaPath := file[:len(file)-len(".test.yml")] + ".test.lua"
+	luaPath := strings.TrimSuffix(file, ".test.yml") + ".test.lua"
 	luaCode, err := os.ReadFile(luaPath)
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "read compiled lua: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
 	job, err := s.Run().Run(ctx, actions, string(luaCode), engine.RunOptions{
@@ -95,13 +100,13 @@ func handleProjectRun(ctx context.Context, s *api.Server, c *websocket.Conn, env
 		UpTo:     req.UpTo,
 	})
 	if err != nil {
-		return api.WriteError(ctx, c, env.Type, env.Meta.ID, "run: "+err.Error())
+		return h.WriteError(ctx, c, env, err)
 	}
 
 	jobID := s.RegisterJob(job)
 	logger.Info("run started", "jobId", jobID, "file", file)
 
-	if err := api.WriteEnvelope(ctx, c, env.Type, projectRunReply{JobID: jobID}, env.Meta.ID); err != nil {
+	if err := h.WriteReply(ctx, c, env, projectRunReply{JobID: jobID}); err != nil {
 		_ = job.Stop()
 		return err
 	}

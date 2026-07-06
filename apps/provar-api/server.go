@@ -49,7 +49,7 @@ func (s *Server) Handler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := h(ctx, s, c, env); err != nil {
+		if err := h.Handle(ctx, s, c, env); err != nil {
 			logger.Debug("handler error", "id", connID, "type", env.Type, "err", err)
 			return
 		}
