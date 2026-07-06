@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/thani-sh/provar/libs/models"
 	"go.yaml.in/yaml/v4"
 )
 
@@ -109,6 +110,25 @@ func (s *Settings) Validate() error {
 		return fmt.Errorf("active provider %q has no API key configured", s.Provider)
 	}
 	return nil
+}
+
+// ModelsClient builds an SDK client for the named provider using cfg's
+// credentials, base URL, and model. The domain-side Provider enum and the
+// SDK's provider enum share the same string values today, so this is a
+// straight cast + construction — but holding the bridge here lets both
+// the CLI and the API build a client without each re-implementing the
+// mapping (and lets the SDK stay ignorant of the domain enum).
+func ModelsClient(p Provider, cfg ProviderConfig) (models.Client, error) {
+	var mp models.Provider
+	switch p {
+	case ProviderGoogle:
+		mp = models.Google
+	case ProviderOpenAI:
+		mp = models.OpenAI
+	case ProviderAnthropic:
+		mp = models.Anthropic
+	}
+	return models.NewClient(mp, cfg.APIKey, cfg.BaseURL, cfg.Model)
 }
 
 // validate is the package-level validator instance. WithRequiredStructEnabled is required

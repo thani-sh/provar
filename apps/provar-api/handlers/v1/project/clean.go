@@ -2,12 +2,6 @@ package project
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/coder/websocket"
 
@@ -44,49 +38,22 @@ func (h *projectCleanHandler) Handle(ctx context.Context, s *api.Server, c *webs
 	if err != nil {
 		return h.WriteError(ctx, c, env, err)
 	}
-	type cleanTarget struct {
-		path  string
-		label string
-		skip  bool
+	result, err := domain.Clean(project, domain.CleanOptions{
+		IncludeBaselines: req.IncludeBaselines,
+		IncludeLua:       req.IncludeLua,
+		DryRun:           req.DryRun,
+	})
+	if err != nil {
+		return h.WriteError(ctx, c, env, err)
 	}
-	targets := []cleanTarget{
-		{path: filepath.Join(project.Path, domain.VisualDir), label: "current screenshots"},
-		{path: filepath.Join(project.Path, domain.BaselinesDir), label: "baselines", skip: !req.IncludeBaselines},
-	}
-	for _, t := range targets {
-		if t.skip {
-			continue
-		}
-		if _, err := os.Stat(t.path); err != nil {
-			if errors.Is(err, fs.ErrNotExist) {
-				logger.Info("skip clean", "label", t.label)
-				continue
-			}
-			return h.WriteError(ctx, c, env, fmt.Errorf("stat %s: %w", t.label, err))
-		}
-		if req.DryRun {
-			logger.Info("would remove", "label", t.label, "path", t.path)
-			continue
-		}
-		if err := os.RemoveAll(t.path); err != nil {
-			return h.WriteError(ctx, c, env, fmt.Errorf("remove %s: %w", t.label, err))
-		}
-		logger.Info("removed", "label", t.label, "path", t.path)
-	}
-	if req.IncludeLua {
-		for _, f := range project.Files {
-			luaPath := filepath.Join(project.Path, strings.TrimSuffix(f.Path, ".test.yml")+".test.lua")
-			if _, err := os.Stat(luaPath); err != nil {
-				continue
-			}
-			if req.DryRun {
-				logger.Info("would remove compiled", "path", luaPath)
-				continue
-			}
-			if err := os.Remove(luaPath); err != nil {
-				return h.WriteError(ctx, c, env, fmt.Errorf("remove %s: %w", luaPath, err))
-			}
-			logger.Info("removed compiled", "path", luaPath)
+	for _, item := range result.Items {
+		switch item.Action {
+		case domain.CleanActionRemoved:
+			logger.Info("removed", "label", item.Label, "path", item.Path)
+		case domain.CleanActionWouldRemove:
+			logger.Info("would remove", "label", item.Label, "path", item.Path)
+		case domain.CleanActionNotFound:
+			logger.Info("skip clean", "label", item.Label)
 		}
 	}
 	return h.WriteOK(ctx, c, env)

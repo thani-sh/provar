@@ -395,11 +395,11 @@ const BaselinesDir = ".provar/baselines"
 // visualFileName returns the per-action PNG filename for a screenshot.
 func visualFileName(actionID string) string { return actionID + ".png" }
 
-// visualBucket returns the per-file subdirectory under VisualDir / BaselinesDir
+// VisualBucket returns the per-file subdirectory under VisualDir / BaselinesDir
 // for a test file. The bucket is the file's basename without the .test.yml
 // extension — that's how saveBaseline (CLI) and the runner already key
 // screenshots, so GUI and CLI writes land in the same place.
-func visualBucket(relPath string) string {
+func VisualBucket(relPath string) string {
 	return strings.TrimSuffix(filepath.Base(relPath), testFileExtension)
 }
 
@@ -407,7 +407,7 @@ func visualBucket(relPath string) string {
 // pair, base64-encoded so they're wire-friendly. Missing files are not errors
 // — the corresponding return value is "". Returns ("", "") if both are missing.
 func LoadVisualPair(projectDir, relPath, actionID string) (baseline, current string) {
-	bucket := visualBucket(relPath)
+	bucket := VisualBucket(relPath)
 	name := visualFileName(actionID)
 	if b, err := os.ReadFile(filepath.Join(projectDir, BaselinesDir, bucket, name)); err == nil {
 		baseline = base64.StdEncoding.EncodeToString(b)

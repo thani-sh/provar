@@ -12,7 +12,6 @@ import (
 	"github.com/thani-sh/provar/libs/engine"
 	"github.com/thani-sh/provar/libs/engine/browser"
 	"github.com/thani-sh/provar/libs/logger"
-	"github.com/thani-sh/provar/libs/models"
 )
 
 // compileFlags mirror runFlags so the `test` command can pass the same
@@ -83,12 +82,7 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		p.Error("active provider %q has no configuration entry", settings.Provider)
 		return int(helpers.ExitRuntime)
 	}
-	client, err := models.NewClient(
-		mapDomainProvider(settings.Provider),
-		active.APIKey,
-		active.BaseURL,
-		active.Model,
-	)
+	client, err := domain.ModelsClient(settings.Provider, active)
 	if err != nil {
 		p.Error("client: %v", err)
 		return int(helpers.ExitRuntime)
@@ -147,20 +141,6 @@ func runCompile(ctx context.Context, target string, raw helpers.Flags, p *helper
 		return int(helpers.ExitRuntime)
 	}
 	return int(helpers.ExitSuccess)
-}
-
-// mapDomainProvider bridges the settings-layer provider identifier to the SDK's models
-// provider. The two packages use distinct types but share the same string values today.
-func mapDomainProvider(p domain.Provider) models.Provider {
-	switch p {
-	case domain.ProviderGoogle:
-		return models.Google
-	case domain.ProviderOpenAI:
-		return models.OpenAI
-	case domain.ProviderAnthropic:
-		return models.Anthropic
-	}
-	return ""
 }
 
 // truncateUpTo returns the prefix of actions ending with and including the

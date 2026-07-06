@@ -2,8 +2,6 @@ package visual
 
 import (
 	"context"
-	"path/filepath"
-	"strings"
 
 	"github.com/coder/websocket"
 
@@ -40,7 +38,7 @@ func (h *projectVisualAcceptHandler) Handle(ctx context.Context, s *api.Server, 
 	if req.File == "" {
 		var total int
 		for _, f := range project.Files {
-			n, err := domain.AcceptBaselines(project.Path, bucketFor(f.Path))
+			n, err := domain.AcceptBaselines(project.Path, domain.VisualBucket(f.Path))
 			if err != nil {
 				logger.Warn("accept baselines", "file", f.Path, "err", err)
 				continue
@@ -49,19 +47,11 @@ func (h *projectVisualAcceptHandler) Handle(ctx context.Context, s *api.Server, 
 		}
 		logger.Info("baselines accepted (all)", "project", project.Path, "count", total)
 	} else {
-		n, err := domain.AcceptBaselines(project.Path, bucketFor(req.File))
+		n, err := domain.AcceptBaselines(project.Path, domain.VisualBucket(req.File))
 		if err != nil {
 			return h.WriteError(ctx, c, env, err)
 		}
 		logger.Info("baselines accepted", "project", project.Path, "file", req.File, "count", n)
 	}
 	return h.WriteOK(ctx, c, env)
-}
-
-// bucketFor returns the per-file subdirectory under VisualDir / BaselinesDir
-// for a test file. The bucket is the file's basename without the .test.yml
-// extension — matches the saveBaseline (CLI) and AcceptBaselines (SDK)
-// convention so GUI and CLI writes land in the same place.
-func bucketFor(relPath string) string {
-	return strings.TrimSuffix(filepath.Base(relPath), ".test.yml")
 }

@@ -6,7 +6,6 @@ import (
 
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine"
-	"github.com/thani-sh/provar/libs/models"
 )
 
 // Server holds the per-process state that handlers read and mutate: a cache
@@ -43,7 +42,7 @@ func NewServer() (*Server, error) {
 	if !ok {
 		return nil, nil // unreachable: settings.Validate() covers this
 	}
-	client, err := newModelsClient(settings.Provider, active.APIKey, active.BaseURL, active.Model)
+	client, err := domain.ModelsClient(settings.Provider, active)
 	if err != nil {
 		return nil, err
 	}
@@ -53,21 +52,6 @@ func NewServer() (*Server, error) {
 		compiler: engine.NewCompiler(client),
 		runner:   engine.NewRunner(),
 	}, nil
-}
-
-// newModelsClient bridges the settings-layer provider identifier to the SDK's
-// models provider. Mirrors the helper in apps/provar-cli/commands/compile.go.
-func newModelsClient(p domain.Provider, apiKey, baseURL, model string) (models.Client, error) {
-	var mp models.Provider
-	switch p {
-	case domain.ProviderGoogle:
-		mp = models.Google
-	case domain.ProviderOpenAI:
-		mp = models.OpenAI
-	case domain.ProviderAnthropic:
-		mp = models.Anthropic
-	}
-	return models.NewClient(mp, apiKey, baseURL, model)
 }
 
 // GetOrLoadProject returns the project at path. Cache hit: returns the stored
