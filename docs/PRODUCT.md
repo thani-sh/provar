@@ -23,8 +23,8 @@ Provar is built for **working web developers** who want to author end-to-end tes
 ## 3. Core concepts
 
 - **project**: A directory containing the application under test and the `.provar/` testing configuration.
-- **scenario**: A sequence of actions representing one execution route through the test graph.
-- **action**: A high-level step of the sequence (e.g., "register as a new user"), representing a node in the test's directed acyclic graph (DAG).
+- **file**: A YAML list of actions representing one test. Files live under `.provar/tests/` with the `.test.yml` extension. A file is a directed acyclic graph (DAG) of actions; one execution route through the graph is one path.
+- **action**: One user-intent step in a file (e.g., "register as a new user"). The graph says which actions may follow which; branching journeys (signed-in vs signed-out, free vs paid) are multiple paths in the same file.
 
 ## 4. Products
 

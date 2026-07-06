@@ -29,7 +29,7 @@ func TestRunner_Integration(t *testing.T) {
 		`)
 	}))
 	defer server.Close()
-	scenario := []domain.Action{
+	actions := []domain.Action{
 		{ID: "open_page", Name: "Open Page", Info: "Navigate to base URL"},
 		{ID: "enter_email", Name: "Enter Email", Info: "Fill in the email input"},
 		{ID: "click_login", Name: "Click Login", Info: "Click the login button"},
@@ -65,7 +65,7 @@ return steps
 			"BASE_URL": server.URL,
 		},
 	}
-	job, err := runner.Run(ctx, scenario, luaCode, opts)
+	job, err := runner.Run(ctx, actions, luaCode, opts)
 	if err != nil {
 		t.Fatalf("failed to start runner: %v", err)
 	}
@@ -84,22 +84,22 @@ return steps
 				t.Fatal("events channel closed unexpectedly")
 			}
 			switch ev.Type {
-			case "run-started":
+case "run-started":
 				runStarted = true
-			case "task-started":
+			case "action-started":
 				data := ev.Data.(map[string]string)
-				tasksStarted[data["taskId"]] = true
-			case "task-finished":
+				tasksStarted[data["actionId"]] = true
+			case "action-finished":
 				data := ev.Data.(map[string]string)
-				tasksFinished[data["taskId"]] = true
+				tasksFinished[data["actionId"]] = true
 			case "visual-comparison-triggered":
 				data := ev.Data.(map[string]any)
-				taskId := data["taskId"].(string)
+				actionId := data["actionId"].(string)
 				screenshot := data["screenshotBase64"].(string)
 				if screenshot == "" {
-					t.Errorf("expected screenshot data for task %s, got empty string", taskId)
+					t.Errorf("expected screenshot data for action %s, got empty string", actionId)
 				}
-				visualComparisonTriggered[taskId] = true
+				visualComparisonTriggered[actionId] = true
 			case "run-finished":
 				runFinished = true
 				if str, ok := ev.Data.(string); ok {
@@ -114,15 +114,15 @@ return steps
 					t.Errorf("expected job status %q, got %q", domain.JobCompleted, status)
 				}
 				return
-			case "task-failed":
+			case "action-failed":
 				if str, ok := ev.Data.(string); ok {
-					t.Fatalf("task failed with error: %s", str)
+					t.Fatalf("action failed with error: %s", str)
 				}
 				data, ok := ev.Data.(map[string]string)
 				if !ok {
-					t.Fatalf("unexpected type for task-failed Data: %T (%+v)", ev.Data, ev.Data)
+					t.Fatalf("unexpected type for action-failed Data: %T (%+v)", ev.Data, ev.Data)
 				}
-				t.Fatalf("task %s failed: %s", data["taskId"], data["error"])
+				t.Fatalf("action %s failed: %s", data["actionId"], data["error"])
 			}
 		case <-ctx.Done():
 			t.Fatal("timed out waiting for execution to finish")
@@ -134,12 +134,12 @@ return steps
 	if !runFinished {
 		t.Error("expected run-finished event")
 	}
-	for _, action := range scenario {
+	for _, action := range actions {
 		if !tasksStarted[action.ID] {
-			t.Errorf("expected task-started event for %s", action.ID)
+			t.Errorf("expected action-started event for %s", action.ID)
 		}
 		if !tasksFinished[action.ID] {
-			t.Errorf("expected task-finished event for %s", action.ID)
+			t.Errorf("expected action-finished event for %s", action.ID)
 		}
 		if !visualComparisonTriggered[action.ID] {
 			t.Errorf("expected visual-comparison-triggered event for %s", action.ID)

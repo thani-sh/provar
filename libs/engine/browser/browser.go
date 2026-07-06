@@ -46,10 +46,10 @@ type Session struct {
 	browser *rod.Browser
 	page    *rod.Page
 	L       *lua.LState
-	steps   *lua.LTable
+	actions *lua.LTable
 
-	mu      sync.Mutex
-	actions []Action
+	mu       sync.Mutex
+	recorded []Action
 }
 
 // NewSession starts a browser and initializes the Lua VM.
@@ -108,7 +108,8 @@ func (s *Session) Close() error {
 	return s.browser.Close()
 }
 
-// LoadScript loads the compiled Lua steps script into the VM and caches step functions internally.
+// LoadScript loads the compiled Lua actions script into the VM and caches
+// action functions internally.
 func (s *Session) LoadScript(luaCode string) error {
 	err := s.L.DoString(luaCode)
 	if err != nil {
@@ -116,21 +117,21 @@ func (s *Session) LoadScript(luaCode string) error {
 	}
 	tbl := s.L.Get(-1)
 	if tbl.Type() != lua.LTTable {
-		return fmt.Errorf("expected script to return a steps table, got %s", tbl.Type().String())
+		return fmt.Errorf("expected script to return an actions table, got %s", tbl.Type().String())
 	}
-	s.steps = tbl.(*lua.LTable)
+	s.actions = tbl.(*lua.LTable)
 	s.L.Pop(1)
 	return nil
 }
 
-// ExecuteStep runs a specific step function by its string identifier (e.g. "open_page").
-func (s *Session) ExecuteStep(stepName string) error {
-	if s.steps == nil {
+// ExecuteAction runs a specific action function by its string identifier (e.g. "open_page").
+func (s *Session) ExecuteAction(actionID string) error {
+	if s.actions == nil {
 		return fmt.Errorf("no script loaded")
 	}
-	fn := s.L.GetField(s.steps, stepName)
+	fn := s.L.GetField(s.actions, actionID)
 	if _, ok := fn.(*lua.LFunction); !ok {
-		return fmt.Errorf("step function '%s' not found in steps table", stepName)
+		return fmt.Errorf("action function '%s' not found in actions table", actionID)
 	}
 	pageUd := s.L.NewUserData()
 	pageUd.Value = &luaPage{page: s.page}
@@ -156,15 +157,15 @@ func (s *Session) Screenshot() ([]byte, error) {
 func (s *Session) RecordAction(name string, args map[string]any) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.actions = append(s.actions, Action{Name: name, Args: args})
+	s.recorded = append(s.recorded, Action{Name: name, Args: args})
 }
 
 // Actions returns a copy of the recorded actions since the last ClearActions call.
 func (s *Session) Actions() []Action {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]Action, len(s.actions))
-	copy(out, s.actions)
+	out := make([]Action, len(s.recorded))
+	copy(out, s.recorded)
 	return out
 }
 
@@ -173,7 +174,7 @@ func (s *Session) Actions() []Action {
 func (s *Session) ClearActions() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.actions = nil
+	s.recorded = nil
 }
 
 // --- compile-time primitives (called by tool wrappers, not by the runtime Lua VM) ---
@@ -233,7 +234,7 @@ func (s *Session) Fill(selector, value string) error {
 // AssertExists waits up to implicitWaitTimeout for the element matching the
 // CSS selector to become visible, returning an error naming the selector if
 // it doesn't. Used by the compile-time tool wrapper to record a verification
-// step the LLM emits as `assert_exists` — the corresponding Lua runtime
+// action the LLM emits as `assert_exists` — the corresponding Lua runtime
 // method (page:assertExists) does the same check at run time.
 func (s *Session) AssertExists(selector string) error {
 	p := s.page.Timeout(implicitWaitTimeout)

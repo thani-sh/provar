@@ -14,9 +14,9 @@ import (
 
 const (
 	EventRunStarted             = "run-started"
-	EventTaskStarted            = "task-started"
-	EventTaskFinished           = "task-finished"
-	EventTaskFailed             = "task-failed"
+	EventRunActionStarted       = "action-started"
+	EventRunActionFinished      = "action-finished"
+	EventRunActionFailed        = "action-failed"
 	EventVisualCompareTriggered = "visual-comparison-triggered"
 	EventRunFinished            = "run-finished"
 )
@@ -29,7 +29,7 @@ func NewRunner() *Runner {
 	return &Runner{}
 }
 
-// Run executes a compiled scenario and returns a Job tracking the progress.
+// Run executes a compiled file and returns a Job tracking the progress.
 func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode string, opts RunOptions) (*domain.Job, error) {
 	logger.Debug("run start", "actions", len(actions), "headless", opts.Headless)
 	job := domain.NewJob(domain.JobRunning)
@@ -61,28 +61,28 @@ func (r *Runner) Run(ctx context.Context, actions []domain.Action, luaCode strin
 			if !runWaitLoop(ctx, job) {
 				break
 			}
-			job.Emit(domain.NewEvent(EventTaskStarted, map[string]string{
-				"taskId": action.ID,
-				"title":  action.Name,
+			job.Emit(domain.NewEvent(EventRunActionStarted, map[string]string{
+				"actionId": action.ID,
+				"name":     action.Name,
 			}))
-			logger.Debug("run step start", "id", action.ID, "name", action.Name)
-			err = s.ExecuteStep(action.ID)
+			logger.Debug("run action start", "id", action.ID, "name", action.Name)
+			err = s.ExecuteAction(action.ID)
 			if err != nil {
 				job.SetStatus(domain.JobFailed)
-				job.Emit(domain.NewEvent(EventTaskFailed, map[string]string{
-					"taskId": action.ID,
-					"error":  err.Error(),
+				job.Emit(domain.NewEvent(EventRunActionFailed, map[string]string{
+					"actionId": action.ID,
+					"error":    err.Error(),
 				}))
 				break
 			}
-			job.Emit(domain.NewEvent(EventTaskFinished, map[string]string{
-				"taskId": action.ID,
+			job.Emit(domain.NewEvent(EventRunActionFinished, map[string]string{
+				"actionId": action.ID,
 			}))
 			screenshotBytes, err := s.Screenshot()
 			if err == nil {
 				screenshotBase64 := base64.StdEncoding.EncodeToString(screenshotBytes)
 				job.Emit(domain.NewEvent(EventVisualCompareTriggered, map[string]any{
-					"taskId":           action.ID,
+					"actionId":         action.ID,
 					"screenshotBase64": screenshotBase64,
 				}))
 			}

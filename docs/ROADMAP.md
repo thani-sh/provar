@@ -12,7 +12,7 @@ The runtime engine exists in `libs`. The CLI is a stub. The other reserved surfa
 
 Four phases, sequenced.
 
-- **scenario io**: read scenarios from disk, write compiled code to disk.
+- **file io**: read files from disk, write compiled code to disk.
 - **settings**: per-user provider config that gates compilation.
 - **subcommands**: setup, compile, and runner wired up as the user-facing CLI.
 - **release**: documented, installable, citable.

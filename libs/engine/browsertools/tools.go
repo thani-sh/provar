@@ -167,7 +167,7 @@ type assertExistsTool struct{ b *browser.Session }
 
 func (t *assertExistsTool) Name() string { return "assert_exists" }
 func (t *assertExistsTool) Description() string {
-	return "Verify that an element matching the given CSS selector is visible. Records a `page:assertExists(...)` line into the compiled Lua so the assertion runs at test time, not just compile time. Use this to confirm the page reached the state described by the current step before calling done (e.g. assert_exists(\"input[placeholder=\\\"Password\\\"]\") after the login form has rendered). Waits up to 5s for the element to appear."
+	return "Verify that an element matching the given CSS selector is visible. Records a `page:assertExists(...)` line into the compiled Lua so the assertion runs at test time, not just compile time. Use this to confirm the page reached the state described by the current action before calling done (e.g. assert_exists(\"input[placeholder=\\\"Password\\\"]\") after the login form has rendered). Waits up to 5s for the element to appear."
 }
 func (t *assertExistsTool) Parameters() json.RawMessage {
 	return json.RawMessage(`{"type":"object","properties":{"selector":{"type":"string","description":"CSS selector for the element whose visibility proves the page is in the expected state."}},"required":["selector"]}`)

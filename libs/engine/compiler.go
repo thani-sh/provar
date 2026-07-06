@@ -15,7 +15,7 @@ import (
 )
 
 // Compile event types emitted on the Job returned by Compile. Mirrors the
-// shape used by Runner.Run (run-started/task-started/task-finished/run-finished)
+// shape used by Runner.Run (run-started/action-started/action-finished/run-finished)
 // so consumers can use the same subscription pattern for both flows.
 const (
 	EventCompileStarted  = "compile-started"
@@ -170,7 +170,7 @@ func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts
 	return body, nil
 }
 
-// assembleLua joins the per-step bodies into a single Lua script. Each step's
+// assembleLua joins the per-action bodies into a single Lua script. Each action's
 // body is indented two spaces inside its function; functions are separated by
 // a single blank line, with no blank lines inside a function body. That keeps
 // "function ... end" boundaries visually distinct from the statements inside
@@ -178,9 +178,9 @@ func (c *Compiler) compileAction(ctx context.Context, action domain.Action, opts
 // function ends and the next begins.
 func assembleLua(actions []domain.Action, bodies []string) string {
 	var sb strings.Builder
-	sb.WriteString("local steps = {}\n\n")
+	sb.WriteString("local actions = {}\n\n")
 	for i, a := range actions {
-		fmt.Fprintf(&sb, "function steps.%s(page)\n", a.ID)
+		fmt.Fprintf(&sb, "function actions.%s(page)\n", a.ID)
 		// Indent each non-empty body line by two spaces. translateActions emits
 		// one statement per line with a trailing newline; we split + indent
 		// here so translateActions stays free of presentation concerns.
@@ -192,7 +192,7 @@ func assembleLua(actions []domain.Action, bodies []string) string {
 		}
 		sb.WriteString("end\n\n")
 	}
-	sb.WriteString("return steps\n")
+	sb.WriteString("return actions\n")
 	return sb.String()
 }
 
@@ -231,8 +231,8 @@ func translateActions(actions []browser.Action) string {
 // reverseSubstituteActions walks every string arg in the recorded action log and,
 // where the value matches a project variable, rewrites it to the {{name}} placeholder
 // form so the compiled Lua stays portable across environments. The LLM is free to
-// emit either the placeholder form or the resolved value during compile — this step
-// normalises the result.
+// emit either the placeholder form or the resolved value during compile — this
+// pass normalises the result.
 //
 // Matching rules:
 //   - Empty values are skipped. An empty vars["x"] = "" would otherwise replace

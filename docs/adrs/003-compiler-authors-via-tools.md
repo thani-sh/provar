@@ -2,7 +2,7 @@
 
 ## Context
 
-The compiler currently authors all Lua for an action in a single LLM call. The LLM sees only the page state at the start of the action and has to predict what the page looks like after each interaction. For multi-step actions ("log in, navigate, fill, submit, verify"), the LLM often picks selectors that don't exist after the predicted click, and the whole body fails.
+The compiler currently authors all Lua for an action in a single LLM call. The LLM sees only the page state at the start of the action and has to predict what the page looks like after each interaction. For actions that span several interactions ("log in, navigate, fill, submit, verify"), the LLM often picks selectors that don't exist after the predicted click, and the whole body fails.
 
 The `recent-changes` branch tried to fix this by adding a compile-time browser, a heal loop, and a review agent. None addressed the root cause: the LLM never sees fresh page state while authoring. Each layer added complexity without solving the problem.
 

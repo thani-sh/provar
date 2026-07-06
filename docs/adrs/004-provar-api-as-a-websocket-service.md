@@ -7,7 +7,7 @@ The Go rewrite is one surface from done. The CLI in `apps/provar-cli/` and the e
 Two constraints shape the transport:
 
 1. **The API surface is the SDK surface.** Every wire type falls out of the CLI subcommands and engine event types. No transport-only inventions.
-2. **The transport is bi-directional.** Engine compile and run emit streams of progress. The GUI subscribes, but also sends control (stop, pause, resume) and edits (test-file saves) while the stream is live. One persistent connection carrying every message in both directions is the right shape.
+2. **The transport is bi-directional.** Engine compile and run emit streams of progress. The GUI subscribes, but also sends control (stop, pause, resume) and edits (file saves) while the stream is live. One persistent connection carrying every message in both directions is the right shape.
 
 ## Decision
 
@@ -31,7 +31,7 @@ Every frame, both directions, is one JSON object:
     "ts": 1718000000123,
     "ack": "ab2c…"
   },
-  "type": "v1/project/get",
+  "type": "v1/project/compile",
   "data": { … }
 }
 ```
@@ -44,6 +44,8 @@ Every frame, both directions, is one JSON object:
 
 There is one type family: `v1/*`. Events flow in both directions. Reads reply (with `meta.ack` set). Writes may reply or not. Server-pushed progress events carry no `meta.ack`.
 
+A reply's `type` mirrors the request's `type` — both the success reply and an error reply carry the same `type` as the message they answer. The client correlates replies to requests via `meta.ack`, not via `type`.
+
 ### 3. Lifecycle
 
 1. Client opens the socket.
@@ -54,55 +56,52 @@ Protocol errors close the connection. The server logs and tears down.
 
 ### 4. Events
 
+The catalog has three top-level entities: `project` (everything that operates on a project), `settings` (global user settings — per-user, not per-project), and `doctor` (global preflight checks — not project-specific). Project-scoped commands and events are nested under `v1/project/*`. The compile/run event families stay nested as `v1/project/compile/*` and `v1/project/run/*`; job-control events nest under `v1/project/job/*`.
+
 #### Client → server
 
 Writes (no reply expected beyond a single ack-paired status):
 
-- `v1/project/open` — set the active project. `data: { path }`.
 - `v1/project/create` — bootstrap a project. `data: { path, sample?, force? }`.
-- `v1/project/close` — close the active project.
-- `v1/test-file/save` — persist a `.test.yml`. `data: { path, content }`.
-- `v1/test-file/create` — create a `.test.yml`. `data: { path, name }`.
-- `v1/test-file/delete` — delete a file or directory. `data: { path }`.
-- `v1/config/save` — save `.provar/config.yml`. `data: { config }`.
+- `v1/project/file/save` — persist a `.test.yml`. `data: { path, content }`. Creates the file if missing.
+- `v1/project/file/delete` — delete a file or directory. `data: { path }`.
+- `v1/project/config/save` — save `.provar/config.yml`. `data: { config }`.
+- `v1/project/visual/accept` — promote screenshots. `data: { file? }`.
+- `v1/project/clean` — remove artefacts. `data: { includeBaselines?, includeLua?, dryRun? }`.
+- `v1/project/compile` — start a compile. `data: { project, file, upTo?, headless? }`.
+- `v1/project/run` — start a run. `data: { project, file, pathIndex, upTo?, headless? }`.
+- `v1/project/job/stop` — stop a job. `data: { jobId }`.
+- `v1/project/job/pause` — pause. `data: { jobId }`.
+- `v1/project/job/resume` — resume. `data: { jobId }`.
 - `v1/settings/save` — save `~/.provar/settings.yml`. `data: { settings }`.
-- `v1/compile/start` — start a compile. `data: { test, upTo?, headless? }`. Reply carries `jobId`.
-- `v1/run/start` — start a run. `data: { test, pathIndex, upTo?, headless? }`. Reply carries `jobId`.
-- `v1/visual/accept` — promote screenshots. `data: { file? }`.
-- `v1/job/stop` — stop a job. `data: { jobId }`.
-- `v1/job/pause` — pause. `data: { jobId }`.
-- `v1/job/resume` — resume. `data: { jobId }`.
-- `v1/clean` — remove artefacts. `data: { includeBaselines?, includeLua?, dryRun? }`.
 
 Reads (reply carries `meta.ack` and the data shape shown):
 
-- `v1/project/get` — reply `{ path }`.
-- `v1/config/get` — reply `{ config }`.
-- `v1/settings/get` — reply `{ settings, home, settingsExists }`.
-- `v1/test-file/list` — reply `{ tests: string[] }`.
-- `v1/test-file/read` — `data: { path }` → reply `{ content }`.
-- `v1/screenshot/get` — `data: { test, pathIndex, taskId }` → reply `{ baseline?, current? }`.
-- `v1/node/code` — `data: { test, taskId }` → reply `{ code, upToDate }`.
+- `v1/project/file/list` — reply `{ files: string[] }`.
+- `v1/project/file/load` — `data: { path }` → reply `{ content }`.
+- `v1/project/config/load` — reply `{ config }`.
+- `v1/project/visual/load` — `data: { file, actionId }` → reply `{ baseline?, current? }`.
+- `v1/project/action/load` — `data: { file }` → reply `{ code, upToDate }`.
+- `v1/settings/load` — reply `{ settings, home, settingsExists }`.
 - `v1/doctor/run` — reply `{ checks: [{ name, ok, error? }] }`.
 
 #### Server → client
 
 Server initiates these. Client routes by `type` and `jobId` (when present). None carry `meta.ack`.
 
-- `v1/compile/started` — `data: { jobId }`.
-- `v1/compile/action-started` — `data: { jobId, actionId, name }`.
-- `v1/compile/action-finished` — `data: { jobId, actionId, body }`.
-- `v1/compile/action-failed` — `data: { jobId, actionId, error }`.
-- `v1/compile/finished` — `data: { jobId, status, luaCode?, duration, error? }`.
-- `v1/run/started` — `data: { jobId }`.
-- `v1/run/task-started` — `data: { jobId, taskId, title }`.
-- `v1/run/task-finished` — `data: { jobId, taskId }`.
-- `v1/run/task-failed` — `data: { jobId, taskId, error }`.
-- `v1/run/visual-triggered` — `data: { jobId, taskId, screenshotBase64 }`.
-- `v1/run/finished` — `data: { jobId, status, duration }`.
-- `v1/job/state-changed` — `data: { jobId, state: 'paused' | 'resumed' | 'stopped' }`.
-- `v1/fs/changed` — `data: { path, kind: 'create' | 'modify' | 'delete' }`.
-- `v1/project/closed` — server-initiated close (CLI closed the project, etc.). Client clears state.
+- `v1/project/compile/started` — `data: { jobId }`.
+- `v1/project/compile/action-started` — `data: { jobId, actionId, name }`.
+- `v1/project/compile/action-finished` — `data: { jobId, actionId, body }`.
+- `v1/project/compile/action-failed` — `data: { jobId, actionId, error }`.
+- `v1/project/compile/finished` — `data: { jobId, status, luaCode?, duration, error? }`.
+- `v1/project/run/started` — `data: { jobId }`.
+- `v1/project/run/action-started` — `data: { jobId, name }`.
+- `v1/project/run/action-finished` — `data: { jobId }`.
+- `v1/project/run/action-failed` — `data: { jobId, error }`.
+- `v1/project/run/visual-triggered` — `data: { jobId, screenshotBase64 }`.
+- `v1/project/run/finished` — `data: { jobId, status, duration }`.
+- `v1/project/job/state-changed` — `data: { jobId, state: 'paused' | 'resumed' | 'stopped' }`.
+- `v1/project/fs/changed` — `data: { path, kind: 'create' | 'modify' | 'delete' }`.
 
 ### 5. Out of scope for v1
 
@@ -129,9 +128,3 @@ Server initiates these. Client routes by `type` and `jobId` (when present). None
 - *REST + SSE.* Two protocols, two surfaces. Cuts against "one connection per client."
 - *gRPC.* Code-gen, extra tooling, foreign mental model. WebSocket+JSON is enough throughput for one human operator per project.
 - *Per-job WebSocket.* Same problems as before; more moving parts.
-
-## Notes for the implementation
-
-- Dispatch: a single `map[string]func(*Conn, Envelope) error` keyed by `type`.
-- `jobId` allocation goes in the event handler that starts the job (compile/run). The handler owns the `domain.Job` and the id is its identifier.
-- `apps/provar-api` stays thin. Every business-logic decision routes to `libs/engine`, `libs/domain`, `libs/models`. The API is an envelope adapter plus a per-event dispatch table.

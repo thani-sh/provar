@@ -6,7 +6,7 @@ The Bun-based CLI in `.previous/apps/provar-cli` carried ~500 lines of cross-cut
 
 ## Decision
 
-The Go CLI is a thin delivery mechanism. Every line of business logic — scenario parsing, compilation, browser execution, settings — lives in `libs`. The CLI only parses argv and dispatches, walks the project directory (stdlib `filepath.WalkDir`), calls SDK functions and writes results to disk, and prints events streamed from `domain.Job.Subscribe()`. Cross-cutting code in `apps/provar-cli/cli/` covers CLI mechanics only (command interface, exit codes, signal cancellation). No engine, compiler, runner, or browser code lives under `apps/provar-cli/`.
+The Go CLI is a thin delivery mechanism. Every line of business logic — file parsing, compilation, browser execution, settings — lives in `libs`. The CLI only parses argv and dispatches, walks the project directory (stdlib `filepath.WalkDir`), calls SDK functions and writes results to disk, and prints events streamed from `domain.Job.Subscribe()`. Cross-cutting code in `apps/provar-cli/cli/` covers CLI mechanics only (command interface, exit codes, signal cancellation). No engine, compiler, runner, or browser code lives under `apps/provar-cli/`.
 
 ## Consequences
 

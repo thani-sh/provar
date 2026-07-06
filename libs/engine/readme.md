@@ -1,46 +1,51 @@
 # Engine Package
 
-The `engine` package compiles high-level test specifications into executable Lua scripts and executes those compiled scripts using an embedded Lua interpreter (`gopher-lua`) driving browser automation (`go-rod/rod`).
+The `engine` package compiles high-level test files into executable Lua scripts and executes those compiled scripts using an embedded Lua interpreter (`gopher-lua`) driving browser automation (`go-rod/rod`).
 
 ---
 
 ## File Formats
 
-### 1. Test Spec: `login.test.md`
-The user writes the test spec as a clean Markdown list detailing the logical steps of the test flow:
-```markdown
-# Login Flow
-Verifies that users can log in and redirect to the dashboard.
-
-- **open_page**: Navigate to the login page of the application.
-- **fill_credentials**: Enter the email and password in the login form.
-- **click_login**: Click the submit button to log in.
-- **verify_dashboard**: Verify that the dashboard is loaded successfully.
+### 1. File: `login.test.yml`
+The user writes the file as a YAML list of actions, each describing one user-intent step:
+```yaml
+- id: open_page
+  name: Open Page
+  info: Navigate to the login page of the application.
+- id: fill_credentials
+  name: Fill Credentials
+  info: Enter the email and password in the login form.
+- id: click_login
+  name: Click Login
+  info: Click the submit button to log in.
+- id: verify_dashboard
+  name: Verify Dashboard
+  info: Verify that the dashboard is loaded successfully.
 ```
 
 ### 2. Compiled File: `login.test.lua`
-The compiler outputs a separate Lua script mapping each list step ID to concrete browser actions:
+The compiler outputs a Lua script mapping each action ID to concrete browser operations:
 ```lua
-local steps = {}
+local actions = {}
 
-function steps.open_page(page)
+function actions.open_page(page)
   page:navigate("{{BASE_URL}}/login")
 end
 
-function steps.fill_credentials(page)
+function actions.fill_credentials(page)
   page:locator("input[name='email']"):fill("user@example.com")
   page:locator("input[name='password']"):fill("password123")
 end
 
-function steps.click_login(page)
+function actions.click_login(page)
   page:locator("button[type='submit']"):click()
 end
 
-function steps.verify_dashboard(page)
+function actions.verify_dashboard(page)
   page:locator(".dashboard-container"):waitFor()
 end
 
-return steps
+return actions
 ```
 
 ---

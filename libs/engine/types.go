@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"time"
-
 	"github.com/thani-sh/provar/libs/domain"
 	"github.com/thani-sh/provar/libs/engine/browser"
 )
@@ -20,17 +18,4 @@ type RunOptions struct {
 	Vars     map[string]string
 	UpTo     string
 	Browser  domain.BrowserConfig // effective (defaults applied) viewport — passed to browser.NewSession
-}
-
-// RunResult represents the execution results.
-type RunResult struct {
-	Success  bool
-	Duration time.Duration
-	Errors   []TaskError
-}
-
-// TaskError represents an error associated with a specific task execution.
-type TaskError struct {
-	TaskID string
-	Err    error
 }

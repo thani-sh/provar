@@ -58,7 +58,7 @@ func TestTranslateActions(t *testing.T) {
 }
 
 // TestAssembleLuaIndentsAndBreaks locks the assembly-time presentation of the
-// compiled script: each step body is indented two spaces inside its function
+// compiled script: each action body is indented two spaces inside its function
 // with no blank lines around it, and functions are separated by a single
 // blank line. Earlier iterations blank-lined the body too, which made the
 // "function ... end" boundaries blur into the statements next to them.
@@ -74,12 +74,12 @@ func TestAssembleLuaIndentsAndBreaks(t *testing.T) {
 	got := assembleLua(actions, bodies)
 
 	wantLines := []string{
-		"function steps.open_login_page(page)",
+		"function actions.open_login_page(page)",
 		"  page:navigate(\"{{baseUrl}}\")",
 		"  page:locator(\"header button\"):click()",
 		"end",
 		"",
-		"function steps.verify_dashboard(page)",
+		"function actions.verify_dashboard(page)",
 		"  page:assertExists(\"#post-composer-textarea\")",
 		"end",
 	}

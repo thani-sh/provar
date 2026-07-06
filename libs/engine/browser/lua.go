@@ -84,7 +84,7 @@ func pageLocator(L *lua.LState) int {
 
 // pageAssertExists waits up to implicitWaitTimeout for the given selector to
 // be visible, mirroring the compile-time AssertExists behaviour. Raises on
-// timeout — the step fails and the runner reports it.
+// timeout — the action fails and the runner reports it.
 func pageAssertExists(L *lua.LState) int {
 	ud := L.CheckUserData(1)
 	lp, ok := ud.Value.(*luaPage)
