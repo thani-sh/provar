@@ -5,19 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
+
+	"github.com/thani-sh/provar/libs/domain"
 )
-
-// visualDir is the project-relative directory where current-run screenshots
-// are written. Each .test.yml gets its own subdirectory so concurrent runs of
-// different tests don't trample each other's images.
-const visualDir = ".provar/visual"
-
-// baselinesDir is the project-relative directory where accepted baselines
-// live. Same per-file layout as visualDir so saveBaseline can copy 1:1.
-const baselinesDir = ".provar/baselines"
 
 // visualResult describes the outcome of comparing a fresh screenshot against
 // its baseline. Used by run.go to surface visual regressions to the user
@@ -45,14 +37,14 @@ type visualRecord struct {
 // pair should be saved under the project root. Caller is responsible for
 // creating the parent directory.
 func visualPath(projectRoot, fileStem, actionID string) string {
-	return filepath.Join(projectRoot, visualDir, fileStem, actionID+".png")
+	return filepath.Join(projectRoot, domain.VisualDir, fileStem, actionID+".png")
 }
 
 // baselinePath returns where the accepted baseline for a (file, action) pair
 // lives under the project root. Missing baselines are not an error — the
 // caller treats them as "first run, no comparison".
 func baselinePath(projectRoot, fileStem, actionID string) string {
-	return filepath.Join(projectRoot, baselinesDir, fileStem, actionID+".png")
+	return filepath.Join(projectRoot, domain.BaselinesDir, fileStem, actionID+".png")
 }
 
 // saveScreenshot decodes a base64 PNG and writes it to visualPath. Returns
@@ -87,50 +79,6 @@ func compareToBaseline(projectRoot, fileStem, actionID string, png []byte) visua
 		return visualMatch
 	}
 	return visualDiff
-}
-
-// acceptBaselines promotes the current-run screenshots for fileStem to the
-// baselines directory, copying bytes only (no decode). Actions that didn't
-// produce a screenshot on this run are left untouched — the existing baseline
-// (if any) stays in place so the user can accept incrementally.
-func acceptBaselines(projectRoot, fileStem string) (copied int, err error) {
-	src := filepath.Join(projectRoot, visualDir, fileStem)
-	dst := filepath.Join(projectRoot, baselinesDir, fileStem)
-	if _, err := os.Stat(src); err != nil {
-		if os.IsNotExist(err) {
-			return 0, fmt.Errorf("no current screenshots for %s — run provar run first", fileStem)
-		}
-		return 0, err
-	}
-	if err := os.MkdirAll(dst, 0o755); err != nil {
-		return 0, err
-	}
-	entries, err := os.ReadDir(src)
-	if err != nil {
-		return 0, err
-	}
-	for _, e := range entries {
-		if e.IsDir() || filepath.Ext(e.Name()) != ".png" {
-			continue
-		}
-		from, err := os.Open(filepath.Join(src, e.Name()))
-		if err != nil {
-			return copied, err
-		}
-		to, err := os.Create(filepath.Join(dst, e.Name()))
-		if err != nil {
-			from.Close()
-			return copied, err
-		}
-		_, copyErr := io.Copy(to, from)
-		from.Close()
-		to.Close()
-		if copyErr != nil {
-			return copied, copyErr
-		}
-		copied++
-	}
-	return copied, nil
 }
 
 // formatVisualHash returns the short hex form of sha256(png) for human-readable

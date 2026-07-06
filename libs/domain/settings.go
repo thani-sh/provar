@@ -63,6 +63,38 @@ func LoadSettings() (*Settings, error) {
 	return &s, nil
 }
 
+// SettingsPath returns the absolute path of the user settings file. Useful
+// for handlers that need to report where settings live on disk.
+func SettingsPath() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("locate home directory: %w", err)
+	}
+	return filepath.Join(home, settingsDir, settingsFilename), nil
+}
+
+// SaveSettings writes s to ~/.provar/settings.yml, creating the parent
+// directory if needed. Validation is the caller's responsibility — SaveSettings
+// does not enforce the cross-field rules Validate() does, so callers can write
+// partial state (e.g. when editing a single field) and validate afterwards.
+func SaveSettings(s *Settings) error {
+	path, err := SettingsPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), dirPerm); err != nil {
+		return fmt.Errorf("create settings dir: %w", err)
+	}
+	data, err := yaml.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("encode settings: %w", err)
+	}
+	if err := os.WriteFile(path, data, filePerm); err != nil {
+		return fmt.Errorf("write settings: %w", err)
+	}
+	return nil
+}
+
 // Validate runs the struct-tag rules, then checks that the active provider has an API key
 // (a cross-field rule the validator cannot express via tags alone).
 func (s *Settings) Validate() error {

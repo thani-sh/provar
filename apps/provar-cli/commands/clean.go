@@ -55,8 +55,8 @@ func cleanHandler(ctx context.Context, target string, raw helpers.Flags, p *help
 		always bool
 	}
 	targets := []cleanTarget{
-		{path: filepath.Join(project.Path, visualDir), label: "current screenshots", always: true},
-		{path: filepath.Join(project.Path, baselinesDir), label: "baselines", always: false},
+		{path: filepath.Join(project.Path, domain.VisualDir), label: "current screenshots", always: true},
+		{path: filepath.Join(project.Path, domain.BaselinesDir), label: "baselines", always: false},
 	}
 	for _, t := range targets {
 		if !t.always && !(fl.IncludeBaselines && t.label == "baselines") {

@@ -45,7 +45,7 @@ func acceptBaselineHandler(ctx context.Context, target string, raw helpers.Flags
 		p.Error("load project: %v", err)
 		return int(helpers.ExitUsage)
 	}
-	visualRoot := filepath.Join(project.Path, visualDir)
+	visualRoot := filepath.Join(project.Path, domain.VisualDir)
 	if _, err := os.Stat(visualRoot); err != nil {
 		if os.IsNotExist(err) {
 			p.Error("no screenshots found at %s — run `provar run` first", visualRoot)
@@ -78,7 +78,7 @@ func acceptBaselineHandler(ctx context.Context, target string, raw helpers.Flags
 		return int(helpers.ExitRuntime)
 	}
 	for _, stem := range eligible {
-		n, err := acceptBaselines(project.Path, stem)
+		n, err := domain.AcceptBaselines(project.Path, stem)
 		if err != nil {
 			p.Error("%s: %v", stem, err)
 			continue

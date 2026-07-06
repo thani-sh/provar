@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"errors"
-	"strings"
 
 	"github.com/coder/websocket"
 
@@ -13,53 +12,61 @@ import (
 )
 
 // closer is anything with a Close() error method (browser.Session today,
-// possibly other resources later). Pass via an interface to keep forwardJob
-// reusable across compile and run.
+// possibly other resources later). Pass via an interface to keep Forward
+// reusable across any resource-owning engine.
 type closer interface {
 	Close() error
 }
 
-// engineToWireType maps engine event type constants to their wire-side
-// suffixes. The namespace prefix ("project/compile" or "project/run") is
-// prepended by wireTypeFor. Explicit per-type entries because the engine
-// uses an inconsistent naming scheme (some types have a "compile-" / "run-"
-// prefix, others don't), and one of them ("visual-comparison-triggered")
-// loses the "comparison" segment on the wire side. A pure dash-to-slash
-// conversion produces duplicate prefixes like "v1/project/compile/compile/
-// started" — don't try to be clever here, the table is the source of truth.
-var engineToWireType = map[string]string{
-	"compile-started":             "started",
-	"compile-finished":            "finished",
-	"action-started":              "action-started",
-	"action-finished":             "action-finished",
-	"action-failed":               "action-failed",
-	"run-started":                 "started",
-	"run-finished":                "finished",
-	"visual-comparison-triggered": "visual-triggered",
+// jobStateEvents enumerates the engine event types that are state
+// transitions. The ADR folds every transition into a single wire event
+// (v1/project/job/state-changed) with the new state in `data.state`. The
+// wire type is atomic; the value here is the new state name. State
+// transitions are shared across every Forwarder — they're a property of
+// the job, not of the engine producing the rest of the stream.
+var jobStateEvents = map[string]string{
+	"stopped": "stopped",
+	"paused":  "paused",
+	"resumed": "resumed",
 }
 
-// wireTypeFor builds the full wire type from the namespace and engine event
-// type. Unknown engine types fall back to a dash-to-slash conversion — keeps
-// new engine events visible to clients even before this map is updated.
-func wireTypeFor(namespace, engineType string) string {
-	if suffix, ok := engineToWireType[engineType]; ok {
-		return "v1/" + namespace + "/" + suffix
-	}
-	return "v1/" + namespace + "/" + strings.ReplaceAll(engineType, "-", "/")
+// Forwarder ranges over a Job's event stream and writes each event to the
+// connection, rewriting the engine type to a wire type via the Events
+// table. Each handler that produces a streaming job builds its own
+// Forwarder with the wire types it wants to publish — the table is the
+// only source of truth for wire names, no transformation is applied to
+// unknown types.
+type Forwarder struct {
+	Events map[string]string
 }
 
-// forwardJob ranges over a Job's event stream, rewrites the engine event type
-// into the wire namespace (v1/project/compile/* or v1/project/run/*), and
-// writes each event to the connection. When the stream closes (engine has
-// emitted its terminal event and called Job.Close), the goroutine cleans up
-// the browser and forgets the job from the registry.
+// Forward runs until the job's event stream closes (engine emitted its
+// terminal event and called Job.Close), then cleans up the optional
+// resource cl (browser session etc.) and forgets the job from the registry.
 //
-// If ctx is cancelled (client disconnected), forwardJob stops forwarding and
+// If ctx is cancelled (client disconnected), Forward stops forwarding and
 // cleans up. The engine job itself isn't stopped — it runs to completion
 // because its events would otherwise be lost to any future subscriber.
-func forwardJob(ctx context.Context, s *api.Server, c *websocket.Conn, job *domain.Job, cl closer, namespace string) {
+func (f *Forwarder) Forward(ctx context.Context, s *api.Server, c *websocket.Conn, job *domain.Job, cl closer) {
 	for ev := range job.Subscribe() {
-		wireType := wireTypeFor(namespace, ev.Type)
+		if state, ok := jobStateEvents[ev.Type]; ok {
+			if err := api.WriteEnvelope(ctx, c, "v1/project/job/state-changed", map[string]any{
+				"jobId": job.ID,
+				"state": state,
+			}, ""); err != nil {
+				logger.Debug("forward event", "jobId", job.ID, "err", err)
+				return
+			}
+			continue
+		}
+		wireType, ok := f.Events[ev.Type]
+		if !ok {
+			// Unknown event type — a miss here means the table is out of
+			// date with the engine. Log it loudly and skip; the rest of
+			// the stream continues.
+			logger.Warn("unknown engine event", "jobId", job.ID, "type", ev.Type)
+			continue
+		}
 		payload := map[string]any{"jobId": job.ID}
 		if ev.Data != nil {
 			payload["data"] = ev.Data
@@ -78,5 +85,4 @@ func forwardJob(ctx context.Context, s *api.Server, c *websocket.Conn, job *doma
 		}
 	}
 	s.ForgetJob(job.ID)
-	logger.Info("job finished", "jobId", job.ID, "kind", namespace)
 }

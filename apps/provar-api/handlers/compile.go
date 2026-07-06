@@ -13,6 +13,21 @@ import (
 	"github.com/thani-sh/provar/libs/logger"
 )
 
+// compileForwarder publishes engine events emitted by Compiler.Compile to
+// the v1/project/compile/* wire namespace. Wire types are atomic (full
+// names) — the table is the only source of truth. The "action-*" keys
+// also appear in runForwarder pointing at v1/project/run/*, because the
+// engine reuses the same event type name across both code paths.
+var compileForwarder = &Forwarder{
+	Events: map[string]string{
+		"compile-started":  "v1/project/compile/started",
+		"compile-finished": "v1/project/compile/finished",
+		"action-started":   "v1/project/compile/action-started",
+		"action-finished":  "v1/project/compile/action-finished",
+		"action-failed":    "v1/project/compile/action-failed",
+	},
+}
+
 func init() {
 	api.Register("v1/project/compile", handleProjectCompile)
 }
@@ -81,6 +96,6 @@ func handleProjectCompile(ctx context.Context, s *api.Server, c *websocket.Conn,
 	}
 
 	// Forward every engine event for this job to the client, then clean up.
-	go forwardJob(ctx, s, c, job, browserSession, "project/compile")
+	go compileForwarder.Forward(ctx, s, c, job, browserSession)
 	return nil
 }

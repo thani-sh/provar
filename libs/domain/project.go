@@ -1,8 +1,10 @@
 package domain
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -289,4 +291,177 @@ func validateTarget(target string) error {
 		return fmt.Errorf("refusing to init at %q", cleaned)
 	}
 	return nil
+}
+
+// LoadConfig reads .provar/config.yml and returns the parsed YAML as a generic
+// map. Returned as a map (not a typed struct) so the GUI can round-trip
+// unknown fields through SaveConfig without losing them. A missing file
+// returns an empty map (and a nil error) so a first-time user can save a
+// brand-new config.
+func LoadConfig(projectDir string) (map[string]any, error) {
+	configPath := filepath.Join(projectDir, configSubdir, configFilename)
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return map[string]any{}, nil
+		}
+		return nil, err
+	}
+	var cfg map[string]any
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, err
+	}
+	if cfg == nil {
+		cfg = map[string]any{}
+	}
+	return cfg, nil
+}
+
+// SaveConfig writes cfg to .provar/config.yml. The parent directory is
+// created if missing. The map is written as-is so callers that load-then-save
+// preserve every field; callers that build a new config from scratch should
+// start from LoadConfig to get the same shape.
+func SaveConfig(projectDir string, cfg map[string]any) error {
+	configPath := filepath.Join(projectDir, configSubdir, configFilename)
+	if err := os.MkdirAll(filepath.Dir(configPath), dirPerm); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return fmt.Errorf("encode config: %w", err)
+	}
+	if err := os.WriteFile(configPath, data, filePerm); err != nil {
+		return fmt.Errorf("write config: %w", err)
+	}
+	return nil
+}
+
+// DeleteFile removes relPath (a file or directory) from the project. A
+// missing path is not an error — DeleteFile is idempotent so retries from a
+// flaky GUI don't surface as failures. The path is resolved relative to
+// projectDir and cannot escape it (paths that resolve outside the project
+// are rejected) so a buggy client can't wipe the user's home directory by
+// sending path="../../..".
+func DeleteFile(projectDir, relPath string) error {
+	cleaned := filepath.Clean("/" + relPath)
+	if cleaned == "/" {
+		return fmt.Errorf("refusing to delete project root")
+	}
+	abs := filepath.Join(projectDir, cleaned)
+	if !strings.HasPrefix(abs, filepath.Clean(projectDir)+string(filepath.Separator)) {
+		return fmt.Errorf("path %q escapes project directory", relPath)
+	}
+	if err := os.RemoveAll(abs); err != nil {
+		return fmt.Errorf("delete %s: %w", relPath, err)
+	}
+	return nil
+}
+
+// LoadCompiledLua reads the compiled .test.lua for relPath. Returns the
+// source and true if the .lua exists and is at least as new as the .test.yml
+// source; returns ("", false) if the .lua is missing or stale. A stale or
+// missing .lua is not an error — the caller decides whether to trigger a
+// recompile.
+func LoadCompiledLua(projectDir, relPath string) (string, bool) {
+	luaRel := strings.TrimSuffix(relPath, testFileExtension) + ".test.lua"
+	luaPath := filepath.Join(projectDir, luaRel)
+	luaInfo, err := os.Stat(luaPath)
+	if err != nil {
+		return "", false
+	}
+	ymlInfo, err := os.Stat(filepath.Join(projectDir, relPath))
+	if err != nil {
+		return "", false
+	}
+	if ymlInfo.ModTime().After(luaInfo.ModTime()) {
+		return "", false
+	}
+	data, err := os.ReadFile(luaPath)
+	if err != nil {
+		return "", false
+	}
+	return string(data), true
+}
+
+// VisualDir is the project-relative directory where current-run screenshots
+// are written. Each .test.yml gets its own subdirectory so concurrent runs of
+// different tests don't trample each other's images.
+const VisualDir = ".provar/visual"
+
+// BaselinesDir is the project-relative directory where accepted baselines
+// live. Same per-file layout as VisualDir.
+const BaselinesDir = ".provar/baselines"
+
+// visualFileName returns the per-action PNG filename for a screenshot.
+func visualFileName(actionID string) string { return actionID + ".png" }
+
+// visualBucket returns the per-file subdirectory under VisualDir / BaselinesDir
+// for a test file. The bucket is the file's basename without the .test.yml
+// extension — that's how saveBaseline (CLI) and the runner already key
+// screenshots, so GUI and CLI writes land in the same place.
+func visualBucket(relPath string) string {
+	return strings.TrimSuffix(filepath.Base(relPath), testFileExtension)
+}
+
+// LoadVisualPair returns the baseline and current-run PNG for a (file, actionID)
+// pair, base64-encoded so they're wire-friendly. Missing files are not errors
+// — the corresponding return value is "". Returns ("", "") if both are missing.
+func LoadVisualPair(projectDir, relPath, actionID string) (baseline, current string) {
+	bucket := visualBucket(relPath)
+	name := visualFileName(actionID)
+	if b, err := os.ReadFile(filepath.Join(projectDir, BaselinesDir, bucket, name)); err == nil {
+		baseline = base64.StdEncoding.EncodeToString(b)
+	}
+	if c, err := os.ReadFile(filepath.Join(projectDir, VisualDir, bucket, name)); err == nil {
+		current = base64.StdEncoding.EncodeToString(c)
+	}
+	return
+}
+
+// AcceptBaselines promotes the current-run screenshots in bucket to the
+// baselines directory, copying bytes only (no decode). bucket is the
+// per-file subdirectory name under VisualDir / BaselinesDir — the .test.yml
+// basename without the extension (e.g. "login" for "login.test.yml").
+// Returns the number of PNGs copied. Actions that didn't produce a
+// screenshot on this run are left untouched so the user can accept
+// incrementally.
+func AcceptBaselines(projectDir, bucket string) (int, error) {
+	src := filepath.Join(projectDir, VisualDir, bucket)
+	dst := filepath.Join(projectDir, BaselinesDir, bucket)
+	if _, err := os.Stat(src); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return 0, fmt.Errorf("no current screenshots for %s", bucket)
+		}
+		return 0, err
+	}
+	if err := os.MkdirAll(dst, dirPerm); err != nil {
+		return 0, err
+	}
+	entries, err := os.ReadDir(src)
+	if err != nil {
+		return 0, err
+	}
+	copied := 0
+	for _, e := range entries {
+		if e.IsDir() || filepath.Ext(e.Name()) != ".png" {
+			continue
+		}
+		from, err := os.Open(filepath.Join(src, e.Name()))
+		if err != nil {
+			return copied, err
+		}
+		to, err := os.Create(filepath.Join(dst, e.Name()))
+		if err != nil {
+			from.Close()
+			return copied, err
+		}
+		_, copyErr := io.Copy(to, from)
+		from.Close()
+		to.Close()
+		if copyErr != nil {
+			return copied, copyErr
+		}
+		copied++
+	}
+	return copied, nil
 }
