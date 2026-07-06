@@ -41,7 +41,7 @@ var compileFlagBinding = helpers.FlagBinding{
 
 var compileCmd = helpers.Command{
 	Name:        "compile",
-	Summary:     "Compile scenario files into Lua",
+	Summary:     "Compile file definitions into Lua",
 	Flags:       compileFlagBinding,
 	NeedsTarget: true,
 	Run:         runCompile,

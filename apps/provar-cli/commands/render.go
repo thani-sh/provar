@@ -58,17 +58,17 @@ func (r *textRenderer) OnEvent(ev domain.Event, projectRoot, fileStem string) {
 	switch ev.Type {
 	case "run-started":
 		fmt.Fprintln(r.out, "run started")
-	case "task-started":
+	case "action-started":
 		if data, ok := ev.Data.(map[string]string); ok {
-			fmt.Fprintf(r.out, "  → %s (%s)\n", data["title"], data["taskId"])
+			fmt.Fprintf(r.out, "  → %s (%s)\n", data["name"], data["actionId"])
 			return
 		}
 		fmt.Fprintf(r.out, "  → %v\n", ev.Data)
-	case "task-finished":
+	case "action-finished":
 		fmt.Fprintln(r.out, "  ✓ done")
-	case "task-failed":
+	case "action-failed":
 		if data, ok := ev.Data.(map[string]string); ok {
-			fmt.Fprintf(r.err, "  ✗ %s: %s\n", data["taskId"], data["error"])
+			fmt.Fprintf(r.err, "  ✗ %s: %s\n", data["actionId"], data["error"])
 			return
 		}
 		fmt.Fprintf(r.err, "  ✗ %v\n", ev.Data)
@@ -174,22 +174,22 @@ func (r *junitRenderer) suiteFor(fileStem string) *junitSuite {
 
 func (r *junitRenderer) OnEvent(ev domain.Event, projectRoot, fileStem string) {
 	switch ev.Type {
-	case "task-started":
+	case "action-started":
 		if data, ok := ev.Data.(map[string]string); ok {
 			r.mu.Lock()
 			s := r.suiteFor(fileStem)
-			s.cases = append(s.cases, junitCase{name: data["taskId"]})
+			s.cases = append(s.cases, junitCase{name: data["actionId"]})
 			r.mu.Unlock()
 		}
-	case "task-finished":
+	case "action-finished":
 		// JUnit reports pass implicitly (no <failure> child). Nothing to do.
-	case "task-failed":
+	case "action-failed":
 		if data, ok := ev.Data.(map[string]string); ok {
 			r.mu.Lock()
 			s := r.suiteFor(fileStem)
 			// Update the last appended case to mark it failed.
 			for i := len(s.cases) - 1; i >= 0; i-- {
-				if s.cases[i].name == data["taskId"] {
+				if s.cases[i].name == data["actionId"] {
 					s.cases[i].failed = true
 					s.cases[i].errMsg = data["error"]
 					break

@@ -32,37 +32,37 @@ const (
 )
 
 // visualRecord is what renderEvent needs to act on the visual-comparison
-// event: the per-file bucket the screenshot belongs to, the step ID, and the
+// event: the per-file bucket the screenshot belongs to, the action ID, and the
 // base64-encoded PNG bytes. The runner already emits these fields on the
 // event — see libs/engine/runner.go.
 type visualRecord struct {
-	fileStem string // basename of the .test.yml without extension
-	stepID   string
+	fileStem string // basename of the file without extension
+	actionID string
 	pngB64   string
 }
 
-// visualPath returns where the current-run screenshot for a (file, step)
+// visualPath returns where the current-run screenshot for a (file, action)
 // pair should be saved under the project root. Caller is responsible for
 // creating the parent directory.
-func visualPath(projectRoot, fileStem, stepID string) string {
-	return filepath.Join(projectRoot, visualDir, fileStem, stepID+".png")
+func visualPath(projectRoot, fileStem, actionID string) string {
+	return filepath.Join(projectRoot, visualDir, fileStem, actionID+".png")
 }
 
-// baselinePath returns where the accepted baseline for a (file, step) pair
+// baselinePath returns where the accepted baseline for a (file, action) pair
 // lives under the project root. Missing baselines are not an error — the
 // caller treats them as "first run, no comparison".
-func baselinePath(projectRoot, fileStem, stepID string) string {
-	return filepath.Join(projectRoot, baselinesDir, fileStem, stepID+".png")
+func baselinePath(projectRoot, fileStem, actionID string) string {
+	return filepath.Join(projectRoot, baselinesDir, fileStem, actionID+".png")
 }
 
 // saveScreenshot decodes a base64 PNG and writes it to visualPath. Returns
 // the absolute path of the saved file so the caller can print it.
-func saveScreenshot(projectRoot, fileStem, stepID, pngB64 string) (string, error) {
+func saveScreenshot(projectRoot, fileStem, actionID, pngB64 string) (string, error) {
 	png, err := base64.StdEncoding.DecodeString(pngB64)
 	if err != nil {
-		return "", fmt.Errorf("decode screenshot for %s/%s: %w", fileStem, stepID, err)
+		return "", fmt.Errorf("decode screenshot for %s/%s: %w", fileStem, actionID, err)
 	}
-	dst := visualPath(projectRoot, fileStem, stepID)
+	dst := visualPath(projectRoot, fileStem, actionID)
 	if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
 		return "", fmt.Errorf("create visual dir for %s: %w", fileStem, err)
 	}
@@ -75,8 +75,8 @@ func saveScreenshot(projectRoot, fileStem, stepID, pngB64 string) (string, error
 // compareToBaseline hashes the just-saved screenshot and compares against
 // the baseline hash. Returns visualMatch if identical, visualDiff if they
 // differ, visualFirstRun if no baseline exists yet.
-func compareToBaseline(projectRoot, fileStem, stepID string, png []byte) visualResult {
-	baseline := baselinePath(projectRoot, fileStem, stepID)
+func compareToBaseline(projectRoot, fileStem, actionID string, png []byte) visualResult {
+	baseline := baselinePath(projectRoot, fileStem, actionID)
 	bh, err := os.ReadFile(baseline)
 	if err != nil {
 		return visualFirstRun
@@ -90,7 +90,7 @@ func compareToBaseline(projectRoot, fileStem, stepID string, png []byte) visualR
 }
 
 // acceptBaselines promotes the current-run screenshots for fileStem to the
-// baselines directory, copying bytes only (no decode). Steps that didn't
+// baselines directory, copying bytes only (no decode). Actions that didn't
 // produce a screenshot on this run are left untouched — the existing baseline
 // (if any) stays in place so the user can accept incrementally.
 func acceptBaselines(projectRoot, fileStem string) (copied int, err error) {

@@ -157,23 +157,23 @@ func handleVisualEvent(ev domain.Event, projectRoot, fileStem string, r textSink
 	if !ok {
 		return
 	}
-	taskID, _ := data["taskId"].(string)
+	actionID, _ := data["actionId"].(string)
 	pngB64, _ := data["screenshotBase64"].(string)
-	if taskID == "" || pngB64 == "" {
+	if actionID == "" || pngB64 == "" {
 		return
 	}
-	png, err := saveScreenshot(projectRoot, fileStem, taskID, pngB64)
+	png, err := saveScreenshot(projectRoot, fileStem, actionID, pngB64)
 	if err != nil {
 		r.warn("visual: %v", err)
 		return
 	}
-	switch compareToBaseline(projectRoot, fileStem, taskID, mustDecode(pngB64)) {
+	switch compareToBaseline(projectRoot, fileStem, actionID, mustDecode(pngB64)) {
 	case visualFirstRun:
-		r.info("  📷 %s (no baseline yet — run `provar accept-baseline %s` to set one)", taskID, fileStem)
+		r.info("  📷 %s (no baseline yet — run `provar accept-baseline %s` to set one)", actionID, fileStem)
 	case visualMatch:
-		r.success("  📷 %s (matches baseline)", taskID)
+		r.success("  📷 %s (matches baseline)", actionID)
 	case visualDiff:
-		r.warn("  📷 %s (differs from baseline: %s)", taskID, formatVisualHash(mustDecode(pngB64)))
+		r.warn("  📷 %s (differs from baseline: %s)", actionID, formatVisualHash(mustDecode(pngB64)))
 	}
 	_ = png // path printed by the messages above; suppress unused-var noise
 }

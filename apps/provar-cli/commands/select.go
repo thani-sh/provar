@@ -31,14 +31,14 @@ func selectFiles(project *domain.Project, pattern string) ([]domain.File, error)
 		for _, f := range project.Files {
 			names = append(names, f.Path)
 		}
-		return nil, fmt.Errorf("--test %q matched no test files; available: %s", pattern, strings.Join(names, ", "))
+		return nil, fmt.Errorf("--test %q matched no files; available: %s", pattern, strings.Join(names, ", "))
 	}
 	return matched, nil
 }
 
 // truncateFrom is the inverse of truncateUpTo: returns the action list
 // starting from the first action whose ID equals `from`, inclusive. Lets the
-// user re-run from a failing step without re-running the whole file.
+// user re-run from a failing action without re-running the whole file.
 func truncateFrom(actions []domain.Action, from string) ([]domain.Action, bool) {
 	for i, a := range actions {
 		if a.ID == from {
