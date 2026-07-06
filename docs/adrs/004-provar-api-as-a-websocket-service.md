@@ -68,8 +68,8 @@ Writes (no reply expected beyond a single ak-paired status):
 - `v1/project/config/save` — save `.provar/config.yml`. `data: { config }`.
 - `v1/project/visual/accept` — promote screenshots. `data: { file? }`.
 - `v1/project/clean` — remove artefacts. `data: { includeBaselines?, includeLua?, dryRun? }`.
-- `v1/project/compile` — start a compile. `data: { project, file, upTo?, headless? }`.
-- `v1/project/run` — start a run. `data: { project, file, pathIndex, upTo?, headless? }`.
+- `v1/project/compile` — start a compile. `data: { project, file, upTo? }`.
+- `v1/project/run` — start a run. `data: { project, file, upTo? }`.
 - `v1/project/job/stop` — stop a job. `data: { jobId }`.
 - `v1/project/job/pause` — pause. `data: { jobId }`.
 - `v1/project/job/resume` — resume. `data: { jobId }`.

@@ -37,16 +37,10 @@ func init() {
 // projectRunReq is the data shape for v1/project/run. project is the
 // absolute path of a directory containing .provar/ — the project is loaded
 // on first use. file is the .test.yml path relative to the project root.
-// pathIndex is the ADR's second file selector; v1 treats it as a synonym
-// for file (it'll be wired to batch selection when the engine grows that
-// capability). headless toggles the browser. upTo stops at the named
-// action if set.
 type projectRunReq struct {
-	Project   string `json:"project"`
-	File      string `json:"file"`
-	PathIndex string `json:"pathIndex,omitempty"`
-	UpTo      string `json:"upTo,omitempty"`
-	Headless  bool   `json:"headless,omitempty"`
+	Project string `json:"project"`
+	File    string `json:"file"`
+	UpTo    string `json:"upTo,omitempty"`
 }
 
 // projectRunReply mirrors projectCompileReply — the immediate ak-paired
@@ -70,12 +64,7 @@ func (h *projectRunHandler) Handle(ctx context.Context, s *api.Server, c *websoc
 		return h.WriteError(ctx, c, env, err)
 	}
 
-	// file is the primary selector; pathIndex is the ADR's second slot,
-	// currently treated as a synonym for file (no batch-run support in v1).
 	file := req.File
-	if file == "" {
-		file = req.PathIndex
-	}
 	if file == "" {
 		return h.WriteError(ctx, c, env, errors.New("file is required"))
 	}
@@ -94,7 +83,7 @@ func (h *projectRunHandler) Handle(ctx context.Context, s *api.Server, c *websoc
 	}
 
 	job, err := s.Run().Run(ctx, actions, string(luaCode), engine.RunOptions{
-		Headless: req.Headless,
+		Headless: true,
 		Browser:  project.Browser,
 		Vars:     project.Vars,
 		UpTo:     req.UpTo,

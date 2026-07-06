@@ -36,10 +36,9 @@ func init() {
 // loaded on first use (or returned from the cache) — there's no separate
 // open action.
 type projectCompileReq struct {
-	Project  string `json:"project"`
-	File     string `json:"file"`
-	UpTo     string `json:"upTo,omitempty"`
-	Headless bool   `json:"headless,omitempty"`
+	Project string `json:"project"`
+	File    string `json:"file"`
+	UpTo    string `json:"upTo,omitempty"`
 }
 
 // projectCompileReply is the immediate reply (before the engine emits
@@ -70,7 +69,7 @@ func (h *projectCompileHandler) Handle(ctx context.Context, s *api.Server, c *we
 
 	w, height := project.Browser.Resolved()
 	browserSession, err := browser.NewSession(ctx, browser.Options{
-		Headless: req.Headless,
+		Headless: true,
 		Width:    w,
 		Height:   height,
 	})
