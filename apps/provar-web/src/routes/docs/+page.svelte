@@ -10,19 +10,19 @@
 			title: "Project",
 			summary: "Your app, your tests, one folder.",
 			detail:
-				"A folder with your application and a .provar/ directory inside. Everything Provar cares about lives there — your test files, the snapshots, the AI-generated scripts, the config. Outside that folder Provar doesn't look. That means no separate workspace, no cloud sync, no 'Provar account' — your tests are just files in your repo, reviewable in pull requests alongside the rest of the change."
+				"A folder with your application and a .provar/ directory inside. Everything Provar cares about lives there — your files, the snapshots, the AI-generated scripts, the config. Outside that folder Provar doesn't look. That means no separate workspace, no cloud sync, no 'Provar account' — your tests are just files in your repo, reviewable in pull requests alongside the rest of the change."
 		},
 		{
-			title: "Test graph",
+			title: "Action graph",
 			summary: "A graph of user actions, with branches.",
 			detail:
-				"A YAML file that describes one test as a graph of user-facing steps. A step is one action — open a page, click a button, type text, assert a result. The graph says which steps lead to which; a branching journey (signed-in vs signed-out, free vs paid) is just two paths in the same graph. You author the graph; the AI never edits it, only the code that runs each step."
+				"A YAML file that describes one file as a graph of user-facing actions. An action is one user-intent step — open a page, click a button, type text, assert a result. The graph says which actions may follow which; a branching journey (signed-in vs signed-out, free vs paid) is just two paths in the same file. You author the graph; the AI never edits it, only the code that runs each action."
 		},
 		{
 			title: "Generated code",
 			summary: "AI-written code. Runs without one.",
 			detail:
-				"The machine-friendly code the AI writes from your graph, sitting in your project as a regular file — reviewable, diffable, runnable on its own. The AI writes it once when the step is first added; after that it's just code. CI runs the script with no LLM in the loop. You only need an API key at author-time, not at run-time. That separation is what makes 'AI-assisted' not 'AI-dependent.'"
+				"The machine-friendly code the AI writes from your graph, sitting in your project as a regular file — reviewable, diffable, runnable on its own. The AI writes it once when the action is first added; after that it's just code. CI runs the script with no LLM in the loop. You only need an API key at author-time, not at run-time. That separation is what makes 'AI-assisted' not 'AI-dependent.'"
 		}
 	];
 
@@ -90,7 +90,7 @@
 		</div>
 		<p class="text-on-surface text-sm font-semibold">The desktop editor</p>
 		<p class="text-on-surface-variant text-xs leading-relaxed">
-			Visual canvas, click to add nodes (the editor auto-lays them out), live snapshot
+			Visual canvas, click to add actions (the editor auto-lays them out), live snapshot
 			review. Built on Electrobun — friendlier to use all day.
 		</p>
 	</a>

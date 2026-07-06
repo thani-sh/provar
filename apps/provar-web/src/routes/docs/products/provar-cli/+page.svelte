@@ -36,7 +36,7 @@
 <h3>2. Scaffold a project</h3>
 <pre><code>provar setup my-app --sample
 cd my-app</code></pre>
-<p><code>--sample</code> gives you a working login test pointing at a live demo.</p>
+<p><code>--sample</code> gives you a working login file pointing at a live demo.</p>
 
 <h3 id="configuration">3. Add your API key</h3>
 <p>
@@ -67,7 +67,7 @@ provar run .</code></pre>
 <h3>5. Point it at your own app</h3>
 <p>
 	Edit <code>.provar/config.yml</code>, change <code>variables.baseUrl</code>, recompile. When
-	the UI drifts, recompile the test file and the agent rewrites the broken step.
+	the UI drifts, recompile the file and the agent rewrites the broken action.
 </p>
 <p>
 	Variables are overridable at run time via env:
@@ -86,6 +86,6 @@ jobs:
       - run: curl -fsSL {buildInfo.url}/install.sh | bash
       - run: provar run .</code></pre>
 <p class="text-on-surface-variant text-sm">
-	Pre-step secrets, matrix setups, GitLab / CircleCI recipes — see
+	Pre-job secrets, matrix setups, GitLab / CircleCI recipes — see
 	<a href="/docs/ci">CI integration</a>.
 </p>

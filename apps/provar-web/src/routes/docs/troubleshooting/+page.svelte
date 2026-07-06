@@ -19,15 +19,15 @@
 		<code>apiKey</code> for the provider you want to use. The compile step validates the key
 		before doing any work; if the active provider has an empty key, it fails with a clear
 		error pointing at the file. From the editor, open the Settings dialog (Provar →
-		Settings…), re-paste the key, hit save, close the dialog, reopen the test.
+		Settings…), re-paste the key, hit save, close the dialog, reopen the file.
 	</p>
 
 <h2>"Compile is taking forever"</h2>
 <p>
-	The first compile of a step is an LLM round-trip — figure on 10–30 seconds per step. A
-	50-step test takes a few minutes. This is normal. Subsequent compiles are incremental: only
-	the steps you've actually changed re-run. So if you regenerate one step, you're waiting 15
-	seconds, not ten minutes.
+	The first compile of an action is an LLM round-trip — figure on 10–30 seconds per action. A
+	50-action file takes a few minutes. This is normal. Subsequent compiles are incremental:
+	only the actions you've actually changed re-run. So if you regenerate one action, you're
+	waiting 15 seconds, not ten minutes.
 </p>
 
 <h2>"The browser never opens"</h2>
@@ -39,12 +39,12 @@
 		equivalent for your distro.
 	</p>
 
-<h2>"My step passed visually but failed the snapshot diff"</h2>
+<h2>"My action passed visually but failed the snapshot diff"</h2>
 <p>
 	The page rendered slightly differently than last time — a different timestamp, a stray ad,
 	an animation frame caught mid-fade. The editor's run panel shows the diff side-by-side. If
 	the change is fine, click <em>Accept new snapshot</em> and the new image becomes the
-	baseline. If it isn't, regenerate the step.</p>
+	baseline. If it isn't, regenerate the action.</p>
 
 <h2>"The editor crashes when I switch files"</h2>
 <p>
@@ -79,6 +79,6 @@
 <p>
 	<a href="https://github.com/thani-sh/provar/issues" target="_blank" rel="noopener"
 		>github.com/thani-sh/provar/issues</a
-	>. Include the editor version (Provar → About), the test file, and the failing run's
+	>. Include the editor version (Provar → About), the file, and the failing run's
 	output. Screenshots of the run panel help too. We read everything; the more context the
 	better.</p>

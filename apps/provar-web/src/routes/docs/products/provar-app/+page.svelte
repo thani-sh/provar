@@ -16,10 +16,10 @@
 	>
 </h1>
 <p>
-	The desktop editor. A visual canvas where you draw the user journey as a graph of steps, the
-	AI agent writes the underlying Playwright code, and the run panel shows you what actually
-	happened — including a side-by-side snapshot diff when something changes. If you spend most
-	of your day in a browser-based test tool, this is the one you want.
+	The desktop editor. A visual canvas where you draw the user journey as a graph of actions,
+	the AI agent writes the underlying Playwright code, and the run panel shows you what
+	actually happened — including a side-by-side snapshot diff when something changes. If you
+	spend most of your day in a browser-based test tool, this is the one you want.
 </p>
 
 <h2>What it actually is</h2>
@@ -27,12 +27,12 @@
 	provar-app is an
 	<a href="https://electrobun.dev" target="_blank" rel="noopener">Electrobun</a> desktop
 	application — a small native shell that loads the Svelte UI and a bundled Chromium for
-	rendering tests. It's a dev tool at heart, not a polished consumer app: a debug console in
+	rendering files. It's a dev tool at heart, not a polished consumer app: a debug console in
 	the dev build, a real release pipeline in tagged builds, and a UX that takes a few cues from
 	Blender and Figma. You'll like it or you'll switch to the CLI; both are valid.
 </p>
 
-<DocsPlaceholder caption="Editor canvas with a 4-step login test (placeholder)" />
+<DocsPlaceholder caption="Editor canvas with a 4-action login file (placeholder)" />
 
 <h2>System requirements</h2>
 <ul>
@@ -56,7 +56,7 @@
 	<li>
 		<strong>Disk.</strong> ~400 MB for the editor + bundled Chromium. Larger projects with
 		many baselines add PNGs under <code>.provar/screenshots/</code>; budget a few MB per
-		step.
+		action.
 	</li>
 	<li>
 		<strong>RAM.</strong> 8 GB minimum, 16 GB comfortable. The editor is fine on a small
@@ -66,7 +66,7 @@
 
 <h2>Quickstart</h2>
 <p>
-	This is the shortest path from "I just cloned the repo" to "I have a passing test in the
+	This is the shortest path from "I just cloned the repo" to "I have a passing file in the
 	editor". If you'd rather drive everything from a terminal, see the
 	<a href="/docs/products/provar-cli">provar-cli quickstart</a> instead.
 </p>
@@ -104,13 +104,13 @@ bun install
 bun run dev</code></pre>
 <p>The server listens on <code>http://localhost:6001</code>. Leave it running.</p>
 
-<h3>5. Run the test</h3>
+<h3>5. Run the file</h3>
 <p>
 	Back in the editor, the project explorer pre-selects
 	<code>login-flow.test.yml</code>. Click the Run button (▶) in the toolbar. The editor
-	compiles the YAML into Playwright code (one LLM round-trip per step the first time), then
+	compiles the YAML into Playwright code (one LLM round-trip per action the first time), then
 	executes it. First run: accept the snapshots when prompted. You should see green across all
-	five steps.
+	five actions.
 </p>
 
 <DocsPlaceholder caption="Run panel with five green pass results (placeholder)" />
@@ -118,8 +118,8 @@ bun run dev</code></pre>
 <h3>6. Point it at your own app</h3>
 <p>
 	Edit <code>.provar/config.yml</code> in the sample project and change
-	<code>variables.baseUrl</code> to your app's URL. Click <em>Regenerate</em> on any step and
-	the agent re-runs that step against your app. Repeat until everything's green.
+	<code>variables.baseUrl</code> to your app's URL. Click <em>Regenerate</em> on any action and
+	the agent re-runs that action against your app. Repeat until everything's green.
 </p>
 
 <p class="text-on-surface-variant text-sm">
