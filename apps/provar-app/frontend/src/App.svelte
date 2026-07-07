@@ -1,5 +1,19 @@
 <script lang="ts">
-  import Welcome from "./lib/components/Welcome.svelte";
+  import { projectStore } from './lib/stores/project-store.svelte';
+  import { settingsStore } from './lib/stores/settings-store.svelte';
+  import Welcome from './lib/components/Welcome.svelte';
+  import Toolbar from './lib/components/Toolbar.svelte';
+  import TestExplorer from './lib/components/TestExplorer.svelte';
+  import Canvas from './lib/components/Canvas.svelte';
+  import RightSidebar from './lib/components/RightSidebar.svelte';
+
+  // Settings load is gated on "no project open yet" — once a project loads,
+  // the landing view is hidden and the wizard is irrelevant.
+  $effect(() => {
+    if (!projectStore.path && !settingsStore.hasCheckedSetup) {
+      settingsStore.setSettings({});
+    }
+  });
 </script>
 
 <div
@@ -9,10 +23,18 @@
     class="absolute top-0 right-0 left-0 z-40 h-[56px]"
     style="--wails-draggable:drag"
   ></div>
-  <Welcome
-    homeDir=""
-    recentProjects={[]}
-    onOpen={() => {}}
-    onError={(m) => console.warn(m)}
-  />
+
+  {#if !projectStore.path}
+    <Welcome
+      homeDir={settingsStore.homeDir}
+      recentProjects={settingsStore.recentProjects}
+      onOpen={() => {}}
+      onError={(m) => console.warn(m)}
+    />
+  {:else}
+    <Toolbar />
+    <TestExplorer />
+    <Canvas />
+    <RightSidebar />
+  {/if}
 </div>
