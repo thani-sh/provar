@@ -172,15 +172,20 @@ The bindings are pure functions over `os` and `domain`. They test in five lines 
 
 **Files**
 
-- `internal/bindings/file_test.go`: table-driven test for `ListTests` (a temp dir with three files, expect three results filtered by extension). Test `CreateFile`, `CreateDirectory`, `DeletePath`, `WriteTestFile`, `ReadTestFile` round-trip.
-- `internal/bindings/project_test.go`: test `RecentProjects` and `AddRecent` round-trip on a temp `HOME`. Test `SaveSettings` + `LoadSettings` (the new methods from Phase 2) round-trip — covers the YAML format.
-- `internal/bindings/config_test.go`: test `LoadConfig` and `SaveConfig` round-trip on a temp dir with a real `.provar/` structure.
-- `internal/bindings/dialog_test.go` and `shell_test.go`: skip — these need a runtime context and are exercised via `wails dev`. Note in a comment why.
+- `internal/bindings/file_test.go`: `ListTests` (filters by `.test.yml` extension, recurses into subdirs, error on non-existent root), `CreateFile`, `CreateDirectory`, `DeletePath` (recursive), `ReadTestFile` / `WriteTestFile` round-trip through the `testfile.View` shape, error cases for missing files and nil views.
+- `internal/bindings/history_test.go`: `Recent` returns empty list (not an error) on first launch, `Add` prepends and dedupes, caps at 10, persists in the expected YAML format. Error on malformed YAML. `Exists` returns true after first add.
+- `internal/bindings/project_test.go`: `Settings` returns domain defaults when the file is missing, `Settings` / `SaveSettings` round-trip preserves provider + key, `Home` returns `$HOME`, `CreateSampleProject` scaffolds the sample and rejects a second call on the same target.
+- `internal/bindings/config_test.go`: `LoadConfig` returns empty when missing, `SaveConfig` / `LoadConfig` round-trip preserves nested maps.
+- `internal/testfile/testfile_test.go` *(already in place from Phase 3)*: linear chain, DAG with explicit `Next`, round-trip preserves order, the `Implicit` marker keeps implicit position edges out of the inverse.
+- `internal/bindings/dialog_test.go` and `shell_test.go`: skip — `Dialog.SelectProject` and `Shell.OpenExternal` call `runtime.OpenDirectoryDialog` / `runtime.BrowserOpenURL` which need a Wails runtime. Exercised via `wails dev`. The plan called this out.
+- `BaseBinding.LogErrorf` and `BaseBinding.Emit` are similarly Wails-runtime-only. They are 0% covered, but every concrete binding struct embeds `BaseBinding` and the Wails-generated bindings expose them. They round-trip correctly in `wails dev`; unit-testing them requires mocking `runtime.LogErrorf`, which is not worth the indirection for two one-liners.
 
 **Acceptance**
 
 - `go test ./...` from `apps/provar-app/` passes.
-- Coverage of `internal/bindings/` is ≥ 80% (lines).
+- Coverage of `internal/bindings/` is ≥ 80% (lines). **Done: 80.9%.** The remaining ~19% is the Wails-runtime-only methods (BaseBinding helpers, Dialog, Shell) — those are exercised by `wails dev` instead.
+- Coverage of `internal/testfile/` is ≥ 80% (lines). **Done: 87.5%.**
+- `internal/bindings/wire_test.go` (the Phase 1 smoke test) is subsumed by these — but kept around as a small sentinel that the `libs/domain` import is reachable. Cheap to maintain.
 
 ### Phase 6 — Naming alignment (the canvas)
 
@@ -263,7 +268,7 @@ Both must pass before a phase is committed. The commit message follows the exist
 | 2 | Replace reimplemented bindings with domain calls; split recent projects to history file | medium | medium (touches settings + history YAML formats, adds a new binding, refactors frontend stores) |
 | 3 | Fix the JSON/YAML mismatch (frontend reads through a binding) | medium | medium (new internal/testfile package, plus an Implicit marker on synthesised edges to keep round-trips byte-stable) |
 | 4 | Setup wizard persists, sample project works | medium | low |
-| 5 | Add tests | medium | low |
+| 5 | Add tests | medium | low (skip the Wails-runtime-only methods; mock-free unit tests hit 80.9% on bindings and 87.5% on testfile) |
 | 6 | Naming alignment (canvas) | medium | medium (rename touches many files) |
 | 7 | Polish | low | low |
 
