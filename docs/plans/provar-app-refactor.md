@@ -23,7 +23,7 @@ Read these before doing anything. They are the rules this plan does not restate.
 4. **Domain types win naming disputes.** If the Go side says `Action`, the TS side calls it `Action` (or `domain.Action`); it does not call it `Node`. The current naming is a port artefact — see Phase 6 for the rename.
 5. **No re-implementation of `libs/domain` functions in the bindings.** If a binding looks like `domain.X`, replace the body with a call to `domain.X`.
 6. **Settings go through `domain.Settings` end to end.** Both the GUI and the CLI write the same `~/.provar/settings.yml` file in the same format. Hand-rolled YAML in the bindings is a port smell to delete.
-7. **Desktop app state is not a domain concern.** The recent-projects list lives in `bindings.History` writing `~/.provar/history.yml`, separate from the user's settings. The domain does not know about it. Mixing them is a layering violation that was introduced during the port.
+7. **Desktop app state is not a domain concern.** The recent-projects list lives in `bindings.History` writing `~/.provar/history.yml`, separate from the user's settings. The domain does not know about it. Mixing them is a layering violation that was introduced during the port. The same principle applies to derived view shapes: the canvas-facing test-file view (`View`/`Graph`/`Node`/`Edge`) is a GUI concern and lives in `apps/provar-app/internal/testfile/`, not in `libs/domain`. The CLI and the API never need it.
 
 ## 2. Current state — what the refactor fixes
 
@@ -129,18 +129,22 @@ The frontend should never parse a test file. It calls a Go binding that returns 
 
 **Files**
 
-- `internal/bindings/file.go`: add `ReadTestFile` (it already exists but returns raw string). Change the contract: `ReadTestFile` now returns a parsed JSON-shaped `TestFile` object, not a string. Internally it calls `domain.ParseFile(projectRoot, relPath)` and converts the Go `[]domain.Action` into a JSON shape the frontend expects.
-  - **Decision needed:** what JSON shape does the frontend want? The current TS `TestFile` has `{ graph: { start, nodes, edges } }`. The domain's `Action` has `{ ID, Name, Info, Next }`. They are not the same. Either:
-    - (a) Add a domain-side helper `domain.TestFileView` (or similar) that converts `[]Action` into the `{ start, nodes: { id → { title, info, ... } }, edges }` shape the UI needs. Cleanest. Lives where the data lives.
-    - (b) Change the TS `TestFile` to match the domain's `Action` shape and rewrite the canvas to consume it directly. Larger blast radius, but more honest.
-  - Default to (a) for this refactor. (b) is a separate effort.
-- `internal/bindings/file.go`: `WriteTestFile` similarly wraps `domain.SaveFile`.
-- `frontend/src/lib/components/TestExplorer.svelte`: drop the `JSON.parse` (line 71). Call the binding and trust the shape.
+- `apps/provar-app/internal/testfile/testfile.go` *(new package, ~80 lines)*: the canvas-facing view of a test file. Contains the `View`/`Graph`/`Node`/`Edge` types and `FromActions` / `ToActions` conversions. **Lives in the desktop app, not in `libs/domain` — the view shape is a GUI concern; the CLI and the API don't need it.** This is the same principle as the recent-projects split: a desktop-app concern should not leak into the domain.
+  - The conversion adds implicit position edges (action N → action N+1) when the action has no explicit `Next` and a successor exists. These edges are marked `Implicit: true` in the JSON. The inverse drops them. Without the marker, a round-trip would silently rewrite hand-written YAML to add explicit `next` fields — confusing for users.
+  - `Order` is a parallel array of action ids in the source order. The canvas ignores it; the inverse uses it to preserve the source ordering on round-trip.
+- `internal/bindings/file.go`:
+  - `ReadTestFile(projectDir, relPath)` now returns `*testfile.View`, not a string. Internally it calls `domain.ParseFile` then `testfile.FromActions`.
+  - `WriteTestFile(projectDir, relPath, view)` converts the view back via `testfile.ToActions` and calls `domain.SaveFile`.
+- `apps/provar-app/internal/testfile/testfile_test.go` *(new)*: round-trip tests for both a linear chain (no explicit `Next`) and a DAG with branching. Catches the implicit-edge-as-explicit round-trip bug.
+- `frontend/src/lib/components/TestExplorer.svelte`: drop the `JSON.parse` (line 71). The binding now returns the parsed object directly. Wrap it in the local `TestFile` type with the editor-only `code` field.
 
 **Acceptance**
 
 - Opening a real `.provar/tests/**/*.test.yml` file in the GUI parses without error.
 - `TestExplorer.svelte` has no `JSON.parse` call.
+- A linear chain with no explicit `Next` round-trips byte-stable: `b.Next` is empty on the way back, not `[c]`.
+- A DAG with explicit `Next` preserves the explicit edges on round-trip.
+- `libs/domain` does not import or know about `testfile`. Grep the domain to confirm.
 
 ### Phase 4 — Setup wizard persists, sample project works
 
@@ -257,7 +261,7 @@ Both must pass before a phase is committed. The commit message follows the exist
 |---|---|---|---|
 | 1 | Wire `libs/domain` into the build graph | low | low |
 | 2 | Replace reimplemented bindings with domain calls; split recent projects to history file | medium | medium (touches settings + history YAML formats, adds a new binding, refactors frontend stores) |
-| 3 | Fix the JSON/YAML mismatch (frontend reads through a binding) | medium | medium (decides the wire shape) |
+| 3 | Fix the JSON/YAML mismatch (frontend reads through a binding) | medium | medium (new internal/testfile package, plus an Implicit marker on synthesised edges to keep round-trips byte-stable) |
 | 4 | Setup wizard persists, sample project works | medium | low |
 | 5 | Add tests | medium | low |
 | 6 | Naming alignment (canvas) | medium | medium (rename touches many files) |

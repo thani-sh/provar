@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/thani-sh/provar/libs/domain"
+	"provar-app/internal/testfile"
 )
 
 const testFileExt = ".test.yml"
@@ -45,21 +46,25 @@ func (f File) ListTests(root string) ([]string, error) {
 	return out, nil
 }
 
-// ReadTestFile returns the file's contents as a string.
-func (f File) ReadTestFile(path string) (string, error) {
-	data, err := os.ReadFile(path)
+// ReadTestFile parses the test file at projectDir/relPath and returns
+// the canvas-facing view. The frontend never parses the file itself.
+func (f File) ReadTestFile(projectDir, relPath string) (*testfile.View, error) {
+	actions, err := domain.ParseFile(projectDir, relPath)
 	if err != nil {
-		return "", fmt.Errorf("read test file: %w", err)
+		return nil, err
 	}
-	return string(data), nil
+	view := testfile.FromActions(actions)
+	return &view, nil
 }
 
-// WriteTestFile persists content to path, creating it if missing.
-func (f File) WriteTestFile(path string, content string) error {
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return fmt.Errorf("write test file: %w", err)
+// WriteTestFile persists a canvas view back to disk as a YAML action
+// list. The view is converted to actions before saving.
+func (f File) WriteTestFile(projectDir, relPath string, view *testfile.View) error {
+	if view == nil {
+		return fmt.Errorf("write test file: view is nil")
 	}
-	return nil
+	actions := testfile.ToActions(*view)
+	return domain.SaveFile(projectDir, relPath, actions)
 }
 
 // CreateFile creates an empty file at path.

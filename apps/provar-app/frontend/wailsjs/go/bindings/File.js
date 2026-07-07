@@ -30,10 +30,10 @@ export function LogErrorf(arg1, arg2) {
   return window['go']['bindings']['File']['LogErrorf'](arg1, arg2);
 }
 
-export function ReadTestFile(arg1) {
-  return window['go']['bindings']['File']['ReadTestFile'](arg1);
+export function ReadTestFile(arg1, arg2) {
+  return window['go']['bindings']['File']['ReadTestFile'](arg1, arg2);
 }
 
-export function WriteTestFile(arg1, arg2) {
-  return window['go']['bindings']['File']['WriteTestFile'](arg1, arg2);
+export function WriteTestFile(arg1, arg2, arg3) {
+  return window['go']['bindings']['File']['WriteTestFile'](arg1, arg2, arg3);
 }

@@ -65,11 +65,11 @@
   async function selectFile(path: string) {
     if (!projectStore.path) return;
     try {
-      const content = await FileApi.ReadTestFile(
-        `${projectStore.path}/${path}`,
-      );
-      const parsed = JSON.parse(content) as TestFile;
-      editorStore.loadFile(path, parsed);
+      const view = await FileApi.ReadTestFile(projectStore.path, path);
+      // view is a domain.TestFileView — shape matches TestFile.graph.
+      // We wrap it in our local TestFile type and add editor-only
+      // state (code.valid) that lives in the store, not the file.
+      editorStore.loadFile(path, { graph: view.graph });
     } catch (e) {
       console.error('TestExplorer: failed to load file', path, e);
     }
