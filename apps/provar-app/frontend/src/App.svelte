@@ -40,7 +40,6 @@
         onOpen={(path) => {
           projectStore.openProject(path);
         }}
-        onError={(m) => console.warn(m)}
       />
     {/if}
   {:else}

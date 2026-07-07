@@ -5,6 +5,7 @@
     Sparkles,
     BookOpen,
     ArrowRight,
+    AlertCircle,
   } from "lucide-svelte";
   import { Dialog, Project } from "../api";
   import { projectStore } from "../stores/project-store.svelte";
@@ -13,34 +14,45 @@
     homeDir: string;
     recentProjects: string[];
     onOpen: (path: string) => void;
-    onError: (message: string) => void;
   }
 
-  let { homeDir, recentProjects, onOpen, onError }: Props = $props();
+  let { homeDir, recentProjects, onOpen }: Props = $props();
 
   let busy = $state(false);
+  let error = $state<string | null>(null);
 
   function displayPath(p: string): string {
     return p.startsWith(homeDir) ? p.replace(homeDir, "~") : p;
   }
 
-  // TODO: wire to Go-side commands once the backend lands. The welcome page
-  // renders before the ProvarAPI exists, so these are visual placeholders.
-  function pickExisting() {
-    onError("Coming soon: open a folder from your file system.");
+  async function pickExisting() {
+    if (busy) return;
+    busy = true;
+    error = null;
+    try {
+      const target = await Dialog.SelectProject();
+      if (!target) return;
+      await projectStore.openProject(target);
+    } catch (e) {
+      console.error("Welcome: open folder failed:", e);
+      error = (e as Error).message;
+    } finally {
+      busy = false;
+    }
   }
 
   async function createSample() {
     if (busy) return;
     busy = true;
+    error = null;
     try {
       const target = await Dialog.SelectProject();
       if (!target) return;
       await Project.CreateSampleProject(target);
       await projectStore.openProject(target);
     } catch (e) {
-      console.error('Welcome: create sample failed:', e);
-      onError((e as Error).message);
+      console.error("Welcome: create sample failed:", e);
+      error = (e as Error).message;
     } finally {
       busy = false;
     }
@@ -98,7 +110,8 @@
 
       <button
         onclick={pickExisting}
-        class="group flex flex-col items-start gap-3 rounded-xl border border-zinc-800 bg-[#161b22] p-5 text-left transition-all hover:border-zinc-700 hover:bg-[#1c2128]"
+        disabled={busy}
+        class="group flex flex-col items-start gap-3 rounded-xl border border-zinc-800 bg-[#161b22] p-5 text-left transition-all hover:border-zinc-700 hover:bg-[#1c2128] disabled:opacity-60"
         data-testid="empty-state-open-folder"
       >
         <div
@@ -159,5 +172,23 @@
         >Read the 5-minute quickstart</a
       >
     </footer>
+
+    {#if error}
+      <div
+        class="mt-6 flex items-start gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300"
+        role="alert"
+      >
+        <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+        <span class="flex-1">{error}</span>
+        <button
+          type="button"
+          class="text-red-400 transition-colors hover:text-red-200"
+          onclick={() => (error = null)}
+          aria-label="Dismiss"
+        >
+          ×
+        </button>
+      </div>
+    {/if}
   </div>
 </div>
