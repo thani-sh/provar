@@ -1,4 +1,4 @@
-import type { ProvarConfig } from '../types';
+import { Project, File, Config } from '../api';
 
 /**
  * ProjectStore owns the path, config, and test-file list of the active
@@ -8,7 +8,7 @@ import type { ProvarConfig } from '../types';
  */
 class ProjectStore {
   path = $state<string | null>(null);
-  config = $state<ProvarConfig | null>(null);
+  config = $state<Record<string, unknown> | null>(null);
   tests = $state<string[]>([]);
 
   setPath(path: string | null) {
@@ -19,12 +19,47 @@ class ProjectStore {
     }
   }
 
-  setTests(tests: string[]) {
-    this.tests = tests;
+  async refreshTests() {
+    if (!this.path) {
+      this.tests = [];
+      return;
+    }
+    try {
+      this.tests = await File.ListTests(this.path);
+    } catch (e) {
+      console.error('ProjectStore: ListTests failed:', e);
+      this.tests = [];
+    }
   }
 
-  saveConfig(next: ProvarConfig) {
-    this.config = next;
+  async openProject(path: string) {
+    this.setPath(path);
+    await this.refreshTests();
+    try {
+      await Project.AddRecent(path);
+    } catch (e) {
+      console.warn('ProjectStore: AddRecent failed:', e);
+    }
+  }
+
+  async loadConfig() {
+    if (!this.path) return;
+    try {
+      this.config = await Config.LoadConfig(this.path);
+    } catch (e) {
+      console.error('ProjectStore: LoadConfig failed:', e);
+      this.config = null;
+    }
+  }
+
+  async saveConfig(next: Record<string, unknown>) {
+    if (!this.path) return;
+    try {
+      await Config.SaveConfig(this.path, next);
+      this.config = next;
+    } catch (e) {
+      console.error('ProjectStore: SaveConfig failed:', e);
+    }
   }
 }
 
