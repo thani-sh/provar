@@ -3,6 +3,7 @@
   import { settingsStore } from './lib/stores/settings-store.svelte';
   import { Dialog } from './lib/api';
   import Welcome from './lib/components/Welcome.svelte';
+  import SetupWizard from './lib/components/SetupWizard.svelte';
   import Toolbar from './lib/components/Toolbar.svelte';
   import TestExplorer from './lib/components/TestExplorer.svelte';
   import Canvas from './lib/components/Canvas.svelte';
@@ -38,15 +39,19 @@
   ></div>
 
   {#if !projectStore.path}
-    <Welcome
-      homeDir={settingsStore.homeDir}
-      recentProjects={settingsStore.recentProjects}
-      onOpen={(path) => {
-        projectStore.openProject(path);
-        settingsStore.prependRecent(path);
-      }}
-      onError={(m) => console.warn(m)}
-    />
+    {#if settingsStore.showSetupWizard}
+      <SetupWizard />
+    {:else}
+      <Welcome
+        homeDir={settingsStore.homeDir}
+        recentProjects={settingsStore.recentProjects}
+        onOpen={(path) => {
+          projectStore.openProject(path);
+          settingsStore.prependRecent(path);
+        }}
+        onError={(m) => console.warn(m)}
+      />
+    {/if}
   {:else}
     <Toolbar />
     <TestExplorer />
