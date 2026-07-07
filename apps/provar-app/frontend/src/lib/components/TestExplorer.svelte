@@ -120,7 +120,7 @@
 
 {#if uiStore.isSidebarOpen}
   <aside
-    class="absolute top-0 bottom-0 left-0 z-20 flex w-[260px] flex-col border-r border-zinc-800 bg-[#161b22]/50 pt-[64px] backdrop-blur-md"
+    class="absolute top-0 bottom-0 left-0 z-20 flex w-[260px] flex-col border-r border-zinc-800 bg-[#161b22]/50 pt-[36px] backdrop-blur-md"
   >
     <div class="px-3 pt-3 pb-2">
       <div class="relative">

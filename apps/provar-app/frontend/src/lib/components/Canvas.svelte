@@ -5,9 +5,9 @@
 
 {#if editorStore.currentFile}
   <Canvas />
-{:else}
+  {:else}
   <div
-    class="absolute inset-0 flex items-center justify-center pt-[36px] text-sm text-zinc-500"
+    class="absolute inset-0 flex items-center justify-center pt-[48px] text-sm text-zinc-500"
   >
     <p>Select a test to begin</p>
   </div>

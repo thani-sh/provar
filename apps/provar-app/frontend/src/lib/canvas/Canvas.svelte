@@ -22,4 +22,4 @@
   });
 </script>
 
-<div bind:this={container} class="absolute inset-0 pt-[36px]"></div>
+<div bind:this={container} class="absolute inset-0 pt-[48px]"></div>
