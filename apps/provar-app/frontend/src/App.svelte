@@ -7,6 +7,7 @@
   import TestExplorer from './lib/components/TestExplorer.svelte';
   import Canvas from './lib/components/Canvas.svelte';
   import RightSidebar from './lib/components/RightSidebar.svelte';
+  import AppModals from './lib/components/AppModals.svelte';
 
   // Settings load is gated on "no project open yet" — once a project
   // loads, the landing view is hidden and the wizard is irrelevant.
@@ -52,4 +53,6 @@
     <Canvas />
     <RightSidebar />
   {/if}
+
+  <AppModals />
 </div>
