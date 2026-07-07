@@ -239,9 +239,14 @@ func SaveFile(projectDir, relPath string, actions []Action) error {
 }
 
 // InitProject creates a new project at target. If useSample is true, writes a sample
-// .test.yml pointing at SampleDemoURL plus a config.yml whose baseUrl is set to it. If
-// force is false and target already exists, returns an error; if force is true, removes
-// target first. Parent directories of target are created if missing.
+// .test.yml pointing at SampleDemoURL plus a config.yml whose baseUrl is set to it.
+//
+// Target handling: if force is true, the directory is removed and recreated. Otherwise,
+// if target already exists, it must be an empty directory — a non-empty one is a
+// mistake we don't want to silently overwrite. An empty existing directory is fine to
+// write into, because the folder picker only returns paths that exist, and "the user
+// clicked New Folder in the picker" lands here. Parent directories of target are
+// created if missing.
 func InitProject(target string, useSample, force bool) error {
 	if err := validateTarget(target); err != nil {
 		return err
@@ -251,8 +256,18 @@ func InitProject(target string, useSample, force bool) error {
 			return fmt.Errorf("remove existing target: %w", err)
 		}
 	} else {
-		if _, err := os.Stat(target); err == nil {
-			return fmt.Errorf("target already exists: %s (use force to overwrite)", target)
+		info, err := os.Stat(target)
+		if err == nil {
+			if !info.IsDir() {
+				return fmt.Errorf("target exists and is not a directory: %s", target)
+			}
+			entries, err := os.ReadDir(target)
+			if err != nil {
+				return fmt.Errorf("read target: %w", err)
+			}
+			if len(entries) > 0 {
+				return fmt.Errorf("target not empty: %s", target)
+			}
 		} else if !errors.Is(err, fs.ErrNotExist) {
 			return err
 		}

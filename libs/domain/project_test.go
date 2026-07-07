@@ -472,8 +472,44 @@ func TestInitProject_ExistingNoForce(t *testing.T) {
 	if err := os.MkdirAll(target, dirPerm); err != nil {
 		t.Fatalf("setup: %v", err)
 	}
+	// Non-empty target → must error.
+	if err := os.WriteFile(filepath.Join(target, "stale.txt"), []byte("stale"), filePerm); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
 	if err := InitProject(target, false, false); err == nil {
-		t.Error("expected error when target exists without force, got nil")
+		t.Error("expected error when non-empty target exists without force, got nil")
+	}
+}
+
+func TestInitProject_EmptyExistingNoForce(t *testing.T) {
+	// An empty existing directory is OK — the folder picker can only
+	// return paths that exist, and "user clicked New Folder in the
+	// picker" lands here. InitProject should write into it instead of
+	// erroring.
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "myproj")
+	if err := os.MkdirAll(target, dirPerm); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := InitProject(target, false, false); err != nil {
+		t.Errorf("InitProject on empty existing dir: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(target, ".provar", "config.yml")); err != nil {
+		t.Errorf("expected config.yml after init: %v", err)
+	}
+}
+
+func TestInitProject_ExistingPathIsFile(t *testing.T) {
+	// If target exists but is a regular file (not a directory),
+	// InitProject must error — MkdirAll on a path whose parent is a
+	// file would fail with a confusing message otherwise.
+	tempDir := t.TempDir()
+	target := filepath.Join(tempDir, "myproj")
+	if err := os.WriteFile(target, []byte("not a dir"), filePerm); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	if err := InitProject(target, false, false); err == nil {
+		t.Error("expected error when target is a file, got nil")
 	}
 }
 
