@@ -1,10 +1,11 @@
 import { Container, type Ticker } from 'pixi.js';
 import type { TestFileView } from '../types';
+import { NodeShape } from './shapes/shape';
 import { StartShape } from './shapes/start';
 import { EndShape } from './shapes/end';
 import { ActionShape } from './shapes/action';
 import { ConnectorShape } from './shapes/connector';
-import { type ActionState } from './constants';
+import { type ActionState, LAYOUT } from './constants';
 import { computeConnectorState } from './state';
 import {
   assignPositions,
@@ -49,13 +50,27 @@ export class GraphRenderer extends Container {
     const positions = assignPositions(graph, depths);
     this.positions = new Map(positions.map((p) => [p.id, p]));
 
-    // Start node
+    // Start node — placed so its right edge sits a normal
+    // inter-action gap to the left of the first action, so the gap
+    // from Start to action 1 visually matches the gap between any two
+    // actions. The inter-action gap is roughly `horizontalGap −
+    // avgActionWidth`. We approximate that with an explicit
+    // constant; if action widths drift, retune here.
     const startPos = this.positions.get(graph.start) ?? { x: 0, y: 0 };
     this.startShape = new StartShape('idle', false);
-    this.startShape.position.set(startPos.x - 60, startPos.y);
+    const INTER_NODE_GAP = 52;
+    const FIRST_ACTION_LEFT_EDGE = LAYOUT.horizontalGap; // depth 1 → x = horizontalGap
+    this.startShape.position.set(
+      FIRST_ACTION_LEFT_EDGE - INTER_NODE_GAP - this.startShape.nodeWidth,
+      startPos.y,
+    );
     this.addChild(this.startShape);
 
-    // Action nodes
+    // Action nodes — positions are depth × horizontalGap from
+    // assignPositions, so each action's left edge is already a
+    // horizontalGap past the previous action's left edge. With
+    // typical action widths (~208), this leaves an
+    // `INTER_NODE_GAP`-sized space between them.
     for (const [id, node] of Object.entries(graph.nodes)) {
       if (id === graph.start || id.startsWith('end_')) continue;
       const pos = this.positions.get(id)!;
@@ -75,13 +90,16 @@ export class GraphRenderer extends Container {
       this.addChild(shape);
     }
 
-    // End nodes
+    // End nodes — same convention as actions (left edge at depth ×
+    // horizontalGap). The previous offset by `nodeWidth / 2 + pad`
+    // shifted the End off by half-width, which is why the End used
+    // to look detached from the chain.
     for (const [id] of Object.entries(graph.nodes)) {
       if (!id.startsWith('end_')) continue;
       const pos = this.positions.get(id)!;
       const state = actionStates[id] ?? 'idle';
       const shape = new EndShape(state, runningPathNodeIds.has(id));
-      shape.position.set(pos.x + 60, pos.y);
+      shape.position.set(pos.x, pos.y);
       this.endShapes.set(id, shape);
       this.addChild(shape);
     }
@@ -92,16 +110,26 @@ export class GraphRenderer extends Container {
     }
   }
 
+  private shapeFor(id: string): NodeShape | null {
+    if (this.startShape?.nodeId === id) return this.startShape;
+    return this.actionShapes.get(id) ?? this.endShapes.get(id) ?? null;
+  }
+
   private addEdge(edge: Edge, actionStates: Record<string, ActionState>) {
-    const from = this.positions.get(edge.from);
-    const to = this.positions.get(edge.to);
-    if (!from || !to) return;
+    const fromShape = this.shapeFor(edge.from);
+    const toShape = this.shapeFor(edge.to);
+    if (!fromShape || !toShape) return;
     const state = computeConnectorState(edge.from, edge.to, actionStates);
-    const isStart = edge.from === '__start__';
-    const startX = isStart ? from.x - 60 + 30 : from.x + 90; // approx right edge
-    const startY = from.y;
-    const endX = to.x - 90; // approx left edge of target
-    const endY = to.y;
+    // Connector endpoints are the right edge of the source and the
+    // left edge of the target. Shape's pivot is at its left edge so
+    // `position.x + nodeWidth` is the right edge and `position.x`
+    // is the left edge. (Earlier versions used `nodeWidth / 2`,
+    // which is each shape's centre — that's why connectors previously
+    // started from inside source shapes and ended short of targets.)
+    const startX = fromShape.position.x + fromShape.nodeWidth;
+    const endX = toShape.position.x;
+    const startY = fromShape.position.y;
+    const endY = toShape.position.y;
     const shape = new ConnectorShape(startX, startY, endX, endY, 'horizontal', state);
     this.addChild(shape);
     this.connectorShapes.set(`${edge.from}→${edge.to}`, shape);

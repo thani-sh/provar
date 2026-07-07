@@ -1,4 +1,4 @@
-import type { Ticker } from 'pixi.js';
+import { Rectangle, type Ticker } from 'pixi.js';
 import { NodeShape } from './shape';
 import { type ActionState } from '../constants';
 import type { Action } from '../../types';
@@ -29,7 +29,7 @@ export class ActionShape extends NodeShape {
     this.eventMode = 'static';
     this.cursor = 'pointer';
 
-    this.hitArea = { x: 0, y: 0, width: this.bg.width, height: this.bg.height } as never;
+    this.hitArea = new Rectangle(0, 0, this.bg.width, this.bg.height);
 
     this.on('pointerdown', (e) => {
       e.stopPropagation();

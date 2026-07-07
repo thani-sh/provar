@@ -24,16 +24,52 @@ export class InfiniteCanvas {
 
   async init(container: HTMLElement) {
     this.container = container;
-    this.app = new Application();
-    await this.app.init({
-      resizeTo: container,
-      backgroundAlpha: 0,
-      resolution: window.devicePixelRatio || 1,
-      autoDensity: true,
-      antialias: true,
-      roundPixels: false,
-    });
-    container.appendChild(this.app.canvas);
+
+    // Wails's WKWebView occasionally loses the WebGL context on the
+    // first attempt — most reproducibly when getContext races the
+    // initial layout pass, but also inside Pixi's ParticleContainer
+    // pipe when the GPU is slow to settle. Try the full quality
+    // options first, then fall back to minimal settings so a single
+    // context-lost blip doesn't tank the whole canvas.
+    const optionSets = [
+      {
+        resizeTo: container,
+        backgroundAlpha: 0,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true,
+        antialias: true,
+        roundPixels: false,
+      },
+      {
+        resizeTo: container,
+        backgroundAlpha: 0,
+        resolution: 1,
+        autoDensity: false,
+        antialias: false,
+        roundPixels: false,
+      },
+    ];
+
+    let lastErr: unknown;
+    for (const options of optionSets) {
+      try {
+        this.app = new Application();
+        await this.app.init(options);
+        container.appendChild(this.app.canvas);
+        lastErr = undefined;
+        break;
+      } catch (e) {
+        lastErr = e;
+        // Tear down the failed Application before trying the next
+        // option set, otherwise the partially-initialised renderer
+        // leaks.
+        try {
+          this.app?.destroy(true, { children: true });
+        } catch {}
+        this.app = null;
+      }
+    }
+    if (lastErr || !this.app) throw lastErr ?? new Error("canvas init failed");
 
     this.viewport = new Viewport(this.app);
     this.shapeContainer = new Container();

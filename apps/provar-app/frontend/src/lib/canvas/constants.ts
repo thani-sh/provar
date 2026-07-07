@@ -15,7 +15,7 @@ export const COLOURS = {
   nodeBg: 0x1e293b,
   nodeBorder: 0x334155,
   nodeText: 0xf8fafc,
-  connector: 0x424754,
+  connector: 0x64748b,
   iconNeutral: 0x94a3b8,
   assertGreen: 0x10b981,
   primary: 0x3b82f6,
@@ -29,9 +29,9 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const LAYOUT = {
-  horizontalGap: 96,
+  horizontalGap: 260,
   verticalSpacing: 56,
-  initialOffsetX: 340,
+  initialOffsetX: 0,
   iconSpacing: 6,
   iconSize: 10,
   descriptionFontSize: 11,
@@ -42,7 +42,7 @@ export const LAYOUT = {
 
 export const CONNECTOR = {
   arrowSize: 6,
-  lineWidth: 2,
+  lineWidth: 2.5,
   startGap: 1,
   endGap: 2,
 } as const;
