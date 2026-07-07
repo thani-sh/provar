@@ -7,6 +7,6 @@
 
 @layer base {
   body {
-    @apply overflow-hidden bg-[#0e1116] font-sans text-zinc-300 select-none;
+    @apply overflow-hidden font-sans text-zinc-300 select-none;
   }
 }
