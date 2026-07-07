@@ -1,4 +1,4 @@
-import type { TestFile } from '../types';
+import type { TestFile, TestNode } from '../types';
 
 /**
  * EditorStore holds the active test file and the currently selected node.
@@ -25,6 +25,22 @@ class EditorStore {
     this.selectedFilePath = null;
     this.currentFile = null;
     this.selectedNodeId = null;
+  }
+
+  updateNode(id: string, updates: Partial<TestNode>) {
+    if (!this.currentFile) return;
+    const existing = this.currentFile.graph.nodes[id];
+    if (!existing) return;
+    this.currentFile = {
+      ...this.currentFile,
+      graph: {
+        ...this.currentFile.graph,
+        nodes: {
+          ...this.currentFile.graph.nodes,
+          [id]: { ...existing, ...updates },
+        },
+      },
+    };
   }
 }
 
