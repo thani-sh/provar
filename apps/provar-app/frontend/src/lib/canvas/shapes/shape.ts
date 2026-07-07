@@ -1,5 +1,5 @@
 import { Container, Graphics, Text } from 'pixi.js';
-import { COLOURS, LAYOUT, TYPOGRAPHY, type TaskState } from '../constants';
+import { COLOURS, LAYOUT, TYPOGRAPHY, type ActionState } from '../constants';
 
 const UNCOMPILED_NODE_OPACITY = 0.8;
 
@@ -40,7 +40,7 @@ export class NodeShape extends Container {
     nodeId: string,
     title: string,
     description: string = '',
-    state: TaskState = 'idle',
+    state: ActionState = 'idle',
     onActivePath: boolean = false,
     isCompiled: boolean = false,
   ) {
@@ -147,7 +147,7 @@ export class NodeShape extends Container {
     this.borderHeight = this.bg.height;
   }
 
-  private borderFor(state: TaskState, onActivePath: boolean) {
+  private borderFor(state: ActionState, onActivePath: boolean) {
     if (state === 'running') return { color: 0x3b82f6, width: 2, alpha: 1 };
     if (state === 'success' || state === 'compiled')
       return { color: 0x10b981, width: 2, alpha: 1 };
@@ -162,7 +162,7 @@ export class NodeShape extends Container {
   }
 
   public setState(
-    state: TaskState,
+    state: ActionState,
     onActivePath: boolean,
     isCompiled: boolean = this.isCompiledFlag,
   ): void {

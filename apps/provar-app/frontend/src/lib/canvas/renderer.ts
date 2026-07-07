@@ -1,34 +1,34 @@
 import { Container, type Ticker } from 'pixi.js';
-import type { TestFile } from '../types';
+import type { TestFileView } from '../types';
 import { StartShape } from './shapes/start';
 import { EndShape } from './shapes/end';
-import { TaskShape } from './shapes/task';
+import { ActionShape } from './shapes/action';
 import { ConnectorShape } from './shapes/connector';
-import { type TaskState } from './constants';
+import { type ActionState } from './constants';
 import { computeConnectorState } from './state';
 import {
   assignPositions,
   collectEdges,
   computeDepths,
-  type Edge,
   type PositionedNode,
 } from './layout';
+import type { Edge } from '../types';
 
 /**
  * GraphRenderer owns the per-graph scene graph. It builds node + edge
- * shapes from a TestFile and exposes setState for in-place state
+ * shapes from a TestFileView and exposes setState for in-place state
  * updates without rebuilding the whole scene.
  */
 export class GraphRenderer extends Container {
-  private readonly taskShapes = new Map<string, TaskShape>();
+  private readonly actionShapes = new Map<string, ActionShape>();
   private readonly endShapes = new Map<string, EndShape>();
   private readonly connectorShapes = new Map<string, ConnectorShape>();
   private startShape: StartShape | null = null;
   private positions = new Map<string, { x: number; y: number }>();
 
   constructor(
-    testFile: TestFile,
-    taskStates: Record<string, TaskState> = {},
+    file: TestFileView,
+    actionStates: Record<string, ActionState> = {},
     runningPathNodeIds: Set<string> = new Set(),
     private readonly ticker: Ticker,
     private readonly onNodeSelect: (id: string | null) => void,
@@ -36,15 +36,15 @@ export class GraphRenderer extends Container {
     private readonly compilationStates: Record<string, 'compiling' | 'compiled' | 'failed' | 'idle'> = {},
   ) {
     super();
-    this.build(testFile, taskStates, runningPathNodeIds);
+    this.build(file, actionStates, runningPathNodeIds);
   }
 
   private build(
-    testFile: TestFile,
-    taskStates: Record<string, TaskState>,
+    file: TestFileView,
+    actionStates: Record<string, ActionState>,
     runningPathNodeIds: Set<string>,
   ) {
-    const { graph } = testFile;
+    const { graph } = file;
     const depths = computeDepths(graph);
     const positions = assignPositions(graph, depths);
     this.positions = new Map(positions.map((p) => [p.id, p]));
@@ -55,15 +55,15 @@ export class GraphRenderer extends Container {
     this.startShape.position.set(startPos.x - 60, startPos.y);
     this.addChild(this.startShape);
 
-    // Task nodes
+    // Action nodes
     for (const [id, node] of Object.entries(graph.nodes)) {
       if (id === graph.start || id.startsWith('end_')) continue;
       const pos = this.positions.get(id)!;
-      const state = taskStates[id] ?? 'idle';
+      const state = actionStates[id] ?? 'idle';
       const isCompiled = this.compilationStates[id] === 'compiled';
-      const shape = new TaskShape(
+      const shape = new ActionShape(
         id,
-        node as never,
+        node,
         state,
         runningPathNodeIds.has(id),
         this.ticker,
@@ -71,15 +71,15 @@ export class GraphRenderer extends Container {
         isCompiled,
       );
       shape.position.set(pos.x, pos.y);
-      this.taskShapes.set(id, shape);
+      this.actionShapes.set(id, shape);
       this.addChild(shape);
     }
 
     // End nodes
-    for (const [id, node] of Object.entries(graph.nodes)) {
+    for (const [id] of Object.entries(graph.nodes)) {
       if (!id.startsWith('end_')) continue;
       const pos = this.positions.get(id)!;
-      const state = taskStates[id] ?? 'idle';
+      const state = actionStates[id] ?? 'idle';
       const shape = new EndShape(state, runningPathNodeIds.has(id));
       shape.position.set(pos.x + 60, pos.y);
       this.endShapes.set(id, shape);
@@ -88,15 +88,15 @@ export class GraphRenderer extends Container {
 
     // Connectors
     for (const edge of collectEdges(graph)) {
-      this.addEdge(edge, taskStates);
+      this.addEdge(edge, actionStates);
     }
   }
 
-  private addEdge(edge: Edge, taskStates: Record<string, TaskState>) {
+  private addEdge(edge: Edge, actionStates: Record<string, ActionState>) {
     const from = this.positions.get(edge.from);
     const to = this.positions.get(edge.to);
     if (!from || !to) return;
-    const state = computeConnectorState(edge.from, edge.to, taskStates);
+    const state = computeConnectorState(edge.from, edge.to, actionStates);
     const isStart = edge.from === '__start__';
     const startX = isStart ? from.x - 60 + 30 : from.x + 90; // approx right edge
     const startY = from.y;
@@ -108,24 +108,24 @@ export class GraphRenderer extends Container {
   }
 
   public setState(
-    taskStates: Record<string, TaskState>,
+    actionStates: Record<string, ActionState>,
     runningPathNodeIds: Set<string>,
     compilationStates: Record<string, 'compiling' | 'compiled' | 'failed' | 'idle'> = {},
   ) {
-    for (const [id, shape] of this.taskShapes) {
+    for (const [id, shape] of this.actionShapes) {
       const compiled = compilationStates[id] === 'compiled';
       shape.setState(
-        taskStates[id] ?? 'idle',
+        actionStates[id] ?? 'idle',
         runningPathNodeIds.has(id),
         compiled,
       );
     }
     for (const [id, shape] of this.endShapes) {
-      shape.setState(taskStates[id] ?? 'idle', runningPathNodeIds.has(id));
+      shape.setState(actionStates[id] ?? 'idle', runningPathNodeIds.has(id));
     }
     for (const [key, shape] of this.connectorShapes) {
       const [from, to] = key.split('→');
-      shape.setState(computeConnectorState(from, to, taskStates));
+      shape.setState(computeConnectorState(from, to, actionStates));
     }
   }
 }

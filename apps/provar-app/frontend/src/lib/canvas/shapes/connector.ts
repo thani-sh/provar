@@ -1,5 +1,5 @@
 import { Container, Graphics } from 'pixi.js';
-import { COLOURS, CONNECTOR, type TaskState } from '../constants';
+import { COLOURS, CONNECTOR, type ActionState } from '../constants';
 
 export class ConnectorShape extends Container {
   private readonly line = new Graphics();
@@ -20,7 +20,7 @@ export class ConnectorShape extends Container {
     endX: number,
     endY: number,
     type: 'horizontal' | 'vertical' = 'horizontal',
-    state: TaskState = 'idle',
+    state: ActionState = 'idle',
   ) {
     super();
     this.pathData = { type, startX, startY, endX, endY };
@@ -28,7 +28,7 @@ export class ConnectorShape extends Container {
     this.drawLine(...this.resolveStyle(state));
   }
 
-  private resolveStyle(state: TaskState): [number, number, number] {
+  private resolveStyle(state: ActionState): [number, number, number] {
     switch (state) {
       case 'compiling':
         return [0xf59e0b, 1.0, CONNECTOR.lineWidth];
@@ -67,7 +67,7 @@ export class ConnectorShape extends Container {
     this.line.alpha = alpha;
   }
 
-  public setState(state: TaskState): void {
+  public setState(state: ActionState): void {
     const [color, alpha, width] = this.resolveStyle(state);
     this.currentLineColor = color;
     this.currentLineAlpha = alpha;

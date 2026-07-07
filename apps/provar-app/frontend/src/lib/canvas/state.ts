@@ -1,9 +1,9 @@
-import { GRAPH_START_ID, type TaskState } from './constants';
+import { GRAPH_START_ID, type ActionState } from './constants';
 
 export type ConnectorState = 'idle' | 'running' | 'success' | 'failed' | 'mixed';
 
-/** normalizeState maps a TaskState to the narrower ConnectorState. */
-export function normalizeState(state: TaskState): ConnectorState {
+/** normalizeState maps an ActionState to the narrower ConnectorState. */
+export function normalizeState(state: ActionState): ConnectorState {
   switch (state) {
     case 'running':
     case 'compiling':
@@ -27,15 +27,15 @@ export function edgeKey(from: string, to: string): string {
 
 /**
  * resolveNodeState computes the display state for a node id, given the
- * current task state map. Start and End use "idle" — they're not part
+ * current action state map. Start and End use "idle" — they're not part
  * of the test execution.
  */
 export function resolveNodeState(
   id: string,
-  taskStates: Record<string, TaskState>,
+  actionStates: Record<string, ActionState>,
 ): ConnectorState {
   if (id === GRAPH_START_ID || id.startsWith('end_')) return 'idle';
-  return normalizeState(taskStates[id] ?? 'idle');
+  return normalizeState(actionStates[id] ?? 'idle');
 }
 
 /**
@@ -46,10 +46,10 @@ export function resolveNodeState(
 export function computeConnectorState(
   from: string,
   to: string,
-  taskStates: Record<string, TaskState>,
+  actionStates: Record<string, ActionState>,
 ): ConnectorState {
-  const a = resolveNodeState(from, taskStates);
-  const b = resolveNodeState(to, taskStates);
+  const a = resolveNodeState(from, actionStates);
+  const b = resolveNodeState(to, actionStates);
   const order: Record<ConnectorState, number> = {
     running: 4,
     failed: 3,

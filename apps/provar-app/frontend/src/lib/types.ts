@@ -1,19 +1,23 @@
-// Domain type stubs. These mirror the Go `libs/domain` shapes and will be
-// replaced by the Wails-generated bindings once Phase 3 lands. Kept here
-// (not in the stores) so every store and component imports the same shape.
+// Canvas-local types. Shapes align with the Wails-generated wire types
+// (domain.View / domain.Graph / domain.Node / domain.Edge in
+// wailsjs/go/models.ts) so the binding output assigns cleanly into them.
+//
+// `Action` carries three editor-only fields — `data`, `config`, `graph` —
+// that aren't in domain.Node yet. The domain model will learn about them
+// in a later phase; until then the canvas reads them off the action and
+// the editor store treats them as part of the file shape.
 
-export interface TestFile {
-  graph: TestGraph;
-  code?: { valid: boolean };
+export interface TestFileView {
+  graph: TestFileGraph;
 }
 
-export interface TestGraph {
+export interface TestFileGraph {
   start: string;
-  nodes: Record<string, TestNode>;
-  edges: { from: string; to: string }[];
+  nodes: Record<string, Action>;
+  edges: Edge[];
 }
 
-export interface TestNode {
+export interface Action {
   id: string;
   title: string;
   info?: string;
@@ -22,13 +26,7 @@ export interface TestNode {
   graph?: boolean;
 }
 
-export interface ProvarConfig {
-  vars?: Record<string, string>;
-  browser?: Record<string, unknown>;
-}
-
-export interface AppSettings {
-  provider?: string;
-  apiKey?: string;
-  recentProjects?: string[];
+export interface Edge {
+  from: string;
+  to: string;
 }

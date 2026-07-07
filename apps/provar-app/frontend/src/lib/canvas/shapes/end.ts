@@ -1,5 +1,5 @@
 import { NodeShape } from './shape';
-import { type TaskState } from '../constants';
+import { type ActionState } from '../constants';
 
 export class EndShape extends NodeShape {
   protected override get cornerRadius() {
@@ -15,7 +15,7 @@ export class EndShape extends NodeShape {
     return 10;
   }
 
-  constructor(state: TaskState = 'idle', onActivePath: boolean = false) {
+  constructor(state: ActionState = 'idle', onActivePath: boolean = false) {
     super('end', 'End', '', state, onActivePath, true);
     this.iconRow.visible = false;
   }

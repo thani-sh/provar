@@ -4,7 +4,7 @@
   import { editorStore } from '../stores/editor-store.svelte';
   import { uiStore } from '../stores/ui-store.svelte';
   import { File as FileApi } from '../api';
-  import type { TestFile } from '../types';
+  import type { TestFileView } from '../types';
 
   type TreeNode = {
     type: 'folder' | 'file';
@@ -66,9 +66,8 @@
     if (!projectStore.path) return;
     try {
       const view = await FileApi.ReadTestFile(projectStore.path, path);
-      // view is a domain.TestFileView — shape matches TestFile.graph.
-      // We wrap it in our local TestFile type and add editor-only
-      // state (code.valid) that lives in the store, not the file.
+      // view is a domain.TestFileView — shape matches TestFileView.graph
+      // so it assigns cleanly into the canvas's local TestFileView.
       editorStore.loadFile(path, { graph: view.graph });
     } catch (e) {
       console.error('TestExplorer: failed to load file', path, e);

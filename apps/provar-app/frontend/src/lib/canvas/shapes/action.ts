@@ -1,10 +1,10 @@
 import type { Ticker } from 'pixi.js';
 import { NodeShape } from './shape';
-import { type TaskState } from '../constants';
-import type { TestNode } from '../../types';
+import { type ActionState } from '../constants';
+import type { Action } from '../../types';
 import { buildIconRow } from '../icons';
 
-export class TaskShape extends NodeShape {
+export class ActionShape extends NodeShape {
   protected override get cornerRadius() {
     return 8;
   }
@@ -16,15 +16,15 @@ export class TaskShape extends NodeShape {
   }
 
   constructor(
-    nodeId: string,
-    node: TestNode,
-    state: TaskState,
+    actionId: string,
+    action: Action,
+    state: ActionState,
     onActivePath: boolean,
     ticker: Ticker,
     onClick: (id: string) => void,
     isCompiled: boolean = false,
   ) {
-    super(nodeId, node.title, node.info ?? '', state, onActivePath, isCompiled);
+    super(actionId, action.title, action.info ?? '', state, onActivePath, isCompiled);
 
     this.eventMode = 'static';
     this.cursor = 'pointer';
@@ -33,10 +33,10 @@ export class TaskShape extends NodeShape {
 
     this.on('pointerdown', (e) => {
       e.stopPropagation();
-      onClick(nodeId);
+      onClick(actionId);
     });
 
-    const { container, tick } = buildIconRow(state, node, ticker);
+    const { container, tick } = buildIconRow(state, action, ticker);
     this.iconRow.addChild(container);
 
     if (tick) {

@@ -1,8 +1,8 @@
 import { Application, Container, Graphics, TilingSprite } from 'pixi.js';
 import { GraphRenderer } from './renderer';
-import { LAYOUT, type TaskState } from './constants';
+import { LAYOUT, type ActionState } from './constants';
 import { Viewport } from './viewport';
-import type { TestFile } from '../types';
+import type { TestFileView } from '../types';
 
 /**
  * InfiniteCanvas controls the PIXI application, viewport, and the
@@ -76,13 +76,13 @@ export class InfiniteCanvas {
     this.tilingSprite.tilePosition.set(this.viewport.x, this.viewport.y);
   }
 
-  renderGraph(testFile: TestFile, taskStates: Record<string, TaskState> = {}) {
+  renderGraph(file: TestFileView, actionStates: Record<string, ActionState> = {}) {
     this.clearGraph();
     if (!this.shapeContainer || !this.app || !this.viewport) return;
 
     this.currentRenderer = new GraphRenderer(
-      testFile,
-      taskStates,
+      file,
+      actionStates,
       new Set(),
       this.app.ticker,
       (id) => this.onNodeSelect?.(id),
@@ -96,11 +96,11 @@ export class InfiniteCanvas {
   }
 
   updateGraphState(
-    taskStates: Record<string, TaskState> = {},
+    actionStates: Record<string, ActionState> = {},
     runningPathNodeIds: Set<string> = new Set(),
     compilationStates: Record<string, 'compiling' | 'compiled' | 'failed' | 'idle'> = {},
   ) {
-    this.currentRenderer?.setState(taskStates, runningPathNodeIds, compilationStates);
+    this.currentRenderer?.setState(actionStates, runningPathNodeIds, compilationStates);
   }
 
   private clearGraph() {

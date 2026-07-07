@@ -1,7 +1,7 @@
 export const GRAPH_START_ID = '__start__';
 
-/** TaskState represents the execution state of a node or connector. */
-export type TaskState =
+/** ActionState represents the execution state of an action or connector. */
+export type ActionState =
   | 'idle'
   | 'running'
   | 'success'

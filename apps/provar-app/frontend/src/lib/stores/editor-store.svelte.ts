@@ -1,12 +1,12 @@
-import type { TestFile, TestNode } from '../types';
+import type { Action, TestFileView } from '../types';
 
 /**
- * EditorStore holds the active test file and the currently selected node.
- * Compile and run state (compilation states, task states, running paths)
+ * EditorStore holds the active test file and the currently selected action.
+ * Compile and run state (compilation states, action states, running paths)
  * is added in a later phase when the debugger lands.
  */
 class EditorStore {
-  currentFile = $state<TestFile | null>(null);
+  currentFile = $state<TestFileView | null>(null);
   selectedFilePath = $state<string | null>(null);
   selectedNodeId = $state<string | null>(null);
 
@@ -15,7 +15,7 @@ class EditorStore {
     return this.currentFile.graph.nodes[this.selectedNodeId] ?? null;
   });
 
-  loadFile(path: string, file: TestFile) {
+  loadFile(path: string, file: TestFileView) {
     this.selectedFilePath = path;
     this.currentFile = file;
     this.selectedNodeId = null;
@@ -27,7 +27,7 @@ class EditorStore {
     this.selectedNodeId = null;
   }
 
-  updateNode(id: string, updates: Partial<TestNode>) {
+  updateNode(id: string, updates: Partial<Action>) {
     if (!this.currentFile) return;
     const existing = this.currentFile.graph.nodes[id];
     if (!existing) return;

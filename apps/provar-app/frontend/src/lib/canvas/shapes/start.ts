@@ -1,5 +1,5 @@
 import { NodeShape } from './shape';
-import { GRAPH_START_ID, type TaskState } from '../constants';
+import { GRAPH_START_ID, type ActionState } from '../constants';
 
 export class StartShape extends NodeShape {
   protected override get cornerRadius() {
@@ -15,7 +15,7 @@ export class StartShape extends NodeShape {
     return 10;
   }
 
-  constructor(state: TaskState = 'idle', onActivePath: boolean = false) {
+  constructor(state: ActionState = 'idle', onActivePath: boolean = false) {
     super(GRAPH_START_ID, 'Start', '', state, onActivePath, true);
     this.eventMode = 'none';
     this.iconRow.visible = false;

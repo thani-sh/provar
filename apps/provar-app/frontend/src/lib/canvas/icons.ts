@@ -1,6 +1,6 @@
 import { Container, Graphics, type Ticker } from 'pixi.js';
-import { COLOURS, LAYOUT, type TaskState } from './constants';
-import type { TestNode } from '../types';
+import { COLOURS, LAYOUT, type ActionState } from './constants';
+import type { Action } from '../types';
 
 export interface IconRow {
   container: Container;
@@ -10,12 +10,12 @@ export interface IconRow {
 
 /**
  * buildIconRow returns a populated Container of status / flag icons for
- * a task node. Pure: the only stateful bit is the optional spinner tick,
+ * an action node. Pure: the only stateful bit is the optional spinner tick,
  * which the caller registers on a Ticker and unregisters on destroy.
  */
 export function buildIconRow(
-  state: TaskState,
-  node: Pick<TestNode, 'graph' | 'config'>,
+  state: ActionState,
+  node: Pick<Action, 'graph' | 'config'>,
   ticker: Ticker,
 ): IconRow {
   const container = new Container();

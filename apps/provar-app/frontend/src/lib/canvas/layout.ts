@@ -1,5 +1,5 @@
 import { LAYOUT } from './constants';
-import type { TestGraph } from '../types';
+import type { Edge, TestFileGraph } from '../types';
 
 export interface PositionedNode {
   id: string;
@@ -7,13 +7,8 @@ export interface PositionedNode {
   y: number;
 }
 
-export interface Edge {
-  from: string;
-  to: string;
-}
-
 /** collectEdges returns the flat list of {from,to} edges from the graph. */
-export function collectEdges(graph: TestGraph): Edge[] {
+export function collectEdges(graph: TestFileGraph): Edge[] {
   return graph.edges.map((e) => ({ from: e.from, to: e.to }));
 }
 
@@ -22,7 +17,7 @@ export function collectEdges(graph: TestGraph): Edge[] {
  * Depth is the longest path from the start node. Cycles fall back to
  * whichever column was assigned first.
  */
-export function computeDepths(graph: TestGraph): Map<string, number> {
+export function computeDepths(graph: TestFileGraph): Map<string, number> {
   const depths = new Map<string, number>();
   const inEdges = new Map<string, string[]>();
   for (const node of Object.keys(graph.nodes)) inEdges.set(node, []);
@@ -57,7 +52,7 @@ export function computeDepths(graph: TestGraph): Map<string, number> {
  * the per-column row index so multi-node columns don't overlap.
  */
 export function assignPositions(
-  graph: TestGraph,
+  graph: TestFileGraph,
   depths: Map<string, number>,
 ): PositionedNode[] {
   const perColumn = new Map<number, string[]>();
