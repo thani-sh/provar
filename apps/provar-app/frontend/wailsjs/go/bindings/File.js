@@ -22,6 +22,10 @@ export function ListTests(arg1) {
   return window['go']['bindings']['File']['ListTests'](arg1);
 }
 
+export function LoadProject(arg1) {
+  return window['go']['bindings']['File']['LoadProject'](arg1);
+}
+
 export function LogErrorf(arg1, arg2) {
   return window['go']['bindings']['File']['LogErrorf'](arg1, arg2);
 }

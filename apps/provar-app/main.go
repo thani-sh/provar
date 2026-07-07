@@ -30,6 +30,7 @@ func main() {
 			app.Shell,
 			app.Project,
 			app.Config,
+			app.History,
 		},
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),

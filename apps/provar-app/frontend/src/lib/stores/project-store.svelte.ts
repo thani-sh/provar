@@ -1,10 +1,9 @@
-import { Project, File, Config } from '../api';
+import { File, Config, Project } from '../api';
+import { historyStore } from './history-store.svelte';
 
 /**
  * ProjectStore owns the path, config, and test-file list of the active
- * project. Bindings to the Go side (Phase 3) plug in here — the shape
- * of the store is what the components read from, regardless of where
- * the data comes from.
+ * project. Recent-projects persistence lives in historyStore.
  */
 class ProjectStore {
   path = $state<string | null>(null);
@@ -36,9 +35,11 @@ class ProjectStore {
     this.setPath(path);
     await this.refreshTests();
     try {
-      await Project.AddRecent(path);
+      await historyStore.add(path);
     } catch (e) {
-      console.warn('ProjectStore: AddRecent failed:', e);
+      // historyStore.add already reverts in-memory state on failure;
+      // log here so the failure is visible.
+      console.error('ProjectStore: history add failed:', e);
     }
   }
 

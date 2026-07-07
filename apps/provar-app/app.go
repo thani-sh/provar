@@ -18,6 +18,7 @@ type App struct {
 	Shell   *bindings.Shell
 	Project *bindings.Project
 	Config  *bindings.Config
+	History *bindings.History
 }
 
 // NewApp returns an App with its binding instances allocated but
@@ -29,6 +30,7 @@ func NewApp() *App {
 		Shell:   &bindings.Shell{},
 		Project: &bindings.Project{},
 		Config:  &bindings.Config{},
+		History: &bindings.History{},
 	}
 }
 
@@ -41,4 +43,5 @@ func (a *App) startup(ctx context.Context) {
 	a.Shell.Ctx = ctx
 	a.Project.Ctx = ctx
 	a.Config.Ctx = ctx
+	a.History.Ctx = ctx
 }

@@ -6,5 +6,6 @@ import * as Dialog from '../../wailsjs/go/bindings/Dialog';
 import * as Shell from '../../wailsjs/go/bindings/Shell';
 import * as Project from '../../wailsjs/go/bindings/Project';
 import * as Config from '../../wailsjs/go/bindings/Config';
+import * as History from '../../wailsjs/go/bindings/History';
 
-export { File, Dialog, Shell, Project, Config };
+export { File, Dialog, Shell, Project, Config, History };

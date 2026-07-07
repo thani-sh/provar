@@ -1,7 +1,7 @@
 <script lang="ts">
   import { projectStore } from './lib/stores/project-store.svelte';
   import { settingsStore } from './lib/stores/settings-store.svelte';
-  import { Dialog } from './lib/api';
+  import { historyStore } from './lib/stores/history-store.svelte';
   import Welcome from './lib/components/Welcome.svelte';
   import SetupWizard from './lib/components/SetupWizard.svelte';
   import Toolbar from './lib/components/Toolbar.svelte';
@@ -10,24 +10,16 @@
   import RightSidebar from './lib/components/RightSidebar.svelte';
   import AppModals from './lib/components/AppModals.svelte';
 
-  // Settings load is gated on "no project open yet" — once a project
-  // loads, the landing view is hidden and the wizard is irrelevant.
+  // Both stores load on first mount; gated on "no project open yet"
+  // so the load is skipped once a project is in flight. historyStore.load
+  // is also what drives settingsStore.showSetupWizard (a missing
+  // history file = first launch = show the wizard).
   $effect(() => {
     if (!projectStore.path) {
       settingsStore.load();
+      historyStore.load();
     }
   });
-
-  async function pickProject() {
-    try {
-      const path = await Dialog.SelectProject();
-      if (!path) return; // user cancelled
-      await projectStore.openProject(path);
-      settingsStore.prependRecent(path);
-    } catch (e) {
-      console.error('Failed to select project:', e);
-    }
-  }
 </script>
 
 <div
@@ -44,10 +36,9 @@
     {:else}
       <Welcome
         homeDir={settingsStore.homeDir}
-        recentProjects={settingsStore.recentProjects}
+        recentProjects={historyStore.recent}
         onOpen={(path) => {
           projectStore.openProject(path);
-          settingsStore.prependRecent(path);
         }}
         onError={(m) => console.warn(m)}
       />
