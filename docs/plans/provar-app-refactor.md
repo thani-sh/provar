@@ -164,7 +164,7 @@ The frontend should never parse a test file. It calls a Go binding that returns 
 
 - Running through the wizard end-to-end writes a valid `~/.provar/settings.yml` that `domain.LoadSettings` can re-read.
 - "Create sample project" on the welcome view creates a real project and opens it.
-- `setupStore.showSetupWizard` does not fire on subsequent launches (rely on the file's existence, not on `recentProjects.length === 0`).
+- `setupStore.showSetupWizard` does not fire on subsequent launches (rely on the file's existence, not on `recentProjects.length === 0`). **Done in Phase 2:** the first-launch trigger is `History.Exists()`, not list length, so the wizard does not flicker on/off as the user clears their history.
 
 ### Phase 5 — Add tests
 

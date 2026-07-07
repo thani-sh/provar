@@ -6,6 +6,8 @@
     BookOpen,
     ArrowRight,
   } from "lucide-svelte";
+  import { Dialog, Project } from "../api";
+  import { projectStore } from "../stores/project-store.svelte";
 
   interface Props {
     homeDir: string;
@@ -32,7 +34,13 @@
     if (busy) return;
     busy = true;
     try {
-      onError("Coming soon: clone the sample project.");
+      const target = await Dialog.SelectProject();
+      if (!target) return;
+      await Project.CreateSampleProject(target);
+      await projectStore.openProject(target);
+    } catch (e) {
+      console.error('Welcome: create sample failed:', e);
+      onError((e as Error).message);
     } finally {
       busy = false;
     }

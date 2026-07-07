@@ -2,13 +2,49 @@
   import { ArrowRight, ArrowLeft, Sparkles } from 'lucide-svelte';
   import { settingsStore } from '../stores/settings-store.svelte';
   import { projectStore } from '../stores/project-store.svelte';
-  import { Dialog } from '../api';
+  import { Dialog, Project } from '../api';
+  import { domain } from '../../../wailsjs/go/models';
 
   type Step = 'provider' | 'apikey' | 'project';
   let step = $state<Step>('provider');
 
   let provider = $state('openai');
   let apiKey = $state('');
+  let saving = $state(false);
+  let saveError = $state<string | null>(null);
+
+  async function saveAndAdvance() {
+    if (!apiKey.trim()) {
+      saveError = 'API key is required';
+      return;
+    }
+    saving = true;
+    saveError = null;
+    try {
+      const settings = (await Project.Settings()) ?? new domain.Settings();
+      settings.Provider = provider;
+      // Ensure the active provider's entry exists; the domain's
+      // defaultSettings populates all three, but defensive in case a
+      // future save stripped it.
+      if (!settings.Providers) settings.Providers = {};
+      if (!settings.Providers[provider]) {
+        settings.Providers[provider] = {
+          Model: '',
+          APIKey: apiKey.trim(),
+          BaseURL: '',
+        };
+      } else {
+        settings.Providers[provider].APIKey = apiKey.trim();
+      }
+      await Project.SaveSettings(settings);
+      step = 'project';
+    } catch (e) {
+      console.error('Setup wizard: save settings failed:', e);
+      saveError = (e as Error).message;
+    } finally {
+      saving = false;
+    }
+  }
 
   async function pickFirstProject() {
     try {
@@ -78,6 +114,9 @@
           placeholder="sk-…"
           class="w-full rounded-lg border border-zinc-700/50 bg-[#21262d] p-2.5 font-mono text-zinc-200 placeholder-zinc-500 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
         />
+        {#if saveError}
+          <p class="mt-2 text-xs text-red-400">{saveError}</p>
+        {/if}
         <div class="mt-6 flex justify-between">
           <button
             type="button"
@@ -89,10 +128,11 @@
           </button>
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600"
-            onclick={() => (step = 'project')}
+            disabled={saving}
+            class="flex items-center gap-1.5 rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-600 disabled:opacity-60"
+            onclick={saveAndAdvance}
           >
-            Next
+            {saving ? 'Saving…' : 'Next'}
             <ArrowRight class="h-3.5 w-3.5" />
           </button>
         </div>

@@ -33,3 +33,10 @@ func (p Project) Settings() (*domain.Settings, error) {
 func (p Project) SaveSettings(s *domain.Settings) error {
 	return domain.SaveSettings(s)
 }
+
+// CreateSampleProject scaffolds the demo-social sample (a 5-step
+// login test plus a small local web app) at target. Errors if the
+// target directory already contains files.
+func (p Project) CreateSampleProject(target string) error {
+	return domain.InitProject(target, true, false)
+}
