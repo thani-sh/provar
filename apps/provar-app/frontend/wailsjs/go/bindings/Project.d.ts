@@ -13,3 +13,5 @@ export function LogErrorf(arg1:string,arg2:Array<any>):Promise<void>;
 export function SaveSettings(arg1:domain.Settings):Promise<void>;
 
 export function Settings():Promise<domain.Settings>;
+
+export function ValidateSettings():Promise<void>;

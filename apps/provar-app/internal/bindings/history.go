@@ -98,21 +98,3 @@ func (h History) Add(path string) error {
 	}
 	return nil
 }
-
-// Exists returns true if the history file is present on disk. Used
-// for first-launch detection: a missing file means the user has never
-// launched the app (and therefore also has no settings).
-func (h History) Exists() (bool, error) {
-	path, err := h.historyPath()
-	if err != nil {
-		return false, err
-	}
-	_, err = os.Stat(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return false, nil
-		}
-		return false, fmt.Errorf("stat history: %w", err)
-	}
-	return true, nil
-}

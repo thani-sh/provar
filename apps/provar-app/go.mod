@@ -2,7 +2,10 @@ module provar-app
 
 go 1.26.4
 
-require github.com/wailsapp/wails/v2 v2.13.0
+require (
+	github.com/wailsapp/wails/v2 v2.13.0
+	go.yaml.in/yaml/v4 v4.0.0-rc.2
+)
 
 require (
 	cloud.google.com/go v0.116.0 // indirect
@@ -31,7 +34,6 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
 	golang.org/x/sync v0.20.0 // indirect
 	google.golang.org/genai v1.62.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect

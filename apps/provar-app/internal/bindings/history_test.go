@@ -27,14 +27,6 @@ func TestHistory_EmptyOnFirstLaunch(t *testing.T) {
 	if len(recent) != 0 {
 		t.Errorf("got %v, want empty", recent)
 	}
-
-	exists, err := h.Exists()
-	if err != nil {
-		t.Fatalf("Exists: %v", err)
-	}
-	if exists {
-		t.Errorf("Exists = true on first launch, want false")
-	}
 }
 
 func TestHistory_AddAndRecent(t *testing.T) {
@@ -51,14 +43,6 @@ func TestHistory_AddAndRecent(t *testing.T) {
 	}
 	if len(recent) != 1 || recent[0] != "/path/to/a" {
 		t.Errorf("got %v, want [/path/to/a]", recent)
-	}
-
-	exists, err := h.Exists()
-	if err != nil {
-		t.Fatalf("Exists: %v", err)
-	}
-	if !exists {
-		t.Errorf("Exists = false after Add, want true")
 	}
 }
 

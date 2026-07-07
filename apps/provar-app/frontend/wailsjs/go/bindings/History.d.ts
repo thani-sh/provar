@@ -5,8 +5,6 @@ export function Add(arg1:string):Promise<void>;
 
 export function Emit(arg1:string,arg2:Array<any>):Promise<void>;
 
-export function Exists():Promise<boolean>;
-
 export function LogErrorf(arg1:string,arg2:Array<any>):Promise<void>;
 
 export function Recent():Promise<Array<string>>;

@@ -10,10 +10,6 @@ export function Emit(arg1, arg2) {
   return window['go']['bindings']['History']['Emit'](arg1, arg2);
 }
 
-export function Exists() {
-  return window['go']['bindings']['History']['Exists']();
-}
-
 export function LogErrorf(arg1, arg2) {
   return window['go']['bindings']['History']['LogErrorf'](arg1, arg2);
 }

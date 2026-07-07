@@ -25,3 +25,7 @@ export function SaveSettings(arg1) {
 export function Settings() {
   return window['go']['bindings']['Project']['Settings']();
 }
+
+export function ValidateSettings() {
+  return window['go']['bindings']['Project']['ValidateSettings']();
+}
