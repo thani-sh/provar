@@ -21,14 +21,18 @@
     children,
   }: Props = $props();
 
-  function handleKey(e: KeyboardEvent) {
+  // Attach the keydown listener only while the modal is open so it
+  // doesn't fire for every keystroke across the whole app lifetime.
+  $effect(() => {
     if (!show) return;
-    if (e.key === 'Escape') onClose();
-    if (e.key === 'Enter' && onPrimary) onPrimary();
-  }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && onPrimary) onPrimary();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  });
 </script>
-
-<svelte:window onkeydown={handleKey} />
 
 {#if show}
   <div

@@ -24,14 +24,7 @@ func main() {
 		},
 		BackgroundColour: &options.RGBA{R: 14, G: 17, B: 22, A: 1},
 		OnStartup:        app.startup,
-		Bind: []interface{}{
-			app.File,
-			app.Dialog,
-			app.Shell,
-			app.Project,
-			app.Config,
-			app.History,
-		},
+		Bind:             app.boundBindings(),
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),
 			WebviewIsTransparent: true,
